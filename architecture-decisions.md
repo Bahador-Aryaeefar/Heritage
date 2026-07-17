@@ -304,6 +304,9 @@ Routes: `/` (landing, fa default), `/en` (landing English), `/sites/[slug]` and 
 | Migrations | `prisma migrate deploy` via API entrypoint (`RUN_MIGRATIONS=true` default) | Safe automated schema apply on container start |
 | Uploads persistence | Docker volume `api_uploads` mounted at `/app/apps/api/uploads` | Survives container rebuilds |
 | Env file | `.env.production` (from `.env.production.example`) | Secrets and domain config for compose |
+| Build-time API isolation (2026-07-17) | The web image build **cannot reach the API** (different build network), so the frontend must build without it: landing uses `getLandingOrEmpty()` (empty grid fallback, ISR refills within 60s), slug pages fall back to on-demand ISR via `generateStaticParams` → `[]`. Replaces the implicit assumption that `next build` runs with a live API, which made `docker compose build web` fail (prerender `fetch` → ECONNREFUSED) and left stale pre-`setRequestLocale`-fix images running in production logging `DYNAMIC_SERVER_USAGE` | Deploys must never depend on service start order |
+| Rewrite origin baked at build (2026-07-17) | `API_BASE_URL` is now a web **build arg** (`http://api:4000/api/v1` in prod compose): Next.js serializes `next.config.ts` rewrites (`/uploads/*`, plaque download) into the build output, so the runtime-only compose env never reached them and they pointed at `localhost:4000` inside the container | Rewrites must target the in-network API origin |
+| API error typing (2026-07-17) | `apiFetch` throws `ApiError` with `status`; site detail page maps **only 404** to `notFound()` and rethrows everything else | A transient API outage during ISR revalidation must keep serving the stale page, not cache a 404 over a live site |
 
 Example Caddy config: [`deploy/Caddyfile.example`](./deploy/Caddyfile.example).
 

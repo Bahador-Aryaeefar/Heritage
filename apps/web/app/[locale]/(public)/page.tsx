@@ -4,7 +4,7 @@ import { PromoBanner } from '@/components/public/promo-banner';
 import { HowItWorks } from '@/components/public/how-it-works';
 import { SitesGrid } from '@/components/public/sites-grid';
 import { RevealOnScroll } from '@/components/public/reveal-on-scroll';
-import { getLanding } from '@/lib/sites';
+import { getLandingOrEmpty } from '@/lib/sites';
 import { heritageImages } from '@/lib/heritage-images';
 import { buildPlaqueQrUrl, buildSiteQrPngUrl } from '@/lib/qr-url';
 import type { Locale } from '@heritage/shared-types';
@@ -20,7 +20,7 @@ export default async function HomePage({ params }: PageProps) {
   setRequestLocale(locale);
 
   const t = await getTranslations('home');
-  const landing = await getLanding();
+  const landing = await getLandingOrEmpty();
   const steps = t.raw('how.steps') as Array<{ title: string; body: string }>;
   const heroImageSrc = heritageImages.hero.src;
   const heroAlt = locale === 'fa' ? heritageImages.hero.altFa : heritageImages.hero.altEn;

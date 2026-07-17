@@ -1,6 +1,7 @@
 import {
   landingResponseSchema,
   siteDetailSchema,
+  type LandingResponse,
   type Locale,
   type SiteCard,
   type SiteDetail,
@@ -11,6 +12,18 @@ export async function getLanding() {
   return apiFetch('/public/landing', landingResponseSchema, {
     next: { revalidate: 60 },
   });
+}
+
+// The landing page must stay prerenderable when the API is unreachable,
+// which is always the case while the web Docker image is being built (the
+// api container is not on the build network). The empty grid is temporary:
+// ISR re-fetches within one revalidate window once the API is up.
+export async function getLandingOrEmpty(): Promise<LandingResponse> {
+  try {
+    return await getLanding();
+  } catch {
+    return { sites: [] };
+  }
 }
 
 export async function getSiteBySlug(slug: string) {

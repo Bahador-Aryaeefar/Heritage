@@ -4,6 +4,7 @@ import { getTranslations, setRequestLocale } from 'next-intl/server';
 import { Badge } from '@/components/ui/badge';
 import { BlockRenderer } from '@/components/public/content-blocks/block-renderer';
 import { SiteQrPanel } from '@/components/public/site-qr-panel';
+import { ApiError } from '@/lib/api-client';
 import {
   getLanding,
   getSiteBySlug,
@@ -51,8 +52,11 @@ export default async function SiteDetailPage({ params }: PageProps) {
   let site;
   try {
     site = await getSiteBySlug(slug);
-  } catch {
-    notFound();
+  } catch (error) {
+    // Only a real 404 becomes a not-found page. A transient failure (API
+    // down, network) must throw so ISR keeps serving the last good page.
+    if (error instanceof ApiError && error.status === 404) notFound();
+    throw error;
   }
 
   const translation = pickSiteDetailTranslation(site, locale as Locale);

@@ -163,7 +163,7 @@ Key variables:
 |---|---|---|
 | `POSTGRES_PASSWORD` | `.env.production` | Strong secret |
 | `PUBLIC_SITE_URL` | `.env.production` | `https://heritage.nobatix.ir` |
-| `API_BASE_URL` | web container (compose) | `http://api:4000/api/v1` (internal) |
+| `API_BASE_URL` | web build arg + runtime (compose) | `http://api:4000/api/v1` (internal; the build arg bakes the `/uploads/*` and plaque rewrite origins) |
 | `PUBLIC_ASSET_BASE_URL` | api container (compose) | Same as `PUBLIC_SITE_URL` |
 | `PUBLIC_WEB_BASE_URL` | api container (compose) | Same as `PUBLIC_SITE_URL` |
 | `NEXT_PUBLIC_SITE_URL` | web build arg + runtime | `https://heritage.nobatix.ir` |
@@ -175,6 +175,14 @@ docker compose -f docker-compose.prod.yml --env-file .env.production up -d --bui
 ```
 
 The API entrypoint runs `prisma migrate deploy` on start (`RUN_MIGRATIONS=true` by default).
+
+The web image builds **without** reaching the API (the build network cannot see the `api` container). That is expected: the landing page prerenders with an empty sites grid and site pages defer to on-demand rendering; ISR fills both from the live API within about a minute of the stack coming up.
+
+To redeploy after frontend changes, rebuild the web image (a plain `restart` keeps serving the old build):
+
+```bash
+docker compose -f docker-compose.prod.yml --env-file .env.production up -d --build web
+```
 
 ### 4. Seed the database (first deploy only)
 

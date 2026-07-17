@@ -14,7 +14,14 @@ RUN pnpm install --frozen-lockfile --filter web...
 
 FROM deps AS build
 ARG NEXT_PUBLIC_SITE_URL=https://heritage.nobatix.ir
+# Baked into the build output: next.config.ts resolves the /uploads/* and
+# plaque-download rewrite destinations from this at build time. It must be
+# the runtime in-network API origin (http://api:4000/...), NOT localhost.
+# The API is unreachable while the image builds; pages handle that (empty
+# landing grid, no prerendered slug pages) and ISR refills them at runtime.
+ARG API_BASE_URL=http://api:4000/api/v1
 ENV NEXT_PUBLIC_SITE_URL=${NEXT_PUBLIC_SITE_URL}
+ENV API_BASE_URL=${API_BASE_URL}
 COPY packages/shared-types packages/shared-types
 COPY apps/web apps/web
 RUN pnpm --filter web build

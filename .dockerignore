@@ -1,0 +1,15 @@
+node_modules
+**/node_modules
+.git
+.claude
+graphify-out
+**/.next
+**/dist
+**/coverage
+**/*.log
+.env
+.env.*
+!.env.production.example
+apps/api/uploads
+apps/api/.env
+apps/web/.env

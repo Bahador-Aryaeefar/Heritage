@@ -1,0 +1,20 @@
+# Install on the VPS host (not inside Docker).
+# Typical path: /etc/caddy/Caddyfile
+#
+# Caddy terminates TLS and forwards everything to the Next.js container.
+# Next.js rewrites /uploads/* and /downloads/sites/*/plaque.png to the API
+# container on the internal Docker network (see apps/web/next.config.ts).
+
+heritage.nobatix.ir {
+	encode gzip zstd
+
+	# Optional: direct health check to API (bypasses Next.js rewrites).
+	handle /api/* {
+		reverse_proxy 127.0.0.1:4000
+	}
+
+	# Default: public site + upload/plaque rewrites handled by Next.js.
+	handle {
+		reverse_proxy 127.0.0.1:3000
+	}
+}

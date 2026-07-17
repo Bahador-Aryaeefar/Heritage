@@ -15,6 +15,7 @@ Do this even for a task that looks small or unrelated to architecture (e.g. "add
 After making a change that establishes, changes, or rules out a decision (a new library, a folder-structure change, a new data field, a reversed earlier choice), update the relevant guide file in the same session, not as a follow-up task:
 - Architectural/backend/frontend/data-model decisions go in `architecture-decisions.md`.
 - Visual/UI/copy-style decisions go in `design-system.md`.
+- **UI implementation rule:** when adding or materially changing a public/admin **section, layout, or composed component**, document it in `design-system.md` in the same session (component spec, tokens, spacing). Do not defer UI documentation.
 - Log it the way the existing entries are logged: the decision, the reason, and - if it reverses something - what it replaces and why.
 - If a change is exploratory/temporary (a spike, a throwaway test), do not log it as a decision.
 - Never leave a guide file stale after a real decision was made in conversation or in code. A future session (agent or human) should be able to read these two files and reconstruct the current state of the project without reading git history.

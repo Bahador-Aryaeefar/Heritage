@@ -1,0 +1,27 @@
+# dependencies
+node_modules/
+
+# builds
+dist/
+.next/
+out/
+*.tsbuildinfo
+next-env.d.ts
+
+# tests
+coverage/
+
+# env
+.env
+.env.*
+!.env.example
+
+# tooling output
+graphify-out/
+
+# API uploads (local disk storage)
+apps/api/uploads/
+
+# misc
+.DS_Store
+*.log

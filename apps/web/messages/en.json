@@ -1,0 +1,76 @@
+{
+  "nav": {
+    "how": "How it works",
+    "sites": "Heritage sites",
+    "contact": "Contact",
+    "menu": "Menu"
+  },
+  "footer": {
+    "tagline": "Kermanshah Heritage, smart QR-based cultural tourism"
+  },
+  "home": {
+    "eyebrow": "Smart heritage guide for Kermanshah",
+    "title": "Every stone has a story. Just scan.",
+    "titleAccent": "a story",
+    "description": "Scan the QR code beside historical sites across Kermanshah, from Taq-e Bostan to Bisotun, and read each place's history, images, and narrative on the spot.",
+    "ctaPrimary": "Get started",
+    "ctaSecondary": "Browse sites",
+    "plaqueSite": "Taq-e Bostan",
+    "plaqueLocation": "Kermanshah, Iran",
+    "plaqueBrandName": "میراث کرمانشاه",
+    "plaqueBrandTagline": "KERMANSHAH HERITAGE",
+    "banners": {
+      "top": {
+        "title": "Tourism without installing an app",
+        "body": "Each site has a QR code. Scan it and read the story in your language.",
+        "cta": "Learn more",
+        "href": "#how"
+      },
+      "mid": {
+        "title": "Discover Kermanshah's heritage",
+        "body": "From Sasanian reliefs to natural landmarks, all in one platform.",
+        "cta": "View sites",
+        "href": "#sites"
+      }
+    },
+    "how": {
+      "eyebrow": "Process",
+      "title": "Discover history in three steps",
+      "steps": [
+        {
+          "title": "Find the QR code",
+          "body": "A small plaque with a QR code is installed beside each heritage site."
+        },
+        {
+          "title": "Scan with your phone camera",
+          "body": "No app install needed. The page opens directly in your browser."
+        },
+        {
+          "title": "Read the story",
+          "body": "View images, historical text, and extra information about that site."
+        }
+      ]
+    },
+    "sites": {
+      "eyebrow": "Sites",
+      "title": "Featured heritage sites",
+      "empty": "No sites have been published yet."
+    }
+  },
+  "site": {
+    "category": {
+      "ANCIENT": "Ancient",
+      "ISLAMIC": "Islamic",
+      "NATURAL": "Natural"
+    },
+    "qr": {
+      "title": "QR code for this site",
+      "scan": "Scan this code to open this heritage page in your browser.",
+      "download": "Download PNG for plaque printing"
+    }
+  },
+  "lang": {
+    "fa": "فارسی",
+    "en": "English"
+  }
+}

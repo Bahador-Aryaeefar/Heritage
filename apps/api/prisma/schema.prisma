@@ -1,0 +1,188 @@
+// Kermanshah Heritage - Prisma schema.
+// See heritage-schema-map.md and architecture-decisions.md §7 / §14.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum SiteCategory {
+  ANCIENT
+  ISLAMIC
+  NATURAL
+}
+
+enum MediaType {
+  IMAGE
+  VIDEO
+  AUDIO
+}
+
+enum ContentBlockType {
+  HEADING
+  PARAGRAPH
+  IMAGE
+  VIDEO
+  AUDIO
+}
+
+enum TextRole {
+  HERO
+  H2
+  H3
+  BODY
+  CAPTION
+}
+
+enum ColorToken {
+  BROWN_950
+  BROWN_800
+  BROWN_600
+  TEAL_700
+  SAND_50
+}
+
+enum BlockAlign {
+  START
+  CENTER
+}
+
+enum VisitSource {
+  QR
+  WEB
+}
+
+model Province {
+  id        String   @id @default(cuid())
+  nameFa    String
+  nameEn    String
+  slug      String   @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  cities    City[]
+}
+
+model City {
+  id         String   @id @default(cuid())
+  provinceId String
+  nameFa     String
+  nameEn     String
+  slug       String   @unique
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  province   Province @relation(fields: [provinceId], references: [id], onDelete: Restrict)
+  sites      Site[]
+
+  @@index([provinceId])
+}
+
+model Site {
+  id           String             @id @default(cuid())
+  slug         String             @unique
+  category     SiteCategory
+  lat          Decimal            @db.Decimal(10, 7)
+  lng          Decimal            @db.Decimal(10, 7)
+  cityId       String
+  isActive     Boolean            @default(true)
+  createdAt    DateTime           @default(now())
+  updatedAt    DateTime           @updatedAt
+  city         City               @relation(fields: [cityId], references: [id], onDelete: Restrict)
+  translations SiteTranslation[]
+  media        Media[]
+  blocks       SiteContentBlock[]
+  qrCodes      QRCode[]
+  visitEvents  VisitEvent[]
+
+  @@index([cityId])
+  @@index([isActive])
+}
+
+model SiteTranslation {
+  id               String   @id @default(cuid())
+  siteId           String
+  locale           String   @db.VarChar(5)
+  title            String
+  shortDescription String
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+  site             Site     @relation(fields: [siteId], references: [id], onDelete: Cascade)
+
+  @@unique([siteId, locale])
+  @@index([siteId])
+}
+
+model Media {
+  id          String     @id @default(cuid())
+  siteId      String
+  type        MediaType
+  url         String?
+  embedUrl    String?
+  mimeType    String?
+  durationSec Int?
+  altFa       String?
+  altEn       String?
+  sortOrder   Int        @default(0)
+  isCover     Boolean    @default(false)
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+  site        Site       @relation(fields: [siteId], references: [id], onDelete: Cascade)
+  blocks      SiteContentBlock[]
+
+  @@index([siteId])
+  @@index([siteId, isCover])
+}
+
+model SiteContentBlock {
+  id        String           @id @default(cuid())
+  siteId    String
+  locale    String           @db.VarChar(5)
+  sortOrder Int
+  type      ContentBlockType
+  textRole  TextRole?
+  colorToken ColorToken?
+  align     BlockAlign?
+  spans     Json?
+  mediaId   String?
+  caption   String?
+  createdAt DateTime         @default(now())
+  updatedAt DateTime         @updatedAt
+  site      Site             @relation(fields: [siteId], references: [id], onDelete: Cascade)
+  media     Media?           @relation(fields: [mediaId], references: [id], onDelete: SetNull)
+
+  @@unique([siteId, locale, sortOrder])
+  @@index([siteId, locale])
+}
+
+model QRCode {
+  id          String       @id @default(cuid())
+  siteId      String
+  code        String       @unique
+  installedAt DateTime     @default(now())
+  isActive    Boolean      @default(true)
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+  site        Site         @relation(fields: [siteId], references: [id], onDelete: Restrict)
+  visitEvents VisitEvent[]
+
+  @@index([siteId])
+}
+
+model VisitEvent {
+  id         String       @id @default(cuid())
+  siteId     String
+  qrCodeId   String?
+  locale     String       @db.VarChar(5)
+  source     VisitSource
+  deviceType String?
+  createdAt  DateTime     @default(now())
+  site       Site         @relation(fields: [siteId], references: [id], onDelete: Restrict)
+  qrCode     QRCode?      @relation(fields: [qrCodeId], references: [id], onDelete: SetNull)
+
+  @@index([siteId])
+  @@index([qrCodeId])
+  @@index([createdAt])
+}

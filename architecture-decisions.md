@@ -214,6 +214,82 @@ apps/web/
 - Vitest + React Testing Library for component/hook unit tests (form validation logic, the `LanguageSwitcher` path-rewriting logic - anything with actual branching logic, not snapshot tests of static markup).
 - Playwright for the handful of true end-to-end flows worth covering: scan-to-page-load on the public site, and sign-in-to-edit-a-site on the admin side. Kept small and deliberate rather than full-coverage, matching the backend's stance in section 10 on not blocking early velocity on a full test pyramid.
 
+## 13. Phase 1 setup decisions (2026-07-17)
+
+Made during the install/setup phase; recorded here so later sessions don't re-litigate them.
+
+| Decision | Detail | Reason |
+|---|---|---|
+| pnpm | Installed globally via `npm i -g pnpm`, version pinned with `packageManager` in root `package.json` (currently 11.13.1) | Reproducible installs across machines/sessions |
+| Local dev DB | Postgres 16 via `docker-compose.yml` at repo root (`db` service, named volume `heritage_pgdata`) | Reproducible, wipeable, nothing installed on Windows itself |
+| Docker registry | On this dev machine docker.io is unreachable; images are pulled through the ArvanCloud mirror (`docker pull docker.arvancloud.ir/<image>` then `docker tag`) | Network constraint anticipated in the hosting open question |
+| API port | 4000 (not 3000/3001) | 3000 is the web app; 3001 is occupied by Docker Desktop's backend on this machine |
+| Test runners | Jest in `apps/api` (NestJS default), Vitest + React Testing Library in `apps/web` | §12g's Vitest choice is scoped to the frontend; no value in swapping Nest's working default |
+| Lint | ESLint 9 flat config: shared base `eslint.config.base.mjs` at root, extended by `apps/api` and `packages/shared-types`. `apps/web` uses `eslint-config-next` instead (it bundles its own typescript-eslint; mixing both registers the plugin twice) plus `eslint-config-prettier` | One Prettier config at root for all packages; web is the single documented exception to the shared ESLint base |
+| Tailwind | v4, CSS-first config: design tokens live in `@theme` inside `apps/web/app/globals.css`, no `tailwind.config` file | v4 default; tokens stay next to the CSS that uses them |
+| Fonts | Vazirmatn via `next/font/google` (build-time download, self-hosted output) | Worked from this network at build time; zero runtime requests to Google |
+| Zod | v4 across the workspace | Current major; shared-types, api env validation, and web env validation all use it |
+| Next.js 16 note | `middleware.ts` is now `proxy.ts` (renamed in Next 16, same behavior) - next-intl's `createMiddleware` is exported from there | Anyone following older next-intl docs will look for middleware.ts and not find it |
+| Prisma | v6, schema at `apps/api/prisma/schema.prisma`, empty of models until the schema-design phase | Placeholder so `prisma generate`/`PrismaService` wiring is proven before models exist |
+
+Monorepo layout, NestJS conventions, and frontend structure are exactly as specified in §6, §11, and §12 - the scaffold introduced no deviations from them.
+
+### 13a. Setup completion checklist (2026-07-17)
+
+Verified working on this machine after the scaffold:
+
+| Item | Status |
+|---|---|
+| `pnpm install` + workspace scripts | ok |
+| Docker Postgres (`heritage-db-1`, healthy on 5432) | ok |
+| `apps/api/.env` + root `.env` + `apps/web/.env` from examples | ok |
+| Prisma client ↔ DB (`$connect`) | ok (`prisma generate` can EPERM on Windows if a node process holds `query_engine-windows.dll.node`; existing client still works) |
+| `pnpm lint` / `pnpm test` / `pnpm build` | all green |
+| Graphify code graph (`graphify update .`) | `graphify-out/` present (gitignored); re-run after structural changes |
+| Root `README.md` | documents first-time setup and daily commands |
+
+Next phase after setup: schema design (`Province`/`City`/`Site`/… per §7) — not part of install.
+
+## 14. Schema, content blocks, media, and public API (2026-07-17)
+
+Phase 2 backend: full domain schema, flexible site pages, public read APIs, local media pipeline, seed data. Admin HTTP and auth deferred.
+
+| Decision | Detail | Reason |
+|---|---|---|
+| Content model | `SiteTranslation` holds `title` + `shortDescription` only; page body = ordered `SiteContentBlock` rows per locale | Supports mixed headings, styled text (bold/italic spans), images, video, audio without HTML in the DB |
+| Text styling | Design-system tokens only: `textRole`, `colorToken`, `align`; inline emphasis via `spans: { text, bold?, italic? }[]` | Keeps Persian pages on-brand; admin editor can expose a fixed palette later |
+| Media types | `IMAGE` (sharp → WebP), `VIDEO`/`AUDIO` (store as-is); video may use `embedUrl` instead of local file | Matches arch §11 upload pipeline; defers transcoding |
+| Storage | `StorageService` interface + `LocalDiskStorageService`; served at `/uploads/*` via `@nestjs/serve-static` | Swappable to S3/CDN later without rewriting MediaService |
+| Media file lifecycle | Write to disk only via `save*FromBuffer` / `replace*FromBuffer`; on DB failure the new file is deleted before the error propagates; replace deletes the previous file only after a successful row update; `deleteMedia` removes the DB row first, then the file | Avoids dangling uploads when create/update fails |
+| Public API | `GET /api/v1/public/landing`, `GET /api/v1/public/sites/:slug` | Read-only; inactive sites → 404 |
+| Shared contracts | Zod schemas in `@heritage/shared-types` (`siteCardSchema`, `siteDetailSchema`, `contentBlockSchema`) | Web can wire pages later without redesign |
+| Seed | Idempotent Prisma seed: Kermanshah geography + Taq-e Bostan with demo blocks + cover + QR; cover/detail photos fetched from Wikimedia Commons at seed time (placeholder fallback) | Real imagery in API uploads without committing binaries to git |
+| Deferred | Admin CRUD HTTP, JWT auth, VisitEvent writes, Next.js block renderer | Explicit scope cut for this phase |
+
+Field-level reference: [`heritage-schema-map.md`](./heritage-schema-map.md).
+
+## 15. Public frontend — landing and site pages (2026-07-17)
+
+| Decision | Detail | Reason |
+|---|---|---|
+| Data fetching | Server Components + `apiFetch` + Zod schemas from `@heritage/shared-types`; no React Query on public routes | §12a: read-only public side; SSG/ISR friendly |
+| ISR | `revalidate = 60` on landing and site detail pages | Content edits propagate without full rebuild |
+| Landing marketing copy | next-intl JSON (`messages/fa.json`, `en.json`) | Shell UI + hero/how-it-works/banners |
+| Site body copy | API `SiteContentBlock[]` per locale | Staff-editable per site |
+| Promo banners | Static JSON slots (`home.banners.top/mid`) | Space for campaigns until admin CMS |
+| Scroll animation | CSS transitions + `RevealOnScroll` (Intersection Observer); no Framer Motion | Lightweight; respects `prefers-reduced-motion` |
+| Images | `next/image` with `remotePatterns` for API upload host and Wikimedia Commons (`upload.wikimedia.org`) | Optimized covers from `/uploads/`; landing hero/banners use CC photos until CMS |
+| Marketing photos | Bundled in `apps/web/public/media/taq-e-bostan/` | Landing hero/banners work without API or Wikimedia |
+| Default locale URL | `localePrefix: 'as-needed'` + `localeDetection: false` in `i18n/routing.ts` | `/` always Persian; browser `Accept-Language` ignored; `/en/...` for English |
+| Seed assets | Committed under `apps/api/prisma/seed-assets/` + mirrored in `apps/web/public/media/` | Offline media; no live Wikimedia fetch required |
+| Decor borders | Simple `HeritageCard` (gold-tint border + soft shadow); ornate corners removed |
+| Page background | CSS diagonal stripes on `sand-50`, slow drift animation (`heritage-bg-drift`) |
+| Block renderer | `components/public/content-blocks/` maps API tokens → Tailwind (design-system §10–11) | Single renderer for seeded + future content |
+| QR generation | `QrService` plaque PNG (SVG frame + title/location + QR; brand lockup composited via `@napi-rs/canvas` for correct Persian/Latin layout) + on-screen `HeritageQrCode` |
+| QR URL | `https://heritage.nobatix.ir/sites/{slug}?src=qr` (env: `PUBLIC_WEB_BASE_URL`, `NEXT_PUBLIC_SITE_URL`) |
+
+Routes: `/` (landing, fa default), `/en` (landing English), `/sites/[slug]` and `/en/sites/[slug]`. Shared `(public)/layout.tsx` with header/footer.
+
 ## Open questions
 
 - [ ] Hosting: personal VPS vs. a domestic cloud provider (given possible access/connectivity constraints)

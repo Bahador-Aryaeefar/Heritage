@@ -1,0 +1,74 @@
+@import 'tailwindcss';
+
+@theme inline {
+  --color-brown-950: #2a1d14;
+  --color-brown-800: #4a3728;
+  --color-brown-600: #7a5c41;
+  --color-sand-100: #f5ede1;
+  --color-sand-50: #fbf7f0;
+  --color-teal-700: #1d6f8c;
+  --color-teal-500: #3d93ae;
+  --color-teal-200: #bfe0ea;
+  --color-gold-500: #c9a227;
+  --color-gold-600: #a88732;
+
+  --radius-button: 10px;
+  --radius-card: 14px;
+  --radius-container: 24px;
+
+  --breakpoint-md: 700px;
+  --breakpoint-lg: 900px;
+
+  --font-sans: var(--font-vazirmatn), ui-sans-serif, system-ui, sans-serif;
+}
+
+body {
+  color: var(--color-brown-950);
+  font-family: var(--font-sans);
+}
+
+.reveal-on-scroll {
+  opacity: 0;
+  transform: translateY(12px);
+  transition:
+    opacity 0.4s ease-out,
+    transform 0.4s ease-out;
+}
+
+.reveal-on-scroll[data-visible='true'] {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.heritage-page-bg {
+  background-color: var(--color-sand-50);
+  background-image: repeating-linear-gradient(
+    -45deg,
+    rgb(74 55 40 / 0.12) 0,
+    rgb(74 55 40 / 0.12) 2px,
+    transparent 2px,
+    transparent 14px
+  );
+  animation: heritage-bg-drift 22s linear infinite;
+}
+
+@keyframes heritage-bg-drift {
+  0% {
+    background-position: 0 0;
+  }
+  100% {
+    background-position: 28px 28px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .heritage-page-bg {
+    animation: none;
+  }
+
+  .reveal-on-scroll {
+    opacity: 1;
+    transform: none;
+    transition: none;
+  }
+}

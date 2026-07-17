@@ -290,8 +290,24 @@ Field-level reference: [`heritage-schema-map.md`](./heritage-schema-map.md).
 
 Routes: `/` (landing, fa default), `/en` (landing English), `/sites/[slug]` and `/en/sites/[slug]`. Shared `(public)/layout.tsx` with header/footer.
 
+## 16. VPS production deployment (2026-07-17)
+
+| Decision | Detail | Reason |
+|---|---|---|
+| Production compose | `docker-compose.prod.yml` (db + api + web); root `docker-compose.yml` stays dev Postgres-only | Keeps local dev simple; prod adds app containers |
+| Dockerfiles | Multi-stage builds in `apps/api/Dockerfile` and `apps/web/Dockerfile` | Reproducible deploy on any VPS with Docker |
+| TLS / reverse proxy | Caddy on the **host** → `127.0.0.1:3000` (web); optional `/api/*` → `127.0.0.1:4000` | User already runs Caddy; containers bind localhost only |
+| Internal API URL | Web container `API_BASE_URL=http://api:4000/api/v1` | Server Components fetch over Docker network, not public HTTPS |
+| Public asset URLs | API `PUBLIC_ASSET_BASE_URL` + `PUBLIC_WEB_BASE_URL` = `PUBLIC_SITE_URL` (`https://heritage.nobatix.ir`) | QR codes and `/uploads/` JSON URLs must match the public origin |
+| Next.js output | `output: 'standalone'` in `next.config.ts` | Smaller web container image |
+| Migrations | `prisma migrate deploy` via API entrypoint (`RUN_MIGRATIONS=true` default) | Safe automated schema apply on container start |
+| Uploads persistence | Docker volume `api_uploads` mounted at `/app/apps/api/uploads` | Survives container rebuilds |
+| Env file | `.env.production` (from `.env.production.example`) | Secrets and domain config for compose |
+
+Example Caddy config: [`deploy/Caddyfile.example`](./deploy/Caddyfile.example).
+
 ## Open questions
 
-- [ ] Hosting: personal VPS vs. a domestic cloud provider (given possible access/connectivity constraints)
+- [x] Hosting: personal VPS with Docker + Caddy (documented in README §Deploy on VPS; `docker-compose.prod.yml`)
 - [ ] Database and image backup strategy
 - [ ] Whether "nearby sites" (GPS-based) ships in phase one or phase two

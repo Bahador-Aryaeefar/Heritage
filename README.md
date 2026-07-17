@@ -125,91 +125,81 @@ Requires API running on port 4000 with seed data.
 
 Production domain: **`https://heritage.nobatix.ir`**
 
-Root `docker-compose.yml` is **dev-only** (Postgres). Production uses `docker-compose.prod.yml`, which adds `api` and `web` containers. Caddy on the host terminates TLS and reverse-proxies to the web container.
-
-### Architecture
-
 ```text
 Internet → Caddy (:443) → web (:3000, localhost only)
-                              ├─ server fetch → api (:4000, internal + localhost)
+                              ├─ server fetch → api (:4000, internal)
                               ├─ rewrite /uploads/* → api
-                              └─ rewrite /downloads/sites/*/plaque.png → api QR PNG
+                              └─ rewrite /downloads/sites/*/plaque.png → api
                            api → db (:5432, internal only)
 ```
 
-| Service | Exposed to host | Public |
+| Layer | What runs | Exposed to internet |
 |---|---|---|
-| `db` | no | no |
-| `api` | `127.0.0.1:4000` (optional debug) | via Caddy `/api/*` or Next.js rewrites |
-| `web` | `127.0.0.1:3000` | yes (via Caddy) |
+| **Caddy** (host) | TLS + reverse proxy | **443/80** |
+| **web** container | Next.js (`127.0.0.1:3000`) | No (localhost only) |
+| **api** container | NestJS (`127.0.0.1:4000`) | No (optional `/api/*` via Caddy) |
+| **db** container | Postgres 16 | No (internal Docker network only) |
 
-### Prerequisites on VPS
+Root `docker-compose.yml` is **dev-only** (Postgres). Production uses `docker-compose.prod.yml` + Dockerfiles in `apps/api` and `apps/web`.
 
-- Docker + Docker Compose
-- Caddy (already installed)
-- DNS `heritage.nobatix.ir` → VPS IP
-- Git clone of this repo
+### 1. DNS and prerequisites
 
-### 1. Env file
+- Point `heritage.nobatix.ir` A/AAAA record to the VPS.
+- Install on the VPS: **Docker**, **Docker Compose**, **Caddy**, **git**.
+- If `docker.io` is blocked, pull Postgres through a mirror first (see `architecture-decisions.md` §13).
+
+### 2. Clone and configure env
 
 ```bash
+git clone <your-repo-url> heritage
+cd heritage
 cp .env.production.example .env.production
-# Edit: POSTGRES_PASSWORD (required), PUBLIC_SITE_URL if not heritage.nobatix.ir
+# Edit .env.production — set a strong POSTGRES_PASSWORD and PUBLIC_SITE_URL
 ```
 
 Key variables:
 
-| Variable | Where | Purpose |
+| Variable | Where | Production value |
 |---|---|---|
-| `POSTGRES_PASSWORD` | compose | DB password |
-| `PUBLIC_SITE_URL` | compose → api + web | QR URLs, `PUBLIC_ASSET_BASE_URL`, `NEXT_PUBLIC_SITE_URL` |
-| `API_BASE_URL` | web container | **Internal** `http://api:4000/api/v1` (set in compose; do not point at public URL) |
-| `PUBLIC_ASSET_BASE_URL` | api | Public origin for upload URLs in API JSON (defaults to `PUBLIC_SITE_URL`) |
-| `PUBLIC_WEB_BASE_URL` | api | QR code target URL |
-| `NEXT_PUBLIC_SITE_URL` | web build + runtime | Canonical public site origin |
+| `POSTGRES_PASSWORD` | `.env.production` | Strong secret |
+| `PUBLIC_SITE_URL` | `.env.production` | `https://heritage.nobatix.ir` |
+| `API_BASE_URL` | web container (compose) | `http://api:4000/api/v1` (internal) |
+| `PUBLIC_ASSET_BASE_URL` | api container (compose) | Same as `PUBLIC_SITE_URL` |
+| `PUBLIC_WEB_BASE_URL` | api container (compose) | Same as `PUBLIC_SITE_URL` |
+| `NEXT_PUBLIC_SITE_URL` | web build arg + runtime | `https://heritage.nobatix.ir` |
 
-### 2. Build and start
+### 3. Build and start containers
 
 ```bash
 docker compose -f docker-compose.prod.yml --env-file .env.production up -d --build
 ```
 
-On first start the API container runs `prisma migrate deploy` automatically (`RUN_MIGRATIONS=true`).
+The API entrypoint runs `prisma migrate deploy` on start (`RUN_MIGRATIONS=true` by default).
 
-### 3. Seed (first deploy only)
+### 4. Seed the database (first deploy only)
 
 ```bash
-docker compose -f docker-compose.prod.yml --env-file .env.production exec api npx prisma db seed
+docker compose -f docker-compose.prod.yml exec api npx prisma db seed
 ```
 
-Re-run after changing seed assets or image URLs.
+Re-run after image URL changes. Uploads persist in the `api_uploads` volume.
 
-### 4. Caddy
+### 5. Caddy reverse proxy
 
-Copy [`deploy/Caddyfile.example`](./deploy/Caddyfile.example) into your host Caddy config, then reload:
+Copy [`deploy/Caddyfile.example`](./deploy/Caddyfile.example) into your host Caddy config (e.g. `/etc/caddy/Caddyfile`), reload Caddy:
 
 ```bash
-sudo caddy validate --config /etc/caddy/Caddyfile
 sudo systemctl reload caddy
 ```
 
-Example (single domain, TLS automatic):
+Caddy forwards public traffic to `127.0.0.1:3000`. Next.js rewrites:
 
-```caddyfile
-heritage.nobatix.ir {
-	encode gzip zstd
-	handle /api/* {
-		reverse_proxy 127.0.0.1:4000
-	}
-	handle {
-		reverse_proxy 127.0.0.1:3000
-	}
-}
-```
+- `/uploads/*` → API static uploads
+- `/downloads/sites/:slug/plaque.png` → API QR plaque PNG
 
-Uploads and plaque downloads do **not** need separate Caddy routes — Next.js proxies them to the API (`apps/web/next.config.ts`).
+Optional: the example Caddyfile also exposes `/api/*` directly to port 4000 for health checks.
 
-### 5. Verify
+### 6. Verify
 
 ```bash
 curl -s https://heritage.nobatix.ir/api/v1/health
@@ -219,11 +209,23 @@ curl -sI https://heritage.nobatix.ir/downloads/sites/taq-e-bostan/plaque.png
 
 Expected health: `{ "status": "ok", "database": "up" }`.
 
-### Updates (redeploy)
+### Common pitfalls
+
+1. **`NEXT_PUBLIC_SITE_URL`** is baked into the web image at build time. After changing domain, rebuild: `docker compose -f docker-compose.prod.yml --env-file .env.production up -d --build web`.
+2. **`API_BASE_URL` must not be the public HTTPS URL** inside the web container — use the internal Docker hostname `http://api:4000/api/v1`. Server Components fetch the API over the internal network; Caddy never needs to proxy server-side fetches.
+3. **`PUBLIC_ASSET_BASE_URL` must be the public origin** (`https://heritage.nobatix.ir`), not `localhost`, or API JSON will return broken upload URLs.
+4. **Cross-origin** is avoided by serving everything on one domain; do not point the browser at `:4000` directly.
+5. **Plaque downloads** rely on the Next.js rewrite in `apps/web/next.config.ts`; if you bypass Next.js and proxy only `/api/*` in Caddy, use `GET /api/v1/public/sites/{slug}/qr.png` instead.
+6. **Production migrations** use `prisma migrate deploy` (not `migrate dev`). Set `RUN_MIGRATIONS=false` after first deploy if you prefer manual control.
+7. **Back up** the `heritage_pgdata` and `api_uploads` Docker volumes.
+8. **Iran mirror** — if `docker.io` is unreachable, pull Postgres via ArvanCloud mirror (see `architecture-decisions.md` §13) before `compose up`.
+
+### Updating a release
 
 ```bash
 git pull
 docker compose -f docker-compose.prod.yml --env-file .env.production up -d --build
+docker compose -f docker-compose.prod.yml exec api npx prisma db seed   # if seed data changed
 ```
 
 Set `RUN_MIGRATIONS=false` in `.env.production` after first deploy if you prefer manual migrations:
@@ -232,25 +234,15 @@ Set `RUN_MIGRATIONS=false` in `.env.production` after first deploy if you prefer
 docker compose -f docker-compose.prod.yml --env-file .env.production exec api pnpm prisma:migrate:deploy
 ```
 
-### Common pitfalls
+### Manual deploy (Node on host, Postgres in Docker)
 
-1. **`NEXT_PUBLIC_SITE_URL` / `PUBLIC_WEB_BASE_URL` mismatch** — QR codes and canonical links must use the same public HTTPS origin. Defaults already target `https://heritage.nobatix.ir`.
-2. **`API_BASE_URL` must be internal in Docker** — use `http://api:4000/api/v1` for the web container, not the public domain. The public domain is only for browser-visible URLs and QR codes.
-3. **`PUBLIC_ASSET_BASE_URL`** — set to the public site origin so API returns `/uploads/...` paths that resolve through Next.js (or Caddy → web rewrite). Do not leave `http://localhost:4000` in production.
-4. **Plaque download** — UI links to `/downloads/sites/{slug}/plaque.png`; Next.js rewrites to `/api/v1/public/sites/{slug}/qr.png`. If this 404s, check web container can reach `http://api:4000` and that seed created the site QR row.
-5. **Upload persistence** — API uploads live in Docker volume `api_uploads`. Back up this volume with Postgres.
-6. **Iran mirror** — if `docker.io` is unreachable, pull Postgres via ArvanCloud mirror (see `architecture-decisions.md` §13) before `compose up`.
-7. **Dev vs prod compose** — do not use root `docker-compose.yml` alone in production; it only starts Postgres.
-
-### Manual deploy (without app containers)
-
-If you prefer running Node on the host instead of API/web images:
+If you prefer not to run API/web in containers:
 
 ```bash
 pnpm install
 cp .env.example .env
-cp apps/api/.env.example apps/api/.env   # set DATABASE_URL, PUBLIC_* URLs
-cp apps/web/.env.example apps/web/.env   # set API_BASE_URL=http://127.0.0.1:4000/api/v1
+cp apps/api/.env.example apps/api/.env   # DATABASE_URL, PUBLIC_* URLs
+cp apps/web/.env.example apps/web/.env   # API_BASE_URL=http://127.0.0.1:4000/api/v1
 docker compose up -d                     # Postgres only
 pnpm --filter api prisma:generate
 pnpm --filter api prisma:migrate:deploy
@@ -260,4 +252,4 @@ pnpm --filter api start:prod             # port 4000
 pnpm --filter web start                  # port 3000
 ```
 
-Point Caddy at `127.0.0.1:3000` the same way.
+Point Caddy at `127.0.0.1:3000` the same way (`deploy/Caddyfile.example`).

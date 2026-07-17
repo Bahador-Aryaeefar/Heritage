@@ -76,6 +76,12 @@ async function saveSeedImage(siteId: string, filenameBase: string, buffer: Buffe
 }
 
 async function mirrorImageToWebPublic(siteSlug: string, filenameBase: string, webpBuffer: Buffer) {
+  if (process.env.SEED_MIRROR_WEB === '0') return;
+  try {
+    await mkdir(WEB_PUBLIC_MEDIA, { recursive: true });
+  } catch {
+    return;
+  }
   const dir = join(WEB_PUBLIC_MEDIA, siteSlug);
   await mkdir(dir, { recursive: true });
   await writeFile(join(dir, `${filenameBase}.webp`), webpBuffer);

@@ -33,6 +33,7 @@ services:
       PUBLIC_ASSET_BASE_URL: ${PUBLIC_SITE_URL:-https://heritage.nobatix.ir}
       PUBLIC_WEB_BASE_URL: ${PUBLIC_SITE_URL:-https://heritage.nobatix.ir}
       RUN_MIGRATIONS: ${RUN_MIGRATIONS:-true}
+      SEED_MIRROR_WEB: '0'
     volumes:
       - api_uploads:/app/apps/api/uploads
     depends_on:

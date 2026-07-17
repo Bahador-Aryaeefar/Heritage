@@ -274,6 +274,7 @@ Field-level reference: [`heritage-schema-map.md`](./heritage-schema-map.md).
 |---|---|---|
 | Data fetching | Server Components + `apiFetch` + Zod schemas from `@heritage/shared-types`; no React Query on public routes | §12a: read-only public side; SSG/ISR friendly |
 | ISR | `revalidate = 60` on landing and site detail pages | Content edits propagate without full rebuild |
+| Static i18n | `setRequestLocale(locale)` before any `getTranslations`/`getMessages` in **every** layout and page under `[locale]/` (including `(public)/layout.tsx`) | Without it, next-intl reads `x-next-intl-locale` from `headers()` → `DYNAMIC_SERVER_USAGE` at runtime and routes opt out of SSG |
 | Landing marketing copy | next-intl JSON (`messages/fa.json`, `en.json`) | Shell UI + hero/how-it-works/banners |
 | Site body copy | API `SiteContentBlock[]` per locale | Staff-editable per site |
 | Promo banners | Static JSON slots (`home.banners.top/mid`) | Space for campaigns until admin CMS |

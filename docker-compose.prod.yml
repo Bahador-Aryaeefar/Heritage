@@ -50,6 +50,7 @@ services:
       dockerfile: apps/web/Dockerfile
       args:
         NEXT_PUBLIC_SITE_URL: ${PUBLIC_SITE_URL:-https://heritage.nobatix.ir}
+        API_BASE_URL: http://api:4000/api/v1
     restart: unless-stopped
     environment:
       NODE_ENV: production

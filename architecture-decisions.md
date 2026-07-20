@@ -187,6 +187,7 @@ apps/web/
 ### 12c. Config
 
 - One `env.ts` at the root of `apps/web` that validates `process.env` through a Zod schema at build/start time (`API_BASE_URL`, `NEXT_PUBLIC_...` vars) and exports a typed, parsed object. No component reads `process.env` directly - same principle as the backend's `ConfigService` pattern in section 10, applied on the frontend.
+- **Single env file:** all local secrets and URLs live in the **monorepo root** `.env` (from `.env.example`). `@heritage/env-loader` resolves the repo root; Nest `ConfigModule`, Next `next.config.ts`, and Prisma CLI (`dotenv -e ../../.env`) load that file. Per-app `.env` files are deprecated. Next `next.config.ts` also maps root-loaded `NEXT_PUBLIC_*` into `env: {}` so the client bundle receives them (Next does not auto-read a parent-directory `.env`).
 - Public vs. private env vars follow Next.js's `NEXT_PUBLIC_` convention strictly; anything without that prefix never reaches the browser bundle, which matters here since the admin API base URL for server-side calls does not need to be exposed to the public site's client bundle.
 
 ### 12d. Role management (frontend)
@@ -199,9 +200,10 @@ apps/web/
 
 ### 12e. Language switching
 
-- Locale lives in the URL path (`/fa/...`, `/en/...`), per the next-intl decision in section 4 - never in a cookie-only or client-state-only scheme, so links are shareable and indexable per locale.
-- A `LanguageSwitcher` client component swaps the locale segment of the current path (via `next-intl`'s `usePathname`/`useRouter` from `i18n/routing.ts`, which understands locale-prefixed routes) and preserves the rest of the URL - switching language on a site detail page keeps the user on the same site's page in the other language, not back at the homepage.
-- `fa` is the default locale and has no prefix requirement conflict since Persian is the primary audience; `en` is added as a fully prefixed alternate once `SiteTranslation` rows exist for it. `hreflang` alternate tags are generated automatically by next-intl's routing config for SEO.
+- Locale lives in the URL path (`/`, `/en/...`, `/ar/...`), per the next-intl decision in section 4 - never in a cookie-only or client-state-only scheme, so links are shareable and indexable per locale.
+- A `LanguageSwitcher` dropdown (native names from `i18n/locales.ts`) swaps the locale segment of the current path and preserves the rest of the URL. Adding a language = extend `routing.locales` + `LOCALE_DEFINITIONS` + `messages/{code}.json`.
+- `fa` is the default locale (no prefix); `en` and `ar` are prefixed. Site **content** translations remain `fa`/`en` in the API for now; Arabic UI falls back to Persian site copy via `toContentLocale()` until `ar` SiteTranslation rows exist.
+- `hreflang` alternate tags are generated automatically by next-intl's routing config for SEO.
 
 ### 12f. State management
 
@@ -242,7 +244,7 @@ Verified working on this machine after the scaffold:
 |---|---|
 | `pnpm install` + workspace scripts | ok |
 | Docker Postgres (`heritage-db-1`, healthy on 5432) | ok |
-| `apps/api/.env` + root `.env` + `apps/web/.env` from examples | ok |
+| `apps/api/.env` + root `.env` + `apps/web/.env` from examples | **Single root `.env` only** — `@heritage/env-loader` + Nest `envFilePath` + Next `next.config` + Prisma scripts via `dotenv -e ../../.env` |
 | Prisma client ↔ DB (`$connect`) | ok (`prisma generate` can EPERM on Windows if a node process holds `query_engine-windows.dll.node`; existing client still works) |
 | `pnpm lint` / `pnpm test` / `pnpm build` | all green |
 | Graphify code graph (`graphify update .`) | `graphify-out/` present (gitignored); re-run after structural changes |
@@ -264,7 +266,7 @@ Phase 2 backend: full domain schema, flexible site pages, public read APIs, loca
 | Public API | `GET /api/v1/public/landing`, `GET /api/v1/public/sites/:slug` | Read-only; inactive sites → 404 |
 | Shared contracts | Zod schemas in `@heritage/shared-types` (`siteCardSchema`, `siteDetailSchema`, `contentBlockSchema`) | Web can wire pages later without redesign |
 | Seed | Idempotent Prisma seed: Kermanshah geography + Taq-e Bostan with demo blocks + cover + QR; cover/detail photos fetched from Wikimedia Commons at seed time (placeholder fallback) | Real imagery in API uploads without committing binaries to git |
-| Deferred | Admin CRUD HTTP, JWT auth, VisitEvent writes, Next.js block renderer | Explicit scope cut for this phase |
+| Deferred | VisitEvent writes, content-block admin editor | Explicit scope cut for later phases |
 
 Field-level reference: [`heritage-schema-map.md`](./heritage-schema-map.md).
 
@@ -288,6 +290,8 @@ Field-level reference: [`heritage-schema-map.md`](./heritage-schema-map.md).
 | Block renderer | `components/public/content-blocks/` maps API tokens → Tailwind (design-system §10–11) | Single renderer for seeded + future content |
 | QR generation | `QrService` plaque PNG (SVG frame + title/location + QR; brand lockup composited via `@napi-rs/canvas` for correct Persian/Latin layout) + on-screen `HeritageQrCode` |
 | QR URL | `https://heritage.nobatix.ir/sites/{slug}?src=qr` (env: `PUBLIC_WEB_BASE_URL`, `NEXT_PUBLIC_SITE_URL`) |
+| Site maps | Public map links + Google embed derived from `Site.lat`/`Site.lng` in `apps/web/lib/map-urls.ts` (Google open URL, Neshan `nshn.ir`, Google embed iframe); no stored map URLs, no Maps API key on public pages |
+| Admin map picker | Admin site form uses Map.ir tiles via Leaflet; browser loads same-origin `/api/mapir-tiles/{z}/{x}/{y}` which proxies Map.ir with `x-api-key` header (Leaflet `<img>` tiles cannot send custom headers). Key from root `.env` `NEXT_PUBLIC_MAP_IR_API_KEY`. Public tourist maps unchanged (Google/Neshan). |
 
 Routes: `/` (landing, fa default), `/en` (landing English), `/sites/[slug]` and `/en/sites/[slug]`. Shared `(public)/layout.tsx` with header/footer.
 
@@ -306,6 +310,43 @@ Routes: `/` (landing, fa default), `/en` (landing English), `/sites/[slug]` and 
 | Env file | `.env.production` (from `.env.production.example`) | Secrets and domain config for compose |
 
 Example Caddy config: [`deploy/Caddyfile.example`](./deploy/Caddyfile.example).
+
+## 17. Admin auth, roles, and site CRUD (2026-07-19)
+
+| Decision | Detail | Reason |
+|---|---|---|
+| Roles | `ADMIN` (sites) and `SUPER_ADMIN` (users + sites) | Matches §11; split controllers by role |
+| Login identity | Unique `phone` (Iranian mobile), bcrypt password hash | Staff login without email infra |
+| Auth transport | HTTP-only cookies: `heritage_access` (JWT, ~15m) + `heritage_refresh` (opaque, ~7d) | §5 XSS-resistant cookies |
+| Refresh rotation | Each `POST /auth/refresh` revokes the presented token and issues a new pair; reuse revokes the whole `familyId` | Theft detection |
+| Same-origin admin API | Web rewrites `/api/v1/*` → Nest; browser uses `credentials: 'include'` | Cookies on web origin; middleware can gate `/admin` |
+| Admin site scope (v1) | Core CRUD: slug, category, lat/lng (Map.ir picker + text fields), city, `isActive`, fa/en title + shortDescription, cover upload | Content-block editor deferred |
+| API docs | OpenAPI JSON at `/openapi.json` + Scalar UI at `/docs` (outside `/api` prefix); web rewrites `/docs` in production. OpenAPI **server** is `/` because operation paths already include `/api/v1` (global prefix + URI versioning) — do not set server to `/api/v1` or Scalar doubles the prefix | Interactive admin API reference |
+| List responses | Every list endpoint accepts `page` / `limit` (defaults 1 / 20, max 100) and returns `{ items, meta }`; shared helpers live in `common/pagination/` and shared Zod contracts in `@heritage/shared-types` | One predictable pagination contract for public and admin clients |
+| OpenAPI detail | Controllers explicitly document request bodies, success/error responses, examples, auth cookies, binary uploads, and paginated metadata through reusable helpers in `common/openapi/` | Scalar is useful as an executable API contract, not only a route index |
+| Seed SuperAdmin | Phone `09120086846` (password in seed only, bcrypt stored) | Bootstrap first maintainer account |
+
+Admin routes: `/admin` (fa default), `/en/admin/...`; protected by `proxy.ts` cookie check + layout `GET /auth/me` re-validation. Admin UI chrome, forms, roles, categories, and errors are fully localized via `admin.*` messages; shell and login include `LanguageSwitcher`.
+
+## 18. Multipart admin write pipeline: temp staging + content-hash dedup (2026-07-21)
+
+Part of the admin site editor rework (full site create/replace as one multipart request; see `docs/superpowers/plans/2026-07-21-admin-site-editor.md`).
+
+| Decision | Detail | Reason |
+|---|---|---|
+| Upload staging | `StagingService` (`apps/api/src/storage/staging.service.ts`) stages incoming multipart files under `os.tmpdir()/heritage-stage/{sessionId}` before any DB write; `promoteImage()` delegates the actual Sharp/WebP + disk write to the existing `StorageService.saveImage`, it doesn't duplicate that logic | Files must not touch the real upload tree until the Prisma transaction that references them has committed; keeps `StorageService` as the single place that knows the final `/uploads/...` layout |
+| Failure handling | `staging.abort(sessionId)` / `staging.cleanup(sessionId)` both `rm -rf` the session dir; callers `abort` on any thrown error and `cleanup` after a successful transaction | No orphaned temp files on either success or failure path |
+| Content-addressed dedup | `sha256Hex()` (`apps/api/src/common/crypto/sha256.ts`) hashes each uploaded buffer; Task 5's media-resolution step reuses an existing `Media` row when its stored hash matches instead of re-uploading | Same photo across FA/EN or across repeated saves doesn't create duplicate `Media` rows/files |
+| Upload size limits | `IMAGE_MAX_BYTES = 15 MiB`, `AUDIO_MAX_BYTES = 20 MiB` (`apps/api/src/storage/upload-limits.ts`) | Bounds multipart body size before Sharp/disk work; video stays URL-only (no local video upload) per §11 |
+| Endpoint shape | `POST /admin/sites` and `PUT /admin/sites/:id` (`AnyFilesInterceptor`) replace the old JSON `POST`+`PATCH`+`POST .../cover` trio; body is `multipart/form-data` with a `payload` field (JSON, parsed then validated by `createSiteFullSchema`/`updateSiteFullSchema`) plus one file field per referenced `clientFileKey` — the multipart **field name is the `clientFileKey`** (e.g. `cover`), so the controller indexes uploads by `file.fieldname` with no prefix convention. `DELETE /admin/sites/:id` (204) replaces the ad-hoc delete path. Multer's `limits.fileSize` is set to `AUDIO_MAX_BYTES` (the larger of the two per-type caps) as an outer transport-level bound; `AdminSitesService.prepareFiles` still enforces the tighter `IMAGE_MAX_BYTES` per file kind — setting the multer ceiling to the smaller image limit would reject valid larger audio uploads before the service's own check runs | One atomic write per create/replace call instead of 2–3 round-trips; keeps the size-limit enforcement responsibility where the per-kind logic already lives |
+| Deprecated JSON write path removal | `AdminSitesService.createSite`/`updateSite`/`uploadCover` and their controller handlers are deleted (dead code, only caller was the controller). `createSiteAdminSchema`/`updateSiteAdminSchema`/`siteAdminTranslationSchema` **remain** exported from `@heritage/shared-types` — `apps/web/components/admin/site-form.tsx` still imports them until its own task rewires it to the multipart contract | Removing the API-side dead code doesn't require breaking the web build ahead of its own migration task |
+
+## 19. API e2e coverage for the atomic write pipeline (2026-07-21)
+
+| Decision | Detail | Reason |
+|---|---|---|
+| e2e coverage | `apps/api/test/admin-sites-full.e2e-spec.ts` exercises the §18 pipeline end-to-end against a real Postgres: login as the seed SuperAdmin (cookie auth, persisted across requests via `supertest`'s `request.agent(...)`) → `GET /admin/cities` for a real `cityId` → `POST /admin/sites` multipart (a single `clientFileKey`-keyed file reused as both the site cover and an fa `IMAGE` block, to exercise the field-name-equals-`clientFileKey` contract) → `GET` (asserts the persisted blocks plus a `Media` row with a `contentHash`) → `PUT` dropping the `IMAGE` block (asserts the now-unused `Media` row *and* its on-disk file under `UPLOAD_DIR` are both gone) → `DELETE` (asserts a subsequent `GET` 404s) | Task 6 wired the multipart controller with no dedicated test of its own; this is the first exercise of the real HTTP + Multer + Sharp + Prisma path together, not just the pure `MediaPlanner`/schema unit tests |
+| `test/jest-e2e.json` ts-jest override | Both e2e specs load `AppModule`, which imports `@heritage/env-loader` — a workspace package with `"type": "module"` (§12c). `apps/api`'s own `tsconfig.json` sets `"module": "nodenext"`, so ts-jest's per-file, Node-style ESM detection emits real `import` syntax for that dependency; Jest's CJS-only module loader can't execute that and the whole suite failed to load `AppModule`. Fixed by overriding ts-jest's `tsconfig` for the e2e transform to `module: "commonjs"` / `moduleResolution: "node"` (`resolvePackageJsonExports: false`, since TS rejects that combination otherwise) — the same trick `prisma/seed.ts`'s `ts-node --compiler-options '{"module":"CommonJS"}'` already relies on for the same package — plus a `moduleNameMapper` entry pointing `@heritage/env-loader` at its TS source, mirroring the existing `@heritage/shared-types` entry | Pre-existing breakage, not introduced by this task: **both** e2e specs (including the already-committed `app.e2e-spec.ts`) failed the same way before this fix. Real Node ≥20.19/22.12 (this repo runs Node 24) can `require()` a synchronous ESM module natively, so `AppModule` works fine at real runtime; only Jest's own module system needed the workaround |
 
 ## Open questions
 

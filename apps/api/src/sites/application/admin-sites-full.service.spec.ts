@@ -2,7 +2,6 @@ import { BadRequestException } from '@nestjs/common';
 import type { CreateSiteFullInput, UpdateSiteFullInput } from '@heritage/shared-types';
 import { PrismaService } from '../../prisma/prisma.service';
 import type { StorageService } from '../../storage/storage.interface';
-import { MediaService } from '../../media/application/media.service';
 import { MediaCleanupService } from '../../media/application/media-cleanup.service';
 import { StagingService } from '../../storage/staging.service';
 import { AdminSitesService, MediaPlanner, type PreparedFile } from './admin-sites.service';
@@ -128,7 +127,6 @@ describe('AdminSitesService full write', () => {
   let storage: jest.Mocked<StorageService>;
   let staging: jest.Mocked<Pick<StagingService, 'createSession' | 'write' | 'promoteImage' | 'abort' | 'cleanup'>>;
   let cleanup: jest.Mocked<Pick<MediaCleanupService, 'deleteUnusedMediaForSite' | 'deleteAllMediaFilesForSite'>>;
-  let mediaService: MediaService;
   let service: AdminSitesService;
 
   beforeEach(() => {
@@ -151,11 +149,9 @@ describe('AdminSitesService full write', () => {
       deleteUnusedMediaForSite: jest.fn().mockResolvedValue(0),
       deleteAllMediaFilesForSite: jest.fn().mockResolvedValue(undefined),
     };
-    mediaService = {} as MediaService;
 
     service = new AdminSitesService(
       prisma as unknown as PrismaService,
-      mediaService,
       storage,
       staging as unknown as StagingService,
       cleanup as unknown as MediaCleanupService,

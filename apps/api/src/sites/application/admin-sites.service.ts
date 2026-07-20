@@ -9,15 +9,12 @@ import type {
   AdminBlockWrite,
   AdminSite,
   CityOption,
-  CreateSiteAdminInput,
   CreateSiteFullInput,
   PaginatedResponse,
-  UpdateSiteAdminInput,
   UpdateSiteFullInput,
 } from '@heritage/shared-types';
 import { PrismaService } from '../../prisma/prisma.service';
 import { STORAGE_SERVICE, type StorageService } from '../../storage/storage.interface';
-import { MediaService } from '../../media/application/media.service';
 import { MediaCleanupService } from '../../media/application/media-cleanup.service';
 import { StagingService, type StagingSession } from '../../storage/staging.service';
 import { sha256Hex } from '../../common/crypto/sha256';
@@ -205,7 +202,6 @@ interface ResolvedPlan {
 export class AdminSitesService {
   constructor(
     private readonly prisma: PrismaService,
-    private readonly mediaService: MediaService,
     @Inject(STORAGE_SERVICE) private readonly storage: StorageService,
     private readonly staging: StagingService,
     private readonly cleanup: MediaCleanupService,
@@ -357,103 +353,6 @@ export class AdminSitesService {
     } catch (error) {
       handlePrismaError(error, 'Site');
     }
-  }
-
-  // --- Deprecated JSON/patch write paths ---
-  // Superseded by createSiteFull / replaceSiteFull / deleteSite. Kept only so the
-  // existing (Task 6-owned) controller keeps compiling until it is rewired to the
-  // multipart endpoints; remove these three methods together with the old
-  // POST/PATCH/cover endpoints in Task 6.
-
-  /** @deprecated use {@link createSiteFull} */
-  async createSite(input: CreateSiteAdminInput): Promise<AdminSite> {
-    await this.requireCity(input.cityId);
-    try {
-      const site = await this.prisma.site.create({
-        data: {
-          slug: input.slug,
-          category: input.category,
-          lat: input.lat,
-          lng: input.lng,
-          cityId: input.cityId,
-          isActive: input.isActive ?? true,
-          translations: {
-            create: input.translations.map((t) => ({
-              locale: t.locale,
-              title: t.title,
-              shortDescription: t.shortDescription,
-            })),
-          },
-        },
-        select: adminSiteSelect,
-      });
-      return this.mapAdminSite(site);
-    } catch (error) {
-      handlePrismaError(error, 'Site');
-    }
-  }
-
-  /** @deprecated use {@link replaceSiteFull} */
-  async updateSite(id: string, input: UpdateSiteAdminInput): Promise<AdminSite> {
-    await this.requireSite(id);
-    if (input.cityId) {
-      await this.requireCity(input.cityId);
-    }
-
-    try {
-      const site = await this.prisma.$transaction(async (tx) => {
-        await tx.site.update({
-          where: { id },
-          data: {
-            category: input.category,
-            lat: input.lat,
-            lng: input.lng,
-            cityId: input.cityId,
-            isActive: input.isActive,
-          },
-        });
-
-        if (input.translations) {
-          for (const translation of input.translations) {
-            await tx.siteTranslation.upsert({
-              where: { siteId_locale: { siteId: id, locale: translation.locale } },
-              create: {
-                siteId: id,
-                locale: translation.locale,
-                title: translation.title,
-                shortDescription: translation.shortDescription,
-              },
-              update: {
-                title: translation.title,
-                shortDescription: translation.shortDescription,
-              },
-            });
-          }
-        }
-
-        return tx.site.findUniqueOrThrow({ where: { id }, select: adminSiteSelect });
-      });
-
-      return this.mapAdminSite(site);
-    } catch (error) {
-      handlePrismaError(error, 'Site');
-    }
-  }
-
-  /** @deprecated cover is now part of the createSiteFull / replaceSiteFull multipart payload */
-  async uploadCover(id: string, file: Express.Multer.File): Promise<AdminSite> {
-    if (!file?.buffer?.length) {
-      throw new BadRequestException('Cover image file is required');
-    }
-
-    await this.requireSite(id);
-    await this.mediaService.saveImageFromBuffer(id, file.buffer, 'cover', {
-      isCover: true,
-      altFa: 'تصویر کاور',
-      altEn: 'Cover image',
-    });
-
-    return this.getSite(id);
   }
 
   async listCities(query: PaginationQueryDto): Promise<PaginatedResponse<CityOption>> {

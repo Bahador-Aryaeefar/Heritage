@@ -46,6 +46,31 @@ export const mediaRefSchema = z.object({
 
 export type MediaRef = z.infer<typeof mediaRefSchema>;
 
+// --- Pagination ---
+
+export const paginationMetaSchema = z.object({
+  page: z.number().int().positive(),
+  limit: z.number().int().positive(),
+  totalItems: z.number().int().nonnegative(),
+  totalPages: z.number().int().nonnegative(),
+  hasNextPage: z.boolean(),
+  hasPreviousPage: z.boolean(),
+});
+
+export type PaginationMeta = z.infer<typeof paginationMetaSchema>;
+
+export function paginatedResponseSchema<T extends z.ZodType>(itemSchema: T) {
+  return z.object({
+    items: z.array(itemSchema),
+    meta: paginationMetaSchema,
+  });
+}
+
+export type PaginatedResponse<T> = {
+  items: T[];
+  meta: PaginationMeta;
+};
+
 const textBlockBaseSchema = z.object({
   sortOrder: z.number().int(),
   textRole: textRoleSchema,
@@ -107,9 +132,7 @@ export const siteCardSchema = z.object({
   translations: z.array(siteTranslationCardSchema),
 });
 
-export const landingResponseSchema = z.object({
-  sites: z.array(siteCardSchema),
-});
+export const landingResponseSchema = paginatedResponseSchema(siteCardSchema);
 
 export type SiteCard = z.infer<typeof siteCardSchema>;
 export type LandingResponse = z.infer<typeof landingResponseSchema>;
@@ -135,6 +158,55 @@ export const siteDetailSchema = z.object({
 });
 
 export type SiteDetail = z.infer<typeof siteDetailSchema>;
+
+// --- Auth & admin ---
+
+export const userRoleSchema = z.enum(['ADMIN', 'SUPER_ADMIN']);
+export type UserRole = z.infer<typeof userRoleSchema>;
+
+export const loginSchema = z.object({
+  phone: z.string().min(1),
+  password: z.string().min(1),
+});
+export type LoginInput = z.infer<typeof loginSchema>;
+
+export const authUserSchema = z.object({
+  id: z.string(),
+  phone: z.string(),
+  role: userRoleSchema,
+  displayName: z.string().nullable(),
+});
+export type AuthUser = z.infer<typeof authUserSchema>;
+
+export const adminUserSchema = z.object({
+  id: z.string(),
+  phone: z.string(),
+  role: userRoleSchema,
+  displayName: z.string().nullable(),
+  isActive: z.boolean(),
+  createdAt: z.string(),
+});
+export type AdminUser = z.infer<typeof adminUserSchema>;
+
+export const createUserSchema = z.object({
+  phone: z.string().min(1),
+  password: z.string().min(8),
+  role: userRoleSchema,
+  displayName: z.string().optional(),
+});
+export type CreateUserInput = z.infer<typeof createUserSchema>;
+
+export const updateUserSchema = z.object({
+  role: userRoleSchema.optional(),
+  displayName: z.string().nullable().optional(),
+  isActive: z.boolean().optional(),
+});
+export type UpdateUserInput = z.infer<typeof updateUserSchema>;
+
+export const updateUserPasswordSchema = z.object({
+  password: z.string().min(8),
+});
+export type UpdateUserPasswordInput = z.infer<typeof updateUserPasswordSchema>;
 
 // --- Block validation (for seed / future admin) ---
 

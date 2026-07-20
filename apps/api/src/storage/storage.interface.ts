@@ -7,6 +7,15 @@ export interface StoredFile {
 }
 
 export interface StorageService {
+  /** Decode + optimize an image to WebP bytes (throws on an invalid/corrupt image). */
+  processImage(buffer: Buffer): Promise<Buffer>;
+  /** Write already-processed WebP bytes to their final location (no re-encoding). */
+  saveProcessedImage(
+    siteId: string,
+    processed: Buffer,
+    filenameBase: string,
+  ): Promise<StoredFile>;
+  /** Convenience: processImage + saveProcessedImage in one call. */
   saveImage(siteId: string, buffer: Buffer, filenameBase: string): Promise<StoredFile>;
   saveBinary(
     siteId: string,

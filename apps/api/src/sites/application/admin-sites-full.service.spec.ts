@@ -125,7 +125,9 @@ describe('AdminSitesService full write', () => {
   let prisma: PrismaMock;
   let tx: TxMock;
   let storage: jest.Mocked<StorageService>;
-  let staging: jest.Mocked<Pick<StagingService, 'createSession' | 'write' | 'promoteImage' | 'abort' | 'cleanup'>>;
+  let staging: jest.Mocked<
+    Pick<StagingService, 'createSession' | 'write' | 'stageImage' | 'promoteImage' | 'abort' | 'cleanup'>
+  >;
   let cleanup: jest.Mocked<Pick<MediaCleanupService, 'deleteUnusedMediaForSite' | 'deleteAllMediaFilesForSite'>>;
   let service: AdminSitesService;
 
@@ -133,6 +135,8 @@ describe('AdminSitesService full write', () => {
     tx = createTx();
     prisma = createPrisma(tx);
     storage = {
+      processImage: jest.fn(),
+      saveProcessedImage: jest.fn(),
       saveImage: jest.fn(),
       saveBinary: jest.fn(),
       deleteByUrl: jest.fn(),
@@ -141,6 +145,7 @@ describe('AdminSitesService full write', () => {
     staging = {
       createSession: jest.fn().mockReturnValue({ sessionId: 'session-1', dir: '/tmp/session-1' }),
       write: jest.fn(),
+      stageImage: jest.fn(),
       promoteImage: jest.fn(),
       abort: jest.fn(),
       cleanup: jest.fn(),
@@ -228,12 +233,36 @@ describe('AdminSitesService full write', () => {
 
     await service.createSiteFull(payload, files);
 
-    expect(staging.write).toHaveBeenCalledTimes(2);
+    expect(staging.stageImage).toHaveBeenCalledTimes(2);
     expect(tx.media.create).toHaveBeenCalledTimes(2);
     expect(tx.siteContentBlock.createMany).toHaveBeenCalled();
     expect(staging.promoteImage).toHaveBeenCalled();
     expect(prisma.media.update).toHaveBeenCalled();
     expect(cleanup.deleteUnusedMediaForSite).not.toHaveBeenCalled();
+  });
+
+  it('aborts staging and never opens the transaction when an image fails to decode', async () => {
+    staging.stageImage.mockRejectedValueOnce(new Error('Input buffer contains unsupported image format'));
+
+    const payload: CreateSiteFullInput = {
+      slug: 'taq-e-bostan',
+      category: 'ANCIENT',
+      lat: '34.3872000',
+      lng: '47.1332000',
+      cityId: 'city-1',
+      cover: { clientFileKey: 'cover-key' },
+      translations: faEnTranslations,
+    };
+    const files = {
+      'cover-key': { buffer: Buffer.from('not-an-image'), size: 12, mimetype: 'image/png' } as Express.Multer.File,
+    };
+
+    await expect(service.createSiteFull(payload, files)).rejects.toBeInstanceOf(BadRequestException);
+
+    expect(staging.abort).toHaveBeenCalledWith('session-1');
+    expect(tx.site.create).not.toHaveBeenCalled();
+    expect(tx.media.create).not.toHaveBeenCalled();
+    expect(staging.promoteImage).not.toHaveBeenCalled();
   });
 
   it('deletes visit events and QR codes before the site, and removes media files first', async () => {

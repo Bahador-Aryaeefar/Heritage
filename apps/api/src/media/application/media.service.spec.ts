@@ -14,6 +14,8 @@ describe('MediaService', () => {
     },
   };
   const storage = {
+    processImage: jest.fn(),
+    saveProcessedImage: jest.fn(),
     saveImage: jest.fn(),
     saveBinary: jest.fn(),
     deleteByUrl: jest.fn(),

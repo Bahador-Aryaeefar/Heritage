@@ -479,13 +479,28 @@ export class AdminSitesService {
     return { planner, cover, blocks };
   }
 
+  /**
+   * Stage (decode + optimize) every image before the transaction opens. Sharp
+   * runs here, not in `promoteNewMedia`, so a corrupt image is rejected as a 400
+   * with the DB untouched — never a committed site with a null Media.url.
+   */
   private async stageImages(
     session: StagingSession,
     prepared: Map<string, PreparedFile>,
   ): Promise<void> {
     for (const file of prepared.values()) {
-      if (file.kind === 'IMAGE') {
-        await this.staging.write(session.sessionId, this.stagedName(file.clientFileKey), file.buffer);
+      if (file.kind !== 'IMAGE') continue;
+      try {
+        await this.staging.stageImage(
+          session.sessionId,
+          this.stagedName(file.clientFileKey),
+          file.buffer,
+        );
+      } catch (error) {
+        if (error instanceof BadRequestException) throw error;
+        throw new BadRequestException(
+          `Image "${file.clientFileKey}" could not be processed`,
+        );
       }
     }
   }

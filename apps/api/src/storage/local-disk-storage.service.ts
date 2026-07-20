@@ -27,13 +27,19 @@ export class LocalDiskStorageService implements StorageService {
     return this.uploadRoot;
   }
 
-  async saveImage(siteId: string, buffer: Buffer, filenameBase: string): Promise<StoredFile> {
-    const processed = await sharp(buffer)
+  async processImage(buffer: Buffer): Promise<Buffer> {
+    return sharp(buffer)
       .rotate()
       .resize({ width: IMAGE_MAX_WIDTH, withoutEnlargement: true })
       .webp({ quality: 82 })
       .toBuffer();
+  }
 
+  async saveProcessedImage(
+    siteId: string,
+    processed: Buffer,
+    filenameBase: string,
+  ): Promise<StoredFile> {
     const dir = join(this.uploadRoot, 'sites', siteId, 'images');
     await mkdir(dir, { recursive: true });
     const fileName = `${filenameBase}.webp`;
@@ -44,6 +50,11 @@ export class LocalDiskStorageService implements StorageService {
       url: `/uploads/sites/${siteId}/images/${fileName}`,
       mimeType: 'image/webp',
     };
+  }
+
+  async saveImage(siteId: string, buffer: Buffer, filenameBase: string): Promise<StoredFile> {
+    const processed = await this.processImage(buffer);
+    return this.saveProcessedImage(siteId, processed, filenameBase);
   }
 
   async saveBinary(

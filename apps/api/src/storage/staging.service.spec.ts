@@ -14,17 +14,25 @@ describe('sha256Hex', () => {
 });
 
 describe('StagingService', () => {
-  let saveImage: jest.Mock<Promise<StoredFile>, [string, Buffer, string]>;
+  let processImage: jest.Mock<Promise<Buffer>, [Buffer]>;
+  let saveProcessedImage: jest.Mock<Promise<StoredFile>, [string, Buffer, string]>;
   let storage: StorageService;
   let service: StagingService;
 
   beforeEach(() => {
-    saveImage = jest.fn(async (siteId: string, _buffer: Buffer, filenameBase: string) => ({
-      url: `/uploads/sites/${siteId}/images/${filenameBase}.webp`,
-      mimeType: 'image/webp',
-    }));
+    processImage = jest.fn((buffer: Buffer) =>
+      Promise.resolve(Buffer.concat([Buffer.from('webp:'), buffer])),
+    );
+    saveProcessedImage = jest.fn((siteId: string, _buffer: Buffer, filenameBase: string) =>
+      Promise.resolve({
+        url: `/uploads/sites/${siteId}/images/${filenameBase}.webp`,
+        mimeType: 'image/webp',
+      }),
+    );
     storage = {
-      saveImage,
+      processImage,
+      saveProcessedImage,
+      saveImage: jest.fn(),
       saveBinary: jest.fn(),
       deleteByUrl: jest.fn(),
       toAbsoluteUrl: jest.fn((url: string) => url),
@@ -49,13 +57,28 @@ describe('StagingService', () => {
     expect(await readFile(path, 'utf8')).toBe('hello');
   });
 
-  it('promoteImage reads the staged buffer and delegates to storage.saveImage', async () => {
+  it('stageImage optimizes the raw upload with Sharp before writing to the session dir', async () => {
+    const { sessionId, dir } = service.createSession();
+
+    const path = await service.stageImage(sessionId, 'cover.png', Buffer.from('raw-bytes'));
+
+    expect(processImage).toHaveBeenCalledWith(Buffer.from('raw-bytes'));
+    expect(path).toBe(join(dir, 'cover.png'));
+    // The *optimized* bytes are what land in staging, not the raw upload.
+    expect(await readFile(path)).toEqual(Buffer.from('webp:raw-bytes'));
+  });
+
+  it('promoteImage copies the already-optimized staged bytes without re-encoding', async () => {
     const { sessionId } = service.createSession();
-    await service.write(sessionId, 'cover.png', Buffer.from('raw-bytes'));
+    await service.stageImage(sessionId, 'cover.png', Buffer.from('raw-bytes'));
 
     const stored = await service.promoteImage(sessionId, 'cover.png', 'site-123', 'cover');
 
-    expect(saveImage).toHaveBeenCalledWith('site-123', Buffer.from('raw-bytes'), 'cover');
+    expect(saveProcessedImage).toHaveBeenCalledWith(
+      'site-123',
+      Buffer.from('webp:raw-bytes'),
+      'cover',
+    );
     expect(stored).toEqual({ url: '/uploads/sites/site-123/images/cover.webp', mimeType: 'image/webp' });
   });
 

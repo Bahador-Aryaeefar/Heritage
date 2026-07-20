@@ -10,6 +10,8 @@ describe('MediaCleanupService', () => {
     },
   };
   const storage: jest.Mocked<StorageService> = {
+    processImage: jest.fn(),
+    saveProcessedImage: jest.fn(),
     saveImage: jest.fn(),
     saveBinary: jest.fn(),
     deleteByUrl: jest.fn(),

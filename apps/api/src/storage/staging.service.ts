@@ -35,6 +35,17 @@ export class StagingService {
     return path;
   }
 
+  /**
+   * Decode + optimize the raw upload to WebP and stage the *optimized* bytes.
+   * Running Sharp here (before any DB write) means a corrupt/undecodable image
+   * fails while the caller can still abort the staging session, so promotion
+   * can never leave a committed Media row with a null url.
+   */
+  async stageImage(sessionId: string, name: string, rawBuffer: Buffer): Promise<string> {
+    const processed = await this.storage.processImage(rawBuffer);
+    return this.write(sessionId, name, processed);
+  }
+
   async promoteImage(
     sessionId: string,
     fileName: string,
@@ -42,8 +53,10 @@ export class StagingService {
     filenameBase: string,
   ): Promise<StoredFile> {
     const dir = this.requireDir(sessionId);
-    const buffer = await readFile(join(dir, fileName));
-    return this.storage.saveImage(siteId, buffer, filenameBase);
+    // The staged bytes are already optimized WebP (see stageImage); promotion is
+    // just a copy to the final /uploads location, no re-encoding.
+    const processed = await readFile(join(dir, fileName));
+    return this.storage.saveProcessedImage(siteId, processed, filenameBase);
   }
 
   async abort(sessionId: string): Promise<void> {

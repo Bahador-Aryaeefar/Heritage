@@ -13,6 +13,7 @@ Living docs (read before changing code):
 - [`architecture-decisions.md`](./architecture-decisions.md) — stack, structure, backend/frontend conventions
 - [`design-system.md`](./design-system.md) — colors, type, components
 - [`CLAUDE.md`](./CLAUDE.md) — agent workflow (guides → Graphify → implement → update guides)
+- [`.cursor/rules/design-system.mdc`](./.cursor/rules/design-system.mdc) — always-on rule: use UI primitives, no one-off pills/type
 
 ## Prerequisites
 
@@ -26,10 +27,8 @@ Living docs (read before changing code):
 # 1. Install dependencies
 pnpm install
 
-# 2. Env files (gitignored; copy from examples)
+# 2. Env file (gitignored; copy from example at repo root only)
 cp .env.example .env
-cp apps/api/.env.example apps/api/.env
-cp apps/web/.env.example apps/web/.env
 
 # 3. Start Postgres (port 5432, volume heritage_pgdata)
 docker compose up -d
@@ -75,9 +74,28 @@ GET http://localhost:4000/api/v1/health
 ## Public API (after migrate + seed)
 
 ```text
-GET http://localhost:4000/api/v1/public/landing
+GET http://localhost:4000/api/v1/public/landing?page=1&limit=20
 GET http://localhost:4000/api/v1/public/sites/taq-e-bostan
 ```
+
+All list endpoints use the same response envelope:
+
+```json
+{
+  "items": [],
+  "meta": {
+    "page": 1,
+    "limit": 20,
+    "totalItems": 0,
+    "totalPages": 0,
+    "hasNextPage": false,
+    "hasPreviousPage": false
+  }
+}
+```
+
+`page` defaults to 1; `limit` defaults to 20 and is capped at 100. Scalar at `/docs`
+documents request bodies, auth, response schemas, errors, and examples.
 
 Uploaded media is stored under `apps/api/uploads/` (gitignored) and served at `/uploads/...`.
 
@@ -105,21 +123,27 @@ https://heritage.nobatix.ir/sites/{slug}?src=qr
 | Download plaque PNG | Button on hero / site page (`/downloads/sites/{slug}/plaque.png` → API), or direct `GET /api/v1/public/sites/{slug}/qr.png` |
 | Plaque design | Dark brown diagonal frame, cream card, Persian title + location, QR with logo center, footer brand lockup (logo + «میراث کرمانشاه») |
 
-Set `PUBLIC_WEB_BASE_URL` (API) and `NEXT_PUBLIC_SITE_URL` (web) to `https://heritage.nobatix.ir` in production. Defaults in code already point there; override in `.env` for local-only testing.
+Set `PUBLIC_WEB_BASE_URL` (API) and `NEXT_PUBLIC_SITE_URL` (web) in the **repo root** `.env` to `https://heritage.nobatix.ir` in production. For admin coordinate picking, set `NEXT_PUBLIC_MAP_IR_API_KEY` there as well (get a key from [Map.ir](https://map.ir); restrict by domain). Defaults in code already point there; override in `.env` for local-only testing.
 
 ## Public routes (after API migrate + seed)
 
 | URL | Page |
 |---|---|
 | `http://localhost:3000/` | Landing (Persian default: hero, banners, site grid) |
-| `http://localhost:3000/sites/taq-e-bostan` | Site detail with content blocks |
-| `http://localhost:3000/en/...` | English locale |
+| `http://localhost:3000/sites/taq-e-bostan` | Site detail with content blocks, coordinates, Google/Neshan map links, and embedded Google map |
+| `http://localhost:3000/admin` | Admin panel (sites CRUD with a FA/EN content-block editor; users for SuperAdmin; FA/EN via language switcher) |
+| `http://localhost:3000/admin/login` | Admin sign-in (localized) |
+| `http://localhost:3000/docs` | Scalar API docs (rewritten to API) |
+| `http://localhost:3000/en/admin` | English admin panel |
+| `http://localhost:3000/ar/...` | Arabic UI locale (RTL; site content falls back to Persian until `ar` translations exist) |
 
-Requires API running on port 4000 with seed data.
+Requires API running on port 4000 with migrate + seed.
+
+**Seed SuperAdmin:** phone `09120086846`, password set in seed (change after first login in production).
 
 ## Phase status
 
-**Phase 3 public frontend:** Landing and site detail pages wired to the public API, scroll reveals, promo banner slots, and block renderer. Admin HTTP and auth remain deferred.
+**Phase 4 admin:** JWT cookie auth with rotating refresh tokens, SuperAdmin user management, Admin/SuperAdmin site CRUD at `/admin` with a full FA/EN content-block editor (locale tabs, copy-from-FA, cover/media picker) that saves atomically via one multipart request to `POST`/`PUT /admin/sites`, and Scalar docs at `/docs`. Visit analytics remain deferred.
 
 ## Deploy on VPS (Docker + Caddy)
 
@@ -241,8 +265,6 @@ If you prefer not to run API/web in containers:
 ```bash
 pnpm install
 cp .env.example .env
-cp apps/api/.env.example apps/api/.env   # DATABASE_URL, PUBLIC_* URLs
-cp apps/web/.env.example apps/web/.env   # API_BASE_URL=http://127.0.0.1:4000/api/v1
 docker compose up -d                     # Postgres only
 pnpm --filter api prisma:generate
 pnpm --filter api prisma:migrate:deploy

@@ -56,13 +56,17 @@
 - **Primary**: teal-700 background, white/sand-50 text, no border
 - **Secondary**: no background, 2px brown-800 border, brown-800 text
 - Hover: subtle `translateY(-2px)`, no heavy shadow
+- Cursor: `pointer` on all enabled buttons / `[role=button]`; `not-allowed` when disabled (global in `globals.css`)
 
 ### Cards (Site Card)
 - sand-100 background, no heavy shadow - just a thin border (brown at low opacity)
 - Image at the top of the card; when no real photo exists yet, use a brown→teal gradient placeholder
 
 ### Badge/Eyebrow
-- teal-200 background, teal-700 text, full pill border-radius, small bold text
+- **One size only:** `inline-flex`, `rounded-full`, `px-3 py-1`, `text-xs font-bold tracking-wide`
+- **Tones (color only):** `default` = teal-200 / teal-700; `muted` = brown-800/10 / brown-600 (inactive/neutral status)
+- Never invent a second pill with different padding or `text-[11px]` — use `components/ui/badge.tsx` with a tone
+- Component: `apps/web/components/ui/badge.tsx`
 
 ## 5. Logo
 
@@ -145,7 +149,7 @@ Section vertical padding: 70px desktop / 40px mobile (§3).
 | Headline | H1 clamp 26–38px, weight 900; accent phrase in `teal-700` |
 | Lead | 15px, `brown-600`, max-width ~672px (`max-w-2xl`) |
 | CTA row | Primary + secondary buttons (§4), gap 12px |
-| Photo | Real Taq-e Bostan photo (Wikimedia Commons via `lib/heritage-images.ts`); 4:3 aspect, rounded container; QR plaque overlay at bottom |
+| Photo | Real Taq-e Bostan photo (Wikimedia Commons via `lib/heritage-images.ts`); 4:3 aspect, rounded container; plaque overlay: brand lockup at **top-left** on opaque `sand-50` card with white logo pad (matches header lockup palette), site name **16px** + location **14px** + download **12px** + QR at bottom |
 
 Page content max width: **1400px** (`max-w-[1400px]`), full viewport horizontal padding `6vw`. Section heads are not capped to a narrow column.
 
@@ -182,7 +186,8 @@ Content source: `messages/*.json` → `home.banners.top` / `home.banners.mid`; p
 ### Site detail article
 
 - Max width **1400px** (same as landing); block gap 32px
-- Page hero: title (H1 clamp 26–38px), shortDescription (**17px** `brown-800`), category badge, city/province line
+- Page hero: title (H1 clamp 26–38px), shortDescription (**17px** `brown-800`), category badge, location block (`SiteLocation`)
+- Location block: city/province line (`text-sm text-teal-700`), coordinates caption (`text-xs text-brown-600`, locale-aware digits), Google Maps + Neshan links (`text-sm font-bold text-teal-700`), Google Maps iframe (`max-w-3xl`, `aspect-video`, `rounded-container`, `ring-brown-800/8`, `loading="lazy"`)
 - Main content in semi-opaque panel: `rounded-container bg-sand-100/95`, ring, light backdrop blur for contrast over the patterned background
 - Blocks rendered via `BlockRenderer` (§10 token map); H2 clamp 22–28px, body **17px**
 - Inline images: **`max-w-lg`**, centered, `object-contain`, not full-bleed
@@ -227,6 +232,89 @@ Full content width up to **1400px** (same as landing). Article blocks sit in a s
 - Print/download: `GET /api/v1/public/sites/:slug/qr.png` returns a **plaque PNG** (dark brown diagonal frame, cream card with site title, location, QR with centered logo, and brand lockup inside the card: logo + «میراث کرمانشاه»). The web app proxies this at `/downloads/sites/:slug/plaque.png` (same-origin) so browser download works reliably via `PlaqueDownloadButton`.
 - Target URL: `https://heritage.nobatix.ir/sites/{slug}?src=qr` (via `PUBLIC_WEB_BASE_URL` / `NEXT_PUBLIC_SITE_URL`)
 - Download on landing hero overlay and site detail QR panel
+
+### Admin panel
+
+Implemented under `/admin` (fa default) and `/en/admin/...`. Shares public page atmosphere (`HeritagePageBackground` diagonal stripes).
+
+**Type scale (must match §2 — no freestyle `text-sm` / `text-[11px]` for body chrome):**
+
+| Role | Size | Where |
+|---|---|---|
+| Page title | `clamp(22px, 2.4vw, 30px)` black | Sites / users H1 |
+| Body / interactive | **15px** (`text-[15px]`) | Nav, buttons, inputs, select rows, list titles, status copy, errors |
+| Field label / table header | **12px** bold (`text-xs`) | `Field`, map label, column headers |
+| Caption / metadata | **12–13px** | Slug, phone, file name, map hint |
+| Brand tagline only | `text-[11px]` tracking-wide | Sidebar tagline (documented exception) |
+
+**Layout:**
+
+| Element | Spec |
+|---|---|
+| Shell | Floating `rounded-container` sidebar + top bar on opaque `sand-100`; logo on white pad; active nav `teal-700` pill; header includes language dropdown + localized role badge; host chrome `z-30` so menus clear the body |
+| Main panel | Opaque sand-100; padding `p-5` / `md:p-6`; nested lists/cards use **white** + `border-brown-800/15` |
+| Forms | **Full width of main** — do not center with `max-w-3xl` / `mx-auto` (login card may stay `max-w-md`) |
+| Login | Opaque sand-100 card; language switcher above |
+| Lists | White nested rows on sand panels; cover thumb for sites; `Badge` for role/status |
+| Form controls | Inputs/selects/image picker sit on **white** with `border-brown-800/25`. Select + language switcher use 20×20 `ChevronIcon` |
+| Users | Parent CSS grid + `subgrid` rows; phone uses inner `dir="ltr"` span; **Add user** / **Edit** modals |
+| i18n | All admin chrome + forms + errors via `messages/{fa,en,ar}.json` under `admin.*` |
+
+### Admin form controls (`components/ui/`)
+
+| Control | Spec |
+|---|---|
+| `TextInput` / `TextArea` / `Field` | `rounded-button`, **white** fill, `border-brown-800/25`; focus ring `teal-700/15` |
+| `Select` | Custom button + **portaled** dropdown (`fixed` on `document.body`, `z-[200]`) so menus never hide under Leaflet/maps or fields below; white fill; 20×20 `ChevronIcon` |
+| `Checkbox` | Custom 20px square; off = white + brown border; on = teal fill + check |
+| `ImagePicker` | Dashed white `rounded-card` preview; pick/change/clear via `ActionButton` (not ad-hoc `text-xs` pills) |
+| `ChevronIcon` | Shared 20×20 stroke chevron for Select + LanguageSwitcher |
+| `LocationMapPicker` | Map.ir raster + Leaflet; `aspect-video` min height, `rounded-card`; teal pin; click/drag syncs lat/lng fields (`components/admin/location-map-picker.tsx`) |
+| `ActionButton` | Primary/secondary/ghost; **15px** bold; same hover lift as §4 Buttons |
+| `Tabs` | White segmented track (`border-brown-800/15`, `p-1`) on sand panels; each tab `rounded-button`, **15px** bold; active = `teal-700` / `sand-50` + nav shadow; inactive = `brown-800`, `hover:bg-sand-50`; `role="tablist"` / `role="tab"` (`components/ui/tabs.tsx`) |
+
+### `BlockListEditor` (`components/admin/block-list-editor.tsx`)
+
+Ordered editor for a site's `SiteContentBlock` rows (one instance per locale tab, §10). Fully controlled: `value: EditorBlock[]` / `onChange` (see `lib/copy-blocks-from-fa.ts` for the `EditorBlock` union and `copyBlocksFromFa()` used by the EN "copy from FA" toolbar action).
+
+| Element | Spec |
+|---|---|
+| Add row | Flat row of `secondary` `ActionButton`s, one per block type (Heading/Paragraph/Image/Audio/Video) — not a hidden dropdown menu, since the option count is small and fixed |
+| Block card | **White** `rounded-card`, `border-brown-800/15`, `p-4` (nested-on-`sand-100` rule, §"Form field contrast") |
+| Card header | Type title (**15px** bold `brown-950`) + `ghost` `ActionButton` row: move up / move down (disabled at list ends) / delete |
+| Text block (HEADING/PARAGRAPH) | `TextArea` for `text` + a 3-up `Select` row for `textRole`/`colorToken`/`align` (values mirror §10's `textRole`/`colorToken` tables) |
+| Image/Audio block | `TextInput` for `caption` + a dashed white `rounded-card` file field (same shell as `ImagePicker`, adapted to controlled block state — image shows a thumbnail from `previewUrl`, audio shows an "attached" label since it has no local preview) |
+| Video block | `TextInput` for `caption` + `TextInput dir="ltr"` for `embedUrl` |
+| File picking | The editor never hashes/optimizes files itself — `onPickFile(block, file)` bubbles the raw `File` to the caller, which uses `lib/file-hash.ts` / `lib/optimize-image.ts` and then calls `onChange` with the block's `mediaId`/`clientFileKey`/`previewUrl` set. Multipart wiring (Task 11+) uses the block's `clientFileKey` as the form-data field name, matching the `POST`/`PUT /admin/sites` convention (`clientFileKey === fieldname`) |
+| Copy from FA | `copyBlocksFromFa(faBlocks)` gives the EN tab new block keys + starting `text`/`caption`/`embedUrl` values; keeps `mediaId` (same underlying file, already on the server) but drops `clientFileKey`/`previewUrl` (a file staged for FA's own upload can't be silently reused by another locale's tab) |
+
+### `SiteForm` (`components/admin/site-form.tsx`)
+
+Full-width admin editor for creating/replacing a site. Reads all copy from `useTranslations('admin.siteForm')` (no `labels` prop — pages render `<SiteForm />` / `<SiteForm site={site} />`).
+
+| Element | Spec |
+|---|---|
+| Shared meta | `slug` (create only, `dir="ltr"`), `category`/`city` `Select`s, `LocationMapPicker` + `lat`/`lng` `TextInput`s, `isActive` `Checkbox`, cover via `ImagePicker` |
+| Locale content | `Tabs` (Persian/English); each tab = title + short-description `Field`s (`dir="rtl"` for FA, `dir="ltr"` for EN) + a `BlockListEditor` |
+| Copy from FA | EN tab shows a `secondary` `ActionButton` "Copy from Persian" (right-aligned above the editor); `window.confirm` first when EN already has blocks |
+| Save | One atomic multipart request: `POST /admin/sites` (create) or `PUT /admin/sites/:id` (replace). `payload` field = JSON `CreateSiteFullInput`/`UpdateSiteFullInput`; each staged file is optimized (images via `lib/optimize-image.ts`) then hashed (`lib/file-hash.ts`). A hash matching an existing `site.media[].contentHash` → reference by `mediaId` (no upload); otherwise the file is appended once with the multipart **field name === its `clientFileKey`** and identical picks are deduped onto that one part (cover processed first). The old dual JSON + `.../cover` mutation path is removed |
+
+### Language switcher
+
+- Compact **dropdown**: white trigger, `border-brown-800/25`, teal code chip + native name + 20px `ChevronIcon`; menu white with stronger shadow
+- Menu: `rounded-card`, scrollable (`max-h-64`); each row = code chip + native name; `z-50` when open; host chrome `z-30`
+- Active row: teal-700 fill / sand-50 text (same pattern as `Select`)
+- Locale catalog: `i18n/locales.ts` (`LOCALE_DEFINITIONS`) — add code + nativeName + dir + messages JSON when shipping a language
+- Current UI locales: `fa` (default, no prefix), `en`, `ar` (RTL)
+
+### Form field contrast
+
+- On `sand-100` panels, controls use **white** fill + `border-brown-800/25` (TextInput, Select, ImagePicker, Checkbox off-state). Avoid `sand-50` nested in `sand-100` — contrast is too low on the striped page background.
+
+Components: `language-switcher.tsx` (public + admin header + login).
+
+Admin composed components: `admin-shell.tsx`, `login-form.tsx`, `sites-list.tsx`, `site-form.tsx`, `users-panel.tsx`, `location-map-picker.tsx`.
+
 
 ## Open questions
 

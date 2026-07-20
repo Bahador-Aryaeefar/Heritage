@@ -208,6 +208,205 @@ export const updateUserPasswordSchema = z.object({
 });
 export type UpdateUserPasswordInput = z.infer<typeof updateUserPasswordSchema>;
 
+// Deprecated: superseded by createSiteFullSchema / updateSiteFullSchema (full
+// multipart site write with media + content blocks). Kept only so the current
+// JSON-only admin endpoints (PATCH /admin/sites/:id, POST .../cover) keep
+// compiling until the atomic multipart create/replace endpoints land.
+export const siteAdminTranslationSchema = z.object({
+  locale: localeSchema,
+  title: z.string().min(1),
+  shortDescription: z.string().min(1),
+});
+export type SiteAdminTranslation = z.infer<typeof siteAdminTranslationSchema>;
+
+/** @deprecated use {@link createSiteFullSchema} */
+export const createSiteAdminSchema = z.object({
+  slug: z
+    .string()
+    .min(1)
+    .regex(/^[a-z0-9-]+$/, 'Slug must be lowercase letters, numbers, and hyphens only'),
+  category: siteCategorySchema,
+  lat: z.string(),
+  lng: z.string(),
+  cityId: z.string(),
+  isActive: z.boolean().optional(),
+  translations: z.array(siteAdminTranslationSchema).min(1),
+});
+export type CreateSiteAdminInput = z.infer<typeof createSiteAdminSchema>;
+
+/** @deprecated use {@link updateSiteFullSchema} */
+export const updateSiteAdminSchema = z.object({
+  category: siteCategorySchema.optional(),
+  lat: z.string().optional(),
+  lng: z.string().optional(),
+  cityId: z.string().optional(),
+  isActive: z.boolean().optional(),
+  translations: z.array(siteAdminTranslationSchema).optional(),
+});
+export type UpdateSiteAdminInput = z.infer<typeof updateSiteAdminSchema>;
+
+// --- Admin media ---
+
+export const adminMediaSchema = z.object({
+  id: z.string(),
+  type: mediaTypeSchema,
+  url: z.string().nullable(),
+  embedUrl: z.string().nullable(),
+  altFa: z.string().nullable(),
+  altEn: z.string().nullable(),
+  contentHash: z.string().nullable(),
+  isCover: z.boolean(),
+});
+export type AdminMedia = z.infer<typeof adminMediaSchema>;
+
+// --- Admin content block write shapes ---
+
+const adminTextBlockWriteSchema = z.object({
+  type: z.enum(['HEADING', 'PARAGRAPH']),
+  textRole: textRoleSchema,
+  colorToken: colorTokenSchema,
+  align: blockAlignSchema,
+  text: z.string().min(1),
+});
+export type AdminTextBlockWrite = z.infer<typeof adminTextBlockWriteSchema>;
+
+const adminImageBlockWriteSchema = z
+  .object({
+    type: z.literal('IMAGE'),
+    caption: z.string().nullable().optional(),
+    mediaId: z.string().optional(),
+    clientFileKey: z.string().optional(),
+    contentHash: z.string().optional(),
+  })
+  .refine((v) => Boolean(v.mediaId || v.clientFileKey), {
+    message: 'IMAGE block requires mediaId or clientFileKey',
+  });
+export type AdminImageBlockWrite = z.infer<typeof adminImageBlockWriteSchema>;
+
+const adminAudioBlockWriteSchema = z
+  .object({
+    type: z.literal('AUDIO'),
+    caption: z.string().nullable().optional(),
+    mediaId: z.string().optional(),
+    clientFileKey: z.string().optional(),
+    contentHash: z.string().optional(),
+  })
+  .refine((v) => Boolean(v.mediaId || v.clientFileKey), {
+    message: 'AUDIO block requires mediaId or clientFileKey',
+  });
+export type AdminAudioBlockWrite = z.infer<typeof adminAudioBlockWriteSchema>;
+
+const adminVideoBlockWriteSchema = z.object({
+  type: z.literal('VIDEO'),
+  embedUrl: z.url(),
+  caption: z.string().nullable().optional(),
+  mediaId: z.string().optional(),
+});
+export type AdminVideoBlockWrite = z.infer<typeof adminVideoBlockWriteSchema>;
+
+export const adminBlockWriteSchema = z.discriminatedUnion('type', [
+  adminTextBlockWriteSchema,
+  adminImageBlockWriteSchema,
+  adminAudioBlockWriteSchema,
+  adminVideoBlockWriteSchema,
+]);
+export type AdminBlockWrite = z.infer<typeof adminBlockWriteSchema>;
+
+export const adminTranslationFullSchema = z.object({
+  locale: localeSchema,
+  title: z.string().min(1),
+  shortDescription: z.string().min(1),
+  blocks: z.array(adminBlockWriteSchema),
+});
+export type AdminTranslationFull = z.infer<typeof adminTranslationFullSchema>;
+
+const coverWriteSchema = z
+  .object({
+    mediaId: z.string().optional(),
+    clientFileKey: z.string().optional(),
+    contentHash: z.string().optional(),
+  })
+  .refine((v) => Boolean(v.mediaId || v.clientFileKey), {
+    message: 'cover requires mediaId or clientFileKey',
+  })
+  .optional();
+
+function requireFaEnTranslations<T extends { locale: string }>(translations: T[]) {
+  const locales = new Set(translations.map((t) => t.locale));
+  return locales.has('fa') && locales.has('en');
+}
+
+export const createSiteFullSchema = z
+  .object({
+    slug: z
+      .string()
+      .min(1)
+      .regex(/^[a-z0-9-]+$/, 'Slug must be lowercase letters, numbers, and hyphens only'),
+    category: siteCategorySchema,
+    lat: z.string().min(1),
+    lng: z.string().min(1),
+    cityId: z.string().min(1),
+    isActive: z.boolean().optional(),
+    cover: coverWriteSchema,
+    translations: z.array(adminTranslationFullSchema).min(2),
+  })
+  .refine((v) => requireFaEnTranslations(v.translations), {
+    message: 'Both fa and en translations are required',
+  });
+
+export const updateSiteFullSchema = z
+  .object({
+    category: siteCategorySchema,
+    lat: z.string().min(1),
+    lng: z.string().min(1),
+    cityId: z.string().min(1),
+    isActive: z.boolean(),
+    cover: coverWriteSchema,
+    translations: z.array(adminTranslationFullSchema).min(2),
+  })
+  .refine((v) => requireFaEnTranslations(v.translations), {
+    message: 'Both fa and en translations are required',
+  });
+
+export type CreateSiteFullInput = z.infer<typeof createSiteFullSchema>;
+export type UpdateSiteFullInput = z.infer<typeof updateSiteFullSchema>;
+
+export const adminSiteSchema = z.object({
+  id: z.string(),
+  slug: z.string(),
+  category: siteCategorySchema,
+  lat: z.string(),
+  lng: z.string(),
+  isActive: z.boolean(),
+  city: z.object({
+    id: z.string(),
+    slug: z.string(),
+    nameFa: z.string(),
+    nameEn: z.string(),
+  }),
+  province: z.object({ slug: z.string(), nameFa: z.string(), nameEn: z.string() }),
+  translations: z.array(
+    z.object({
+      locale: localeSchema,
+      title: z.string(),
+      shortDescription: z.string(),
+      blocks: z.array(contentBlockSchema),
+    }),
+  ),
+  media: z.array(adminMediaSchema),
+  coverUrl: z.string().nullable(),
+});
+export type AdminSite = z.infer<typeof adminSiteSchema>;
+
+export const cityOptionSchema = z.object({
+  id: z.string(),
+  slug: z.string(),
+  nameFa: z.string(),
+  nameEn: z.string(),
+  province: z.object({ slug: z.string(), nameFa: z.string(), nameEn: z.string() }),
+});
+export type CityOption = z.infer<typeof cityOptionSchema>;
+
 // --- Block validation (for seed / future admin) ---
 
 export function validateTextBlockFields(type: ContentBlockType, spans: unknown): TextSpan[] {

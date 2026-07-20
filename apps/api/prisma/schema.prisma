@@ -122,6 +122,7 @@ model Media {
   url         String?
   embedUrl    String?
   mimeType    String?
+  contentHash String?
   durationSec Int?
   altFa       String?
   altEn       String?
@@ -134,6 +135,7 @@ model Media {
 
   @@index([siteId])
   @@index([siteId, isCover])
+  @@index([siteId, contentHash])
 }
 
 model SiteContentBlock {

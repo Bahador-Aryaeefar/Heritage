@@ -384,6 +384,16 @@ Part of the editor-completeness pass (see `docs/superpowers/specs/2026-07-21-edi
 
 Spec: [`docs/superpowers/specs/2026-07-21-editor-completeness-design.md`](./docs/superpowers/specs/2026-07-21-editor-completeness-design.md).
 
+## 22. Web build must not require a reachable API (2026-07-17)
+
+`docker-compose.prod.yml` builds the `web` image before the `api` container exists (Docker builds images independently of `depends_on`, which only orders container *start*), so `next build`'s prerender of `/[locale]` (landing, §15) always ran with the API unreachable. `getLanding()` had no error handling, so the fetch failure (`ECONNREFUSED`) crashed the entire `next build` with exit code 1 - no web image was ever produced, and any deploy relying on `docker compose up --build` failed at this step or silently kept serving a stale/older image whose behavior no longer matched the current source (explaining runtime errors on routes like site detail that didn't exist in the older build).
+
+| Decision | Detail | Reason |
+|---|---|---|
+| Build-time landing fallback | `getLandingWithBuildFallback()` (`lib/sites.ts`) catches `getLanding()` failures **only** when `process.env.NEXT_PHASE === 'phase-production-build'`, returning an empty paginated `{ items: [], meta: ... }`; runtime calls still throw normally | Lets `next build` finish (and ISR, §15, fills the page in for real once the API is reachable) without masking a genuine runtime failure, which must still surface so ISR keeps serving the last good cached page (Next.js's default on a failed revalidation) instead of silently replacing it with an empty list |
+| `API_BASE_URL` as a web build ARG | `apps/web/Dockerfile` now declares `ARG API_BASE_URL=http://api:4000/api/v1` (build stage only) and `docker-compose.prod.yml` passes it explicitly | `next.config.ts` reads `API_BASE_URL` at build time to compute the `/uploads/*` and `/downloads/*` rewrite destinations, which get baked into the standalone server output; without this it silently defaulted to `http://localhost:4000` (the dev-only fallback), which is unreachable from inside the `web` container regardless of runtime env vars |
+| `generateStaticParams` (site detail) | Already had its own try/catch returning `[]` on failure (pre-existing) - unaffected by this fix, but confirmed: when it returns `[]`, `/sites/[slug]` becomes a fully dynamic (per-request SSR) route rather than statically generated, which still renders correctly once the API is reachable at runtime | Documented here so a future session doesn't mistake "no static site-detail paths listed in the build output" for a bug - it's an expected fallback, not a broken build |
+
 ## Open questions
 
 - [x] Hosting: personal VPS with Docker + Caddy (documented in README §Deploy on VPS; `docker-compose.prod.yml`)

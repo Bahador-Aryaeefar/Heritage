@@ -15,6 +15,12 @@ RUN pnpm install --frozen-lockfile --filter web...
 FROM deps AS build
 ARG NEXT_PUBLIC_SITE_URL=https://heritage.nobatix.ir
 ENV NEXT_PUBLIC_SITE_URL=${NEXT_PUBLIC_SITE_URL}
+# Baked into next.config.ts rewrites (/uploads/*, /downloads/*) at build time;
+# must point at the runtime API origin (the compose service), not localhost.
+# The API is NOT reachable during the image build - the landing prerender
+# falls back to an empty list and ISR fills it in at runtime.
+ARG API_BASE_URL=http://api:4000/api/v1
+ENV API_BASE_URL=${API_BASE_URL}
 COPY packages/shared-types packages/shared-types
 COPY apps/web apps/web
 RUN pnpm --filter web build

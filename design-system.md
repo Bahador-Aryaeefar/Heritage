@@ -265,7 +265,7 @@ Implemented under `/admin` (fa default) and `/en/admin/...`. Shares public page 
 | Control | Spec |
 |---|---|
 | `TextInput` / `TextArea` / `Field` | `rounded-button`, **white** fill, `border-brown-800/25`; focus ring `teal-700/15` |
-| `Select` | Custom button + **portaled** dropdown (`fixed` on `document.body`, `z-[200]`) so menus never hide under Leaflet/maps or fields below; white fill; 20×20 `ChevronIcon` |
+| `Select` | Custom button + **portaled** dropdown (`fixed` on `document.body`, inline `zIndex: 1100`) so menus clear Leaflet panes/controls (400–1000) and fields below; white fill; 20×20 `ChevronIcon` |
 | `Checkbox` | Custom 20px square; off = white + brown border; on = teal fill + check |
 | `ImagePicker` | Dashed white `rounded-card` preview; pick/change/clear via `ActionButton` (not ad-hoc `text-xs` pills) |
 | `ChevronIcon` | Shared 20×20 stroke chevron for Select + LanguageSwitcher |
@@ -273,20 +273,51 @@ Implemented under `/admin` (fa default) and `/en/admin/...`. Shares public page 
 | `ActionButton` | Primary/secondary/ghost; **15px** bold; same hover lift as §4 Buttons |
 | `Tabs` | White segmented track (`border-brown-800/15`, `p-1`) on sand panels; each tab `rounded-button`, **15px** bold; active = `teal-700` / `sand-50` + nav shadow; inactive = `brown-800`, `hover:bg-sand-50`; `role="tablist"` / `role="tab"` (`components/ui/tabs.tsx`) |
 
-### `BlockListEditor` (`components/admin/block-list-editor.tsx`)
+### Document block editor (`BlockListEditor` shell)
 
-Ordered editor for a site's `SiteContentBlock` rows (one instance per locale tab, §10). Fully controlled: `value: EditorBlock[]` / `onChange` (see `lib/copy-blocks-from-fa.ts` for the `EditorBlock` union and `copyBlocksFromFa()` used by the EN "copy from FA" toolbar action).
+Ordered editor for a site's `SiteContentBlock` rows (one instance per locale tab, §10). **Document canvas + side inspector** — not a stack of per-block form cards. Spec: [`docs/superpowers/specs/2026-07-21-document-canvas-editor-design.md`](docs/superpowers/specs/2026-07-21-document-canvas-editor-design.md).
+
+**Shell** (`components/admin/block-list-editor.tsx`): owns `selectedKey` / `textFocusKey`; composes `BlockCanvas` + `BlockInspector`. Same controlled API as before: `value: EditorBlock[]` / `onChange` / `labels` / optional `onPickFile`. Structural edits use `lib/block-editor-utils.ts` (`insertBlockAt`, `moveBlock`, `convertBlockType`). See `lib/copy-blocks-from-fa.ts` for the `EditorBlock` union and `copyBlocksFromFa()` (EN "copy from FA").
 
 | Element | Spec |
 |---|---|
-| Add row | Flat row of `secondary` `ActionButton`s, one per block type (Heading/Paragraph/Image/Audio/Video) — not a hidden dropdown menu, since the option count is small and fixed |
-| Block card | **White** `rounded-card`, `border-brown-800/15`, `p-4` (nested-on-`sand-100` rule, §"Form field contrast") |
-| Card header | Type title (**15px** bold `brown-950`) + `ghost` `ActionButton` row: move up / move down (disabled at list ends) / delete |
-| Text block (HEADING/PARAGRAPH) | `TextArea` for `text` + a 3-up `Select` row for `textRole`/`colorToken`/`align` (values mirror §10's `textRole`/`colorToken` tables) |
-| Image/Audio block | `TextInput` for `caption` + a dashed white `rounded-card` file field (same shell as `ImagePicker`, adapted to controlled block state — image shows a thumbnail from `previewUrl`, audio shows an "attached" label since it has no local preview) |
-| Video block | `TextInput` for `caption` + `TextInput dir="ltr"` for `embedUrl` |
-| File picking | The editor never hashes/optimizes files itself — `onPickFile(block, file)` bubbles the raw `File` to the caller, which uses `lib/file-hash.ts` / `lib/optimize-image.ts` and then calls `onChange` with the block's `mediaId`/`clientFileKey`/`previewUrl` set. Multipart wiring (Task 11+) uses the block's `clientFileKey` as the form-data field name, matching the `POST`/`PUT /admin/sites` convention (`clientFileKey === fieldname`) |
-| Copy from FA | `copyBlocksFromFa(faBlocks)` gives the EN tab new block keys + starting `text`/`caption`/`embedUrl` values; keeps `mediaId` (same underlying file, already on the server) but drops `clientFileKey`/`previewUrl` (a file staged for FA's own upload can't be silently reused by another locale's tab) |
+| Layout | `flex-col` on narrow viewports; `lg:flex-row` — canvas `flex-1`, inspector beside it on large screens |
+| Selection | One block at a time; click canvas background deselects; stale selection cleared when the block leaves `value` |
+| Keyboard | **Escape** deselects; **Delete/Backspace** removes the selected block only when focus is **not** in `INPUT` / `TEXTAREA` / `SELECT` / contenteditable (so in-canvas typing and inspector fields stay safe) |
+| File picking | Shell never hashes/optimizes — `onPickFile(block, file)` bubbles raw `File` to the caller (`lib/file-hash.ts`, `lib/optimize-image.ts`); multipart field name === `clientFileKey` on save |
+| Copy from FA | Unchanged: new keys + copied text/caption/embedUrl; keeps `mediaId`, drops FA-only `clientFileKey`/`previewUrl` |
+
+#### `BlockCanvas` (`components/admin/block-canvas.tsx`)
+
+Single **white** document surface: `rounded-card`, `border-brown-800/15`, `px-6 py-8` / `md:px-10 md:py-10`. Renders blocks like the public article body; no per-block move/delete chrome.
+
+| Element | Spec |
+|---|---|
+| Text (HEADING/PARAGRAPH) | Borderless auto-resizing `textarea`; typography from public `TextBlock` maps (`roleClasses` / `colorClasses` / `alignClasses` in `text-block.tsx`) |
+| Image / Audio | `MediaFilePicker` on canvas (pick/change/remove); **caption not on canvas** |
+| Video | Valid `http(s)` embed → `aspect-video` iframe preview; else dashed placeholder labeled with embed URL copy |
+| Selected block | Wrapper `ring-2 ring-teal-700/40`, `rounded-button`, `-m-1 p-1` |
+| Insert gaps | Before each block: centered **+** via `BlockInsertMenu` (`variant="gap"`) — white 36×36, `border-2 border-brown-800/20`, bold **+** |
+| End insert | `BlockInsertMenu` (`variant="end"`) — `secondary` `ActionButton` with `labels.addBlock` |
+| Empty list | **15px** `brown-600` hint (`labels.empty`) above end insert |
+
+#### `BlockInsertMenu` (`components/admin/block-insert-menu.tsx`)
+
+Portaled menu (`fixed`, `zIndex: 1100`) — Heading / Paragraph / Image / Audio / Video. Gap trigger is icon-only **+**; end trigger is secondary **Add block**.
+
+#### `BlockInspector` (`components/admin/block-inspector.tsx`)
+
+Type, style, media, caption, embed URL, reorder, delete — **not** on the canvas.
+
+| Element | Spec |
+|---|---|
+| Desktop (`md+`, ≥700px) | Sticky aside `w-[280px]`, white `rounded-card`, `border-brown-800/15`, `p-4`, `top-4`; empty state: **15px** `brown-600` (`labels.inspectorEmpty`) |
+| Mobile (`<700px`) | Bottom sheet when a block is selected: `fixed` bottom, `z-[1100]`, `max-h-[75vh]`, `rounded-t-card`, header = type title + `ghost` close (`labels.closeInspector`) |
+| All types | `Select` block type → `convertBlockType` |
+| Text | `Select`s for `textRole` / `colorToken` / `align` (same options as §10) |
+| Image / Audio | `TextInput` caption + `MediaFilePicker` |
+| Video | `TextInput` caption + `TextInput dir="ltr"` embed URL |
+| Actions | `ghost` move up / move down (disabled at ends) + delete; top border `border-brown-800/10` |
 
 ### `SiteForm` (`components/admin/site-form.tsx`)
 
@@ -294,15 +325,15 @@ Full-width admin editor for creating/replacing a site. Reads all copy from `useT
 
 | Element | Spec |
 |---|---|
-| Shared meta | `slug` (create only, `dir="ltr"`), `category`/`city` `Select`s, `LocationMapPicker` + `lat`/`lng` `TextInput`s, `isActive` `Checkbox`, cover via `ImagePicker` |
-| Locale content | `Tabs` (Persian/English); each tab = title + short-description `Field`s (`dir="rtl"` for FA, `dir="ltr"` for EN) + a `BlockListEditor` |
+| Shared meta | `slug` (create only, `dir="ltr"`), `category`/`city` `Select`s, `LocationMapPicker` + `lat`/`lng` `TextInput`s, cover via `ImagePicker` (`isActive` not edited here — create defaults `true`, edit preserves existing) |
+| Locale content | `Tabs` (Persian/English); each tab = title + short-description `Field`s (`dir="rtl"` for FA, `dir="ltr"` for EN) + document-canvas `BlockListEditor` (canvas + inspector per spec above) |
 | Copy from FA | EN tab shows a `secondary` `ActionButton` "Copy from Persian" (right-aligned above the editor); `window.confirm` first when EN already has blocks |
 | Save | One atomic multipart request: `POST /admin/sites` (create) or `PUT /admin/sites/:id` (replace). `payload` field = JSON `CreateSiteFullInput`/`UpdateSiteFullInput`; each staged file is optimized (images via `lib/optimize-image.ts`) then hashed (`lib/file-hash.ts`). A hash matching an existing `site.media[].contentHash` → reference by `mediaId` (no upload); otherwise the file is appended once with the multipart **field name === its `clientFileKey`** and identical picks are deduped onto that one part (cover processed first). The old dual JSON + `.../cover` mutation path is removed |
 
 ### Language switcher
 
 - Compact **dropdown**: white trigger, `border-brown-800/25`, teal code chip + native name + 20px `ChevronIcon`; menu white with stronger shadow
-- Menu: `rounded-card`, scrollable (`max-h-64`); each row = code chip + native name; `z-50` when open; host chrome `z-30`
+- Menu: **portaled** to `document.body` (`fixed`, `zIndex: 1100`, same stacking rule as `Select`); scrollable; each row = code chip + native name
 - Active row: teal-700 fill / sand-50 text (same pattern as `Select`)
 - Locale catalog: `i18n/locales.ts` (`LOCALE_DEFINITIONS`) — add code + nativeName + dir + messages JSON when shipping a language
 - Current UI locales: `fa` (default, no prefix), `en`, `ar` (RTL)
@@ -313,7 +344,7 @@ Full-width admin editor for creating/replacing a site. Reads all copy from `useT
 
 Components: `language-switcher.tsx` (public + admin header + login).
 
-Admin composed components: `admin-shell.tsx`, `login-form.tsx`, `sites-list.tsx`, `site-form.tsx`, `users-panel.tsx`, `location-map-picker.tsx`.
+Admin composed components: `admin-shell.tsx`, `login-form.tsx`, `sites-list.tsx`, `site-form.tsx`, `block-list-editor.tsx`, `block-canvas.tsx`, `block-inspector.tsx`, `block-insert-menu.tsx`, `media-file-picker.tsx`, `users-panel.tsx`, `location-map-picker.tsx`.
 
 
 ## Open questions

@@ -4,7 +4,7 @@ import {
 } from '@heritage/shared-types';
 
 describe('createSiteFullSchema', () => {
-  it('accepts fa+en text blocks and video embed', () => {
+  it('accepts fa+en+ar spans blocks and video embed', () => {
     const parsed = createSiteFullSchema.parse({
       slug: 'test-site',
       category: 'ANCIENT',
@@ -24,7 +24,7 @@ describe('createSiteFullSchema', () => {
               textRole: 'BODY',
               colorToken: 'BROWN_800',
               align: 'START',
-              text: 'متن',
+              spans: [{ text: 'متن', bold: true }],
             },
             {
               type: 'VIDEO',
@@ -43,16 +43,30 @@ describe('createSiteFullSchema', () => {
               textRole: 'BODY',
               colorToken: 'BROWN_800',
               align: 'START',
-              text: 'Body',
+              spans: [{ text: 'Body', href: 'https://example.com' }],
+            },
+          ],
+        },
+        {
+          locale: 'ar',
+          title: 'العنوان',
+          shortDescription: 'قصير',
+          blocks: [
+            {
+              type: 'PARAGRAPH',
+              textRole: 'BODY',
+              colorToken: 'BROWN_800',
+              align: 'START',
+              spans: [{ text: 'نص' }],
             },
           ],
         },
       ],
     });
-    expect(parsed.translations).toHaveLength(2);
+    expect(parsed.translations).toHaveLength(3);
   });
 
-  it('rejects missing en translation', () => {
+  it('rejects missing ar translation', () => {
     expect(() =>
       createSiteFullSchema.parse({
         slug: 'x',
@@ -62,6 +76,7 @@ describe('createSiteFullSchema', () => {
         cityId: 'c',
         translations: [
           { locale: 'fa', title: 'a', shortDescription: 'b', blocks: [] },
+          { locale: 'en', title: 'a', shortDescription: 'b', blocks: [] },
         ],
       }),
     ).toThrow();

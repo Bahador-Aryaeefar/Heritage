@@ -83,7 +83,7 @@ describe('Admin sites — atomic multipart write + cleanup (e2e)', () => {
   let coverMediaId: string;
   let coverUrl: string;
 
-  it('creates a site atomically via multipart: metadata + fa/en blocks + a cover image reused as an IMAGE block', async () => {
+  it('creates a site atomically via multipart: metadata + fa/en/ar blocks + a cover image reused as an IMAGE block', async () => {
     const payload: CreateSiteFullInput = {
       slug,
       category: 'ANCIENT',
@@ -103,7 +103,10 @@ describe('Admin sites — atomic multipart write + cleanup (e2e)', () => {
               textRole: 'BODY',
               colorToken: 'BROWN_800',
               align: 'START',
-              text: 'این یک پاراگراف آزمایشی است.',
+              spans: [
+                { text: 'Hello ', bold: true },
+                { text: 'link', href: 'https://example.com' },
+              ],
             },
             {
               type: 'IMAGE',
@@ -122,7 +125,21 @@ describe('Admin sites — atomic multipart write + cleanup (e2e)', () => {
               textRole: 'BODY',
               colorToken: 'BROWN_800',
               align: 'START',
-              text: 'This is a test paragraph.',
+              spans: [{ text: 'This is a test paragraph.' }],
+            },
+          ],
+        },
+        {
+          locale: 'ar',
+          title: 'موقع تجريبي',
+          shortDescription: 'موقع تجريبي يغطي تدفق الكتابة الذرية e2e.',
+          blocks: [
+            {
+              type: 'PARAGRAPH',
+              textRole: 'BODY',
+              colorToken: 'BROWN_800',
+              align: 'START',
+              spans: [{ text: 'هذه فقرة تجريبية.' }],
             },
           ],
         },
@@ -146,29 +163,51 @@ describe('Admin sites — atomic multipart write + cleanup (e2e)', () => {
     expect(media.isCover).toBe(true);
     expect(media.contentHash).toMatch(/^[a-f0-9]{64}$/);
     expect(media.url).toBeTruthy();
+    expect(media).not.toHaveProperty('altFa');
+    expect(media).not.toHaveProperty('altEn');
     coverMediaId = media.id;
     coverUrl = media.url!;
 
     const fa = body.translations.find((t) => t.locale === 'fa')!;
     expect(fa.blocks.map((b) => b.type)).toEqual(['PARAGRAPH', 'IMAGE']);
+    const paragraphBlock = fa.blocks[0] as { spans: { text: string; bold?: boolean; href?: string }[] };
+    expect(paragraphBlock.spans).toEqual([
+      { text: 'Hello ', bold: true },
+      { text: 'link', href: 'https://example.com' },
+    ]);
     const imageBlock = fa.blocks.find((b) => b.type === 'IMAGE') as { media: { id: string } };
     // Same clientFileKey ("cover") for the site cover and the fa IMAGE block ⇒
     // MediaPlanner dedupes them onto the single created Media row.
     expect(imageBlock.media.id).toBe(coverMediaId);
 
+    const ar = body.translations.find((t) => t.locale === 'ar')!;
+    expect(ar.blocks.map((b) => b.type)).toEqual(['PARAGRAPH']);
+
     // The staged file was promoted to disk under UPLOAD_DIR before the response returned.
     expect(existsSync(coverDiskPath(coverUrl))).toBe(true);
   });
 
-  it('GET returns the persisted blocks + media with a contentHash', async () => {
+  it('GET returns the persisted blocks + media with a contentHash and rich spans, no alt fields', async () => {
     const res = await agent.get(`/api/v1/admin/sites/${siteId}`).expect(200);
     const body = res.body as AdminSite;
 
     expect(body.media).toHaveLength(1);
     expect(body.media[0]!.contentHash).toMatch(/^[a-f0-9]{64}$/);
+    expect(body.media[0]).not.toHaveProperty('altFa');
+    expect(body.media[0]).not.toHaveProperty('altEn');
 
     const en = body.translations.find((t) => t.locale === 'en')!;
     expect(en.blocks.map((b) => b.type)).toEqual(['PARAGRAPH']);
+
+    const fa = body.translations.find((t) => t.locale === 'fa')!;
+    const paragraphBlock = fa.blocks[0] as { spans: { text: string; bold?: boolean; href?: string }[] };
+    expect(paragraphBlock.spans).toEqual([
+      { text: 'Hello ', bold: true },
+      { text: 'link', href: 'https://example.com' },
+    ]);
+
+    const ar = body.translations.find((t) => t.locale === 'ar')!;
+    expect(ar.blocks.map((b) => b.type)).toEqual(['PARAGRAPH']);
   });
 
   it('PUT replacing the site without the IMAGE block deletes the now-unused image (DB row + disk file)', async () => {
@@ -190,7 +229,7 @@ describe('Admin sites — atomic multipart write + cleanup (e2e)', () => {
               textRole: 'BODY',
               colorToken: 'BROWN_800',
               align: 'START',
-              text: 'این یک پاراگراف آزمایشی به‌روزشده است.',
+              spans: [{ text: 'این یک پاراگراف آزمایشی به‌روزشده است.' }],
             },
           ],
         },
@@ -204,7 +243,21 @@ describe('Admin sites — atomic multipart write + cleanup (e2e)', () => {
               textRole: 'BODY',
               colorToken: 'BROWN_800',
               align: 'START',
-              text: 'This is an updated test paragraph.',
+              spans: [{ text: 'This is an updated test paragraph.' }],
+            },
+          ],
+        },
+        {
+          locale: 'ar',
+          title: 'موقع تجريبي',
+          shortDescription: 'موقع تجريبي يغطي تدفق الكتابة الذرية e2e.',
+          blocks: [
+            {
+              type: 'PARAGRAPH',
+              textRole: 'BODY',
+              colorToken: 'BROWN_800',
+              align: 'START',
+              spans: [{ text: 'هذه فقرة تجريبية محدّثة.' }],
             },
           ],
         },

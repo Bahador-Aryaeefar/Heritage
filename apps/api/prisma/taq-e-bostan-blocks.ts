@@ -347,6 +347,323 @@ export function buildFaBlocks(media: SiteMediaIds): SeedBlock[] {
   ];
 }
 
+export function buildArBlocks(media: SiteMediaIds): SeedBlock[] {
+  return [
+    {
+      sortOrder: 0,
+      type: ContentBlockType.HEADING,
+      textRole: TextRole.HERO,
+      colorToken: ColorToken.BROWN_800,
+      align: BlockAlign.CENTER,
+      spans: [{ text: 'طاق بستان' }],
+    },
+    {
+      sortOrder: 1,
+      type: ContentBlockType.PARAGRAPH,
+      textRole: TextRole.BODY,
+      colorToken: body,
+      align: BlockAlign.START,
+      spans: [
+        {
+          text: 'تقع طاق بستان في شمال غرب كرمانشاه، وهي واحدة من أروع مجمعات النقوش الصخرية الساسانية الباقية. إيوانان حجريان محفوران في جبال زاغروس: إيوان أصغر يضم مشاهد الصيد الملكي وشجرة الحياة، وإيوان أكبر يصور تنصيب خسرو الثاني، ومشاهد صيد الخنازير البرية، والأسد الواقف الشهير. حوّلت البرك الحجرية والعيون الطبيعية هذا الموقع إلى مشهد مقدس ومسرح للسلطة الملكية على مدى قرابة ألفي عام.',
+        },
+      ],
+    },
+    {
+      sortOrder: 2,
+      type: ContentBlockType.HEADING,
+      textRole: TextRole.H2,
+      colorToken: heading,
+      align: BlockAlign.START,
+      spans: [{ text: 'الموقع في جبال زاغروس' }],
+    },
+    {
+      sortOrder: 3,
+      type: ContentBlockType.PARAGRAPH,
+      textRole: TextRole.BODY,
+      colorToken: body,
+      align: BlockAlign.START,
+      spans: [
+        {
+          text: 'يقع الموقع على مسافة نحو خمسة كيلومترات شمال شرق وسط كرمانشاه، على سفوح سلسلة جبال زاغروس. تُعد طاق بستان واحدة من ثلاثين مجموعة نقوش ساسانية معروفة في هذه الجبال. وقد جعل موقعها إلى جانب طرق السفر القديمة، ومنها روابط مع طريق الحرير، من هذا الجرف لوحة مثالية للاحتفالات البلاطية والدعاية الملكية.',
+        },
+      ],
+    },
+    {
+      sortOrder: 4,
+      type: ContentBlockType.PARAGRAPH,
+      textRole: TextRole.BODY,
+      colorToken: body,
+      align: BlockAlign.START,
+      spans: [
+        {
+          text: 'لا تزال العيون الطبيعية تغذي الحوض الحجري الكبير أمام الإيوان الكبير. وفي المعتقدات القديمة، كانت المياه الجارية تربط بين العالمين الأرضي والإلهي، وربما لعبت دورًا في مراسم التنصيب والشعائر الزرادشتية في الموقع.',
+        },
+      ],
+    },
+    {
+      sortOrder: 5,
+      type: ContentBlockType.HEADING,
+      textRole: TextRole.H2,
+      colorToken: heading,
+      align: BlockAlign.START,
+      spans: [{ text: 'التاريخ والملوك الساسانيون' }],
+    },
+    {
+      sortOrder: 6,
+      type: ContentBlockType.PARAGRAPH,
+      textRole: TextRole.BODY,
+      colorToken: body,
+      align: BlockAlign.START,
+      spans: [
+        { text: 'تعود معظم النقوش إلى ' },
+        { text: 'العصر الساساني', bold: true },
+        { text: ' (نحو ٢٢٤ إلى ٦٥١ م). ويُظهر أقدم مشهد رئيسي تنصيب ' },
+        { text: 'أردشير الثاني', italic: true },
+        { text: ' (٣٧٩ إلى ٣٨٣)، مستلمًا تاجه من الإلهين ' },
+        { text: 'ميثرا', italic: true },
+        { text: ' و ' },
+        { text: 'أناهيتا', italic: true },
+        {
+          text: '، مع شخصية ساقطة يُفسَّر ظهورها غالبًا بأنها الإمبراطور الروماني جوليان، احتفالًا بانتصار الساسانيين على بيزنطة.',
+        },
+      ],
+    },
+    {
+      sortOrder: 7,
+      type: ContentBlockType.PARAGRAPH,
+      textRole: TextRole.BODY,
+      colorToken: body,
+      align: BlockAlign.START,
+      spans: [
+        { text: 'يُنسب الإيوان الكبير أساسًا إلى ' },
+        { text: 'خسرو الثاني', italic: true },
+        {
+          text: ' (٥٩٠ إلى ٦٢٨)، الذي شنّ في ذروة القوة الساسانية حملات عسكرية واسعة في سوريا ومصر وحتى قرب القسطنطينية. ويُحتمل أن تكون نقوش إيوانه قد نُقشت للاحتفال بالانتصارات العسكرية وإظهار الشرعية الإلهية للملك.',
+        },
+      ],
+    },
+    {
+      sortOrder: 8,
+      type: ContentBlockType.IMAGE,
+      mediaId: media.coverMediaId,
+      caption: 'واجهة الإيوان الرئيسي والحوض الحجري',
+    },
+    {
+      sortOrder: 9,
+      type: ContentBlockType.HEADING,
+      textRole: TextRole.H2,
+      colorToken: heading,
+      align: BlockAlign.START,
+      spans: [{ text: 'الإيوان الصغير' }],
+    },
+    {
+      sortOrder: 10,
+      type: ContentBlockType.PARAGRAPH,
+      textRole: TextRole.BODY,
+      colorToken: body,
+      align: BlockAlign.START,
+      spans: [
+        {
+          text: 'يبدأ الإيوان الأصغر بقوس نصف دائري محفور في الصخر الطبيعي. ويضم في داخله مشاهد صيد ملكية وشجرة الحياة، رمز الخصوبة والخلود في الفن الإيراني القديم، منقوشة بتفاصيل دقيقة. وتؤكد مشاهد الصيد سيطرة الملك على الطبيعة والحيوانات البرية.',
+        },
+      ],
+    },
+    {
+      sortOrder: 11,
+      type: ContentBlockType.PARAGRAPH,
+      textRole: TextRole.BODY,
+      colorToken: body,
+      align: BlockAlign.START,
+      spans: [
+        {
+          text: 'يتسلل ضوء النهار من مدخل الإيوان ليكشف عمق النقوش. وقد أتقن الحرفيون الساسانيون تصوير الشكل الإنساني والأقمشة والتيجان والخيول، تاركين سجلًا حيًا لحياة البلاط الإمبراطوري محفورًا في الحجر.',
+        },
+      ],
+    },
+    {
+      sortOrder: 12,
+      type: ContentBlockType.IMAGE,
+      mediaId: media.treeMediaId,
+      caption: 'نقش شجرة الحياة في الإيوان الصغير',
+    },
+    {
+      sortOrder: 13,
+      type: ContentBlockType.HEADING,
+      textRole: TextRole.H2,
+      colorToken: heading,
+      align: BlockAlign.START,
+      spans: [{ text: 'الإيوان الكبير وخسرو الثاني' }],
+    },
+    {
+      sortOrder: 14,
+      type: ContentBlockType.PARAGRAPH,
+      textRole: TextRole.BODY,
+      colorToken: body,
+      align: BlockAlign.START,
+      spans: [
+        {
+          text: 'يرتفع الإيوان الكبير نحو تسعة أمتار. وعلى الجدار الخلفي، تظهر ثلاث شخصيات واقفة يُرجَّح أنها خسرو الثاني بين أهورامزدا وأناهيتا. يحمل الملك سيفًا احتفاليًا ويستلم من الإله حلقة الملك المزدانة بالشرائط، رمز «الفرّ» الملكي.',
+        },
+      ],
+    },
+    {
+      sortOrder: 15,
+      type: ContentBlockType.PARAGRAPH,
+      textRole: TextRole.BODY,
+      colorToken: body,
+      align: BlockAlign.START,
+      spans: [
+        {
+          text: 'في الأسفل، يُصوَّر تمثال فرسان لافت لخسرو راكبًا حصانه الشهير «شبديز». ويحفظ هذا النقش تفاصيل نادرة عن درع الفرسان الساسانية المتأخرة، وأطواق الخيول، والخوذات ذات الشقوق للرؤية، والزرد، وهي معلومات لا تقدَّر بثمن للمؤرخين العسكريين.',
+        },
+      ],
+    },
+    {
+      sortOrder: 16,
+      type: ContentBlockType.IMAGE,
+      mediaId: media.ivanMediaId,
+      caption: 'الإيوان الكبير والحوض الحجري المقابل له',
+    },
+    {
+      sortOrder: 17,
+      type: ContentBlockType.HEADING,
+      textRole: TextRole.H2,
+      colorToken: heading,
+      align: BlockAlign.START,
+      spans: [{ text: 'مشاهد الصيد' }],
+    },
+    {
+      sortOrder: 18,
+      type: ContentBlockType.PARAGRAPH,
+      textRole: TextRole.BODY,
+      colorToken: body,
+      align: BlockAlign.START,
+      spans: [
+        {
+          text: 'على جانبي الإيوان الكبير، توجد لوحات للصيد الملكي. يقف خسرو في قارب ويرمي بقوسه المنحني على خنازير برية، بينما يصطاد الحاشية من ظهور الأفيال، وهو زخم قد يعكس تأثيرًا فنيًا هنديًا. وتمجّد مشاهد الصيد الملكي الملك بصفته حاميًا وسيدًا للنظام الطبيعي.',
+        },
+      ],
+    },
+    {
+      sortOrder: 19,
+      type: ContentBlockType.PARAGRAPH,
+      textRole: TextRole.BODY,
+      colorToken: body,
+      align: BlockAlign.START,
+      spans: [
+        {
+          text: 'يُعدّ الأسد الواقف إلى جانب الإيوان من أبرز الصور الأيقونية في طاق بستان. وتُظهر عضلاته ولبدته المهارة الاستثنائية للنحاتين الساسانيين، وترمز إلى الشجاعة والقوة الملكية.',
+        },
+      ],
+    },
+    {
+      sortOrder: 20,
+      type: ContentBlockType.HEADING,
+      textRole: TextRole.H2,
+      colorToken: heading,
+      align: BlockAlign.START,
+      spans: [{ text: 'الرموز الزرادشتية' }],
+    },
+    {
+      sortOrder: 21,
+      type: ContentBlockType.PARAGRAPH,
+      textRole: TextRole.BODY,
+      colorToken: body,
+      align: BlockAlign.START,
+      spans: [
+        {
+          text: 'تستند كثير من المشاهد إلى المعتقدات الزرادشتية: أهورامزدا بصفته الخالق، وأناهيتا ربة الماء والخصوبة، وميثرا إله العهد والنور. وقد أعطى التنصيب الإلهي شرعية للحكم الملكي. وتعبّر شجرة الحياة والأسد ومشاهد الصيد كل منها عن النظام الكوني وانتصار النور على الظلام.',
+        },
+      ],
+    },
+    {
+      sortOrder: 22,
+      type: ContentBlockType.HEADING,
+      textRole: TextRole.H2,
+      colorToken: heading,
+      align: BlockAlign.START,
+      spans: [{ text: 'الفن وتقنية النقش' }],
+    },
+    {
+      sortOrder: 23,
+      type: ContentBlockType.PARAGRAPH,
+      textRole: TextRole.BODY,
+      colorToken: body,
+      align: BlockAlign.START,
+      spans: [
+        {
+          text: 'عمل الفنانون الساسانيون بأعماق متدرجة لخلق الظل والحجم. وتُصوَّر الدروع الحرشفية، والتيجان المرصعة بالجواهر، والقلائد اللؤلؤية، واللحى الملكية المجعدة بواقعية مذهلة. ووصف المؤرخ الفني آرثر بوب طاق بستان بأنه «هدية الفن الإيراني إلى العالم».',
+        },
+      ],
+    },
+    {
+      sortOrder: 24,
+      type: ContentBlockType.HEADING,
+      textRole: TextRole.H2,
+      colorToken: heading,
+      align: BlockAlign.START,
+      spans: [{ text: 'الحفاظ والتراث العالمي' }],
+    },
+    {
+      sortOrder: 25,
+      type: ContentBlockType.PARAGRAPH,
+      textRole: TextRole.BODY,
+      colorToken: body,
+      align: BlockAlign.START,
+      spans: [
+        {
+          text: 'بعد نحو ١٧٠٠ عام من الرياح والأمطار، لا تزال النقوش سليمة إلى حد كبير. ويُدار الموقع اليوم كمنتزه أثري، وقد جُمعت فيه تيجان أعمدة ساسانية وإسلامية من مناطق قريبة. ويظهر الموقع في القائمة المؤقتة لليونسكو، ويُشكّل مع بيستون أحد أهم مواقع التراث في محافظة كرمانشاه.',
+        },
+      ],
+    },
+    {
+      sortOrder: 26,
+      type: ContentBlockType.HEADING,
+      textRole: TextRole.H2,
+      colorToken: accent,
+      align: BlockAlign.START,
+      spans: [{ text: 'الزيارة اليوم' }],
+    },
+    {
+      sortOrder: 27,
+      type: ContentBlockType.PARAGRAPH,
+      textRole: TextRole.BODY,
+      colorToken: ColorToken.BROWN_950,
+      align: BlockAlign.START,
+      spans: [
+        {
+          text: 'تُعدّ طاق بستان من أكثر المواقع التراثية زيارة في غرب إيران. اقرأ رمز الاستجابة السريعة (QR) الموجود قرب الأثر لتصل إلى هذا الدليل بالفارسية أو الإنجليزية أو العربية، واستمع إلى الشرح الصوتي التجريبي. يُرجى تجنب لمس النقوش والالتزام بالمسارات المحددة للمساعدة في الحفاظ على الموقع.',
+        },
+      ],
+    },
+    {
+      sortOrder: 28,
+      type: ContentBlockType.AUDIO,
+      mediaId: media.audioMediaId,
+      caption: 'شرح صوتي قصير (نموذج)',
+    },
+    {
+      sortOrder: 29,
+      type: ContentBlockType.VIDEO,
+      mediaId: media.videoMediaId,
+      caption: 'فيلم تعريفي عن طاق بستان',
+    },
+    {
+      sortOrder: 30,
+      type: ContentBlockType.PARAGRAPH,
+      textRole: TextRole.CAPTION,
+      colorToken: body,
+      align: BlockAlign.CENTER,
+      spans: [
+        {
+          text: 'مصادر الصور: ويكيميديا كومنز. النص مقتبس من مصادر تاريخية وأثرية منشورة على نطاق واسع.',
+        },
+      ],
+    },
+  ];
+}
+
 export function buildEnBlocks(media: SiteMediaIds): SeedBlock[] {
   return [
     {

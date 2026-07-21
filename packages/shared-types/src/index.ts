@@ -13,8 +13,8 @@ export const colorTokenSchema = z.enum([
   'TEAL_700',
   'SAND_50',
 ]);
-export const blockAlignSchema = z.enum(['START', 'CENTER']);
-export const localeSchema = z.enum(['fa', 'en']);
+export const blockAlignSchema = z.enum(['START', 'CENTER', 'END']);
+export const localeSchema = z.enum(['fa', 'en', 'ar']);
 
 export type SiteCategory = z.infer<typeof siteCategorySchema>;
 export type MediaType = z.infer<typeof mediaTypeSchema>;
@@ -30,6 +30,7 @@ export const textSpanSchema = z.object({
   text: z.string(),
   bold: z.boolean().optional(),
   italic: z.boolean().optional(),
+  href: z.string().min(1).optional(),
 });
 
 export type TextSpan = z.infer<typeof textSpanSchema>;
@@ -39,8 +40,6 @@ export const mediaRefSchema = z.object({
   type: mediaTypeSchema,
   url: z.string().nullable(),
   embedUrl: z.string().nullable(),
-  altFa: z.string().nullable(),
-  altEn: z.string().nullable(),
   durationSec: z.number().int().nullable(),
 });
 
@@ -252,8 +251,6 @@ export const adminMediaSchema = z.object({
   type: mediaTypeSchema,
   url: z.string().nullable(),
   embedUrl: z.string().nullable(),
-  altFa: z.string().nullable(),
-  altEn: z.string().nullable(),
   contentHash: z.string().nullable(),
   isCover: z.boolean(),
 });
@@ -266,7 +263,7 @@ const adminTextBlockWriteSchema = z.object({
   textRole: textRoleSchema,
   colorToken: colorTokenSchema,
   align: blockAlignSchema,
-  text: z.string().min(1),
+  spans: z.array(textSpanSchema).min(1),
 });
 export type AdminTextBlockWrite = z.infer<typeof adminTextBlockWriteSchema>;
 
@@ -331,9 +328,9 @@ const coverWriteSchema = z
   })
   .optional();
 
-function requireFaEnTranslations<T extends { locale: string }>(translations: T[]) {
+function requireFaEnArTranslations<T extends { locale: string }>(translations: T[]) {
   const locales = new Set(translations.map((t) => t.locale));
-  return locales.has('fa') && locales.has('en');
+  return locales.has('fa') && locales.has('en') && locales.has('ar');
 }
 
 export const createSiteFullSchema = z
@@ -348,10 +345,10 @@ export const createSiteFullSchema = z
     cityId: z.string().min(1),
     isActive: z.boolean().optional(),
     cover: coverWriteSchema,
-    translations: z.array(adminTranslationFullSchema).min(2),
+    translations: z.array(adminTranslationFullSchema).min(3),
   })
-  .refine((v) => requireFaEnTranslations(v.translations), {
-    message: 'Both fa and en translations are required',
+  .refine((v) => requireFaEnArTranslations(v.translations), {
+    message: 'fa, en, and ar translations are required',
   });
 
 export const updateSiteFullSchema = z
@@ -362,10 +359,10 @@ export const updateSiteFullSchema = z
     cityId: z.string().min(1),
     isActive: z.boolean(),
     cover: coverWriteSchema,
-    translations: z.array(adminTranslationFullSchema).min(2),
+    translations: z.array(adminTranslationFullSchema).min(3),
   })
-  .refine((v) => requireFaEnTranslations(v.translations), {
-    message: 'Both fa and en translations are required',
+  .refine((v) => requireFaEnArTranslations(v.translations), {
+    message: 'fa, en, and ar translations are required',
   });
 
 export type CreateSiteFullInput = z.infer<typeof createSiteFullSchema>;

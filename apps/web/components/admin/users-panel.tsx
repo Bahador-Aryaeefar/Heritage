@@ -15,9 +15,12 @@ import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Select } from '@/components/ui/select';
 import { Field, TextInput } from '@/components/ui/text-field';
+import { ListPagination } from '@/components/admin/list-pagination';
 import { adminFetch, adminFetchVoid } from '@/lib/admin-api';
+import { useDebouncedValue } from '@/lib/use-debounced-value';
 
 const usersSchema = paginatedResponseSchema(adminUserSchema);
+const PAGE_SIZE = 10;
 
 /** Parent defines tracks once; header + rows use `subgrid` so columns stay locked. */
 const USERS_TABLE_COLS =
@@ -47,6 +50,11 @@ type UsersPanelProps = {
     usersList: string;
     loading: string;
     empty: string;
+    search: string;
+    first: string;
+    previous: string;
+    next: string;
+    last: string;
     createFailed: string;
     saveFailed: string;
     passwordFailed: string;
@@ -59,9 +67,20 @@ type RoleOption = { value: string; label: string };
 export function UsersPanel({ currentUserId, labels }: UsersPanelProps) {
   const queryClient = useQueryClient();
   const [listError, setListError] = useState<string | null>(null);
+  const [page, setPage] = useState(1);
+  const [search, setSearch] = useState('');
+  const debouncedSearch = useDebouncedValue(search, 300);
+
   const { data, isLoading } = useQuery({
-    queryKey: ['admin', 'users'],
-    queryFn: () => adminFetch('/admin/users?page=1&limit=100', usersSchema),
+    queryKey: ['admin', 'users', page, debouncedSearch],
+    queryFn: () => {
+      const params = new URLSearchParams({
+        page: String(page),
+        limit: String(PAGE_SIZE),
+      });
+      if (debouncedSearch.trim()) params.set('search', debouncedSearch.trim());
+      return adminFetch(`/admin/users?${params}`, usersSchema);
+    },
   });
 
   const [creating, setCreating] = useState(false);
@@ -85,6 +104,7 @@ export function UsersPanel({ currentUserId, labels }: UsersPanelProps) {
   ];
 
   const users = data?.items ?? [];
+  const meta = data?.meta;
 
   return (
     <div className="space-y-6">
@@ -96,6 +116,16 @@ export function UsersPanel({ currentUserId, labels }: UsersPanelProps) {
           {labels.create}
         </ActionButton>
       </section>
+
+      <TextInput
+        value={search}
+        onChange={(event) => {
+          setSearch(event.target.value);
+          setPage(1);
+        }}
+        placeholder={labels.search}
+        aria-label={labels.search}
+      />
 
       {listError ? <p className="text-[15px] text-[#B44B3D]">{listError}</p> : null}
 
@@ -141,7 +171,7 @@ export function UsersPanel({ currentUserId, labels }: UsersPanelProps) {
                     className={`${USERS_ROW} border-b border-brown-800/10 py-3.5 last:border-b-0`}
                   >
                     <div role="cell" className="min-w-0 truncate text-[15px] font-bold text-brown-950">
-                      {user.displayName?.trim() || '—'}
+                      {user.displayName?.trim() || '-'}
                     </div>
                     <div role="cell" className="min-w-0 truncate text-[13px] text-brown-600">
                       <span dir="ltr">{user.phone}</span>
@@ -184,6 +214,19 @@ export function UsersPanel({ currentUserId, labels }: UsersPanelProps) {
           </div>
         ) : null}
       </section>
+
+      {meta ? (
+        <ListPagination
+          meta={meta}
+          onPageChange={setPage}
+          labels={{
+            first: labels.first,
+            previous: labels.previous,
+            next: labels.next,
+            last: labels.last,
+          }}
+        />
+      ) : null}
 
       {creating ? (
         <UserCreateDialog

@@ -12,7 +12,7 @@ import {
 
 export type BlockInsertMenuLabels = Pick<
   BlockListEditorLabels,
-  'addHeading' | 'addParagraph' | 'addImage' | 'addAudio' | 'addVideo' | 'addBlock'
+  'addHeading' | 'addParagraph' | 'addList' | 'addImage' | 'addAudio' | 'addVideo' | 'addBlock'
 >;
 
 type BlockInsertMenuProps = {
@@ -24,10 +24,11 @@ type BlockInsertMenuProps = {
 
 const INSERT_ITEMS: {
   type: EditorBlock['type'];
-  labelKey: 'addHeading' | 'addParagraph' | 'addImage' | 'addAudio' | 'addVideo';
+  labelKey: 'addHeading' | 'addParagraph' | 'addList' | 'addImage' | 'addAudio' | 'addVideo';
 }[] = [
   { type: 'HEADING', labelKey: 'addHeading' },
   { type: 'PARAGRAPH', labelKey: 'addParagraph' },
+  { type: 'LIST', labelKey: 'addList' },
   { type: 'IMAGE', labelKey: 'addImage' },
   { type: 'AUDIO', labelKey: 'addAudio' },
   { type: 'VIDEO', labelKey: 'addVideo' },

@@ -1,0 +1,40 @@
+---
+description: Ban em dashes, curly quotes, and other AI-looking punctuation in all project text
+alwaysApply: true
+---
+
+# No em dashes or AI punctuation
+
+Do not use decorative or "AI-looking" characters in **any** project text: UI copy, i18n JSON, seed content, comments, docs, commits, or PR descriptions.
+
+## Banned
+
+| Character | Name | Use instead |
+|---|---|---|
+| `—` | Em dash | Comma, period, colon, or parentheses |
+| `–` | En dash (as punctuation) | Hyphen `-` for ranges/compounds, or rephrase |
+| `…` | Ellipsis character | Three ASCII dots `...` |
+| `“` `”` `‘` `’` | Curly quotes / apostrophes | Straight `"` and `'` |
+| `•` `●` `★` `✦` and similar | Decorative bullets / stars | `-` lists or plain words |
+| `→` `←` `⇒` as prose | Arrow ornaments | ASCII `->` / `<-` only when needed in code/docs tables |
+
+## Allowed
+
+- Normal ASCII hyphen `-` in code, flags, and compound words (`Parthian-Sasanian`)
+- Persian/Arabic letters and ZWNJ (`‌`) in FA/AR copy
+- Math/code operators that are not decorative prose
+
+## Examples
+
+```text
+Bad:  Changing the slug breaks old QR codes — reprint plaques.
+Good: Changing the slug breaks old QR codes. Reprint plaques.
+
+Bad:  Loading…
+Good: Loading...
+
+Bad:  the site’s page
+Good: the site's page
+```
+
+Empty UI placeholders: use ASCII `-`, not `—`.

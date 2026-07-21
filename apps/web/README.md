@@ -3,7 +3,7 @@
 Next.js (App Router) public site and admin UI for Shahrnama (شهرنما).
 
 - Locales: `fa` (default), `en` via **next-intl**
-- Design tokens: Tailwind v4 `@theme` in `app/globals.css` (see `design-system.md` §9–11)
+- Design tokens: Tailwind v4 `@theme` in `app/globals.css` (see `design-system.md` §9-11)
 - Font: Vazirmatn via `next/font/google`
 - Default port: **3000**
 
@@ -28,7 +28,7 @@ All variables live in the **monorepo root** [`.env.example`](../../.env.example)
 
 | URL | Page |
 |---|---|
-| `/fa`, `/en` | Landing (hero, banners, how-it-works, site grid) |
+| `/fa`, `/en` | Landing (hero, category stack, promo banners, how-it-works, per-category sections) |
 | `/fa/sites/taq-e-bostan` | Site detail with content blocks |
 
 Marketing copy (hero, steps, banners) lives in `messages/*.json`. Site body copy comes from the API.

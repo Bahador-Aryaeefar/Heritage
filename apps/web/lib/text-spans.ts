@@ -143,3 +143,28 @@ export function setLink(
 
   return unflattenChars(next);
 }
+
+/** Split at a collapsed caret offset into before / after span arrays. */
+export function splitSpansAt(
+  spans: TextSpan[],
+  offset: number,
+): { before: TextSpan[]; after: TextSpan[] } {
+  const chars = flattenSpans(spans);
+  const clamped = Math.max(0, Math.min(offset, chars.length));
+  return {
+    before: unflattenChars(chars.slice(0, clamped)),
+    after: unflattenChars(chars.slice(clamped)),
+  };
+}
+
+/** Insert a newline character at a collapsed caret (Shift+Enter soft break). */
+export function insertNewlineAt(spans: TextSpan[], offset: number): TextSpan[] {
+  const chars = flattenSpans(spans);
+  const clamped = Math.max(0, Math.min(offset, chars.length));
+  const left = chars[clamped - 1];
+  const newline: CharMark = { char: '\n' };
+  if (left?.bold) newline.bold = true;
+  if (left?.italic) newline.italic = true;
+  if (left?.href) newline.href = left.href;
+  return unflattenChars([...chars.slice(0, clamped), newline, ...chars.slice(clamped)]);
+}

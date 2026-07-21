@@ -14,6 +14,7 @@ import type {
 export type BlockListEditorLabels = {
   addHeading: string;
   addParagraph: string;
+  addList: string;
   addImage: string;
   addAudio: string;
   addVideo: string;
@@ -36,6 +37,12 @@ export type BlockListEditorLabels = {
   imageTitle: string;
   audioTitle: string;
   videoTitle: string;
+  listTitle: string;
+  listStyle: string;
+  listBullet: string;
+  listNumbered: string;
+  addListItem: string;
+  removeListItem: string;
   text: string;
   caption: string;
   embedUrl: string;
@@ -110,14 +117,7 @@ export function BlockListEditor({
   const [selectedKey, setSelectedKey] = useState<string | null>(null);
   const [textFocusKey, setTextFocusKey] = useState<string | null>(null);
 
-  // If the selected block disappears from `value` (deleted here or replaced by the parent — e.g.
-  // "Copy from FA" swapping the whole list), drop the stale selection so the inspector empties.
-  useEffect(() => {
-    if (selectedKey && !value.some((block) => block.key === selectedKey)) {
-      setSelectedKey(null);
-    }
-  }, [value, selectedKey]);
-
+  // Stale selection (deleted block / "Copy from FA" replace) simply resolves to null below.
   const selectedBlock = value.find((block) => block.key === selectedKey) ?? null;
   const selectedIndex = selectedBlock
     ? value.findIndex((block) => block.key === selectedBlock.key)

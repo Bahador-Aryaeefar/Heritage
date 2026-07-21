@@ -14,23 +14,60 @@
     "titleAccent": "a story",
     "description": "Scan the QR code beside historical sites across Kermanshah, from Taq-e Bostan to Bisotun, and read each place's history, images, and narrative on the spot.",
     "ctaPrimary": "Get started",
-    "ctaSecondary": "Browse sites",
+    "ctaSecondary": "Browse categories",
     "plaqueSite": "Taq-e Bostan",
     "plaqueLocation": "Kermanshah, Iran",
     "plaqueBrandName": "شهرنما",
     "plaqueBrandTagline": "SHAHRNAMA",
     "banners": {
-      "top": {
-        "title": "Tourism without installing an app",
-        "body": "Each site has a QR code. Scan it and read the story in your language.",
-        "cta": "Learn more",
+      "how": {
+        "title": "History in three steps, no app needed",
+        "body": "Scan the QR plaque beside a site. Its story opens in your browser.",
+        "cta": "See how it works",
         "href": "#how"
       },
-      "mid": {
-        "title": "Discover Kermanshah's heritage",
-        "body": "From Sasanian reliefs to natural landmarks, all in one platform.",
-        "cta": "View sites",
-        "href": "#sites"
+      "categories": {
+        "HISTORICAL": {
+          "title": "From Bisotun to Taq-e Bostan",
+          "body": "Reliefs, tekyehs, and mosques. Older layers of the city and region.",
+          "cta": "Historical sites"
+        },
+        "HANDICRAFT": {
+          "title": "Made in the bazaar",
+          "body": "Giveh, kilims, carpets, and souvenirs still crafted in local workshops.",
+          "cta": "Handicrafts"
+        },
+        "STREET": {
+          "title": "Streets that shape the city",
+          "body": "Axes and facades that stitch Kermanshah's urban fabric together.",
+          "cta": "Streets"
+        },
+        "LANDMARK": {
+          "title": "Everyday orientation points",
+          "body": "Squares, parks, and places every passerby knows how to find.",
+          "cta": "Landmarks"
+        },
+        "FOOD": {
+          "title": "Taste a Creative City of Gastronomy",
+          "body": "From dandeh kebab to bread and ash. Signature dishes of Kermanshah.",
+          "cta": "Food"
+        }
+      }
+    },
+    "categories": {
+      "eyebrow": "Categories",
+      "stackTitle": "Explore Kermanshah by category",
+      "stackHint": "Cards advance on their own. Tap a category to select it.",
+      "count": "{count} places",
+      "empty": "Nothing in this category yet.",
+      "prev": "Previous items",
+      "next": "Next items",
+      "blurbs": {
+        "HISTORICAL": "Reliefs, tekyehs, and mosques. Older layers of the city and region.",
+        "HANDICRAFT": "Giveh, kilims, carpets, and bazaar-made souvenirs.",
+        "STREET": "Axes and streets that stitch the city fabric together.",
+        "LANDMARK": "Squares, parks, and everyday orientation points.",
+        "FOOD": "From dandeh kebab to bread and ash. Taste of a Creative City of Gastronomy."
       }
     },
     "how": {
@@ -50,18 +87,15 @@
           "body": "View images, historical text, and extra information about that site."
         }
       ]
-    },
-    "sites": {
-      "eyebrow": "Sites",
-      "title": "Featured heritage sites",
-      "empty": "No sites have been published yet."
     }
   },
   "site": {
     "category": {
-      "ANCIENT": "Ancient",
-      "ISLAMIC": "Islamic",
-      "NATURAL": "Natural"
+      "HISTORICAL": "Historical sites",
+      "HANDICRAFT": "Handicrafts",
+      "STREET": "Streets and axes",
+      "LANDMARK": "Urban landmarks",
+      "FOOD": "Food"
     },
     "qr": {
       "title": "QR code for this site",
@@ -92,31 +126,71 @@
     "shell": {
       "title": "Admin panel",
       "brandTagline": "SHAHRNAMA",
-      "sites": "Sites",
       "users": "Users",
       "logout": "Sign out",
-      "loading": "Loading…",
+      "loading": "Loading...",
       "roleAdmin": "Admin",
       "roleSuperAdmin": "Super Admin"
     },
     "sites": {
-      "title": "Manage sites",
-      "newSite": "New site",
+      "title": "Manage content",
       "active": "Active",
       "inactive": "Inactive",
       "edit": "Edit",
       "delete": "Delete",
-      "deleteConfirm": "Delete this site and all of its media files? This cannot be undone.",
-      "deleteFailed": "Could not delete the site.",
-      "loading": "Loading…",
-      "empty": "No sites yet.",
-      "ancient": "Ancient",
-      "islamic": "Islamic",
-      "natural": "Natural"
+      "deleteFailed": "Could not delete.",
+      "loading": "Loading...",
+      "search": "Search by title or slug...",
+      "first": "First page",
+      "previous": "Previous page",
+      "next": "Next page",
+      "last": "Last page",
+      "categories": {
+        "historical": {
+          "label": "Historical sites",
+          "newEntry": "New site",
+          "empty": "No historical sites yet.",
+          "delete": "Delete site",
+          "deleteConfirm": "Delete this site and all of its media files? This cannot be undone.",
+          "locationHint": ""
+        },
+        "handicraft": {
+          "label": "Handicrafts",
+          "newEntry": "New handicraft",
+          "empty": "No handicrafts yet.",
+          "delete": "Delete handicraft",
+          "deleteConfirm": "Delete this handicraft and all of its media files? This cannot be undone.",
+          "locationHint": "Handicrafts do not need a map pin for now. Workshop and shop locations will come later."
+        },
+        "street": {
+          "label": "Streets and axes",
+          "newEntry": "New street",
+          "empty": "No streets or tourist axes yet.",
+          "delete": "Delete street",
+          "deleteConfirm": "Delete this street and all of its media files? This cannot be undone.",
+          "locationHint": ""
+        },
+        "landmark": {
+          "label": "Urban landmarks",
+          "newEntry": "New landmark",
+          "empty": "No urban landmarks yet.",
+          "delete": "Delete landmark",
+          "deleteConfirm": "Delete this landmark and all of its media files? This cannot be undone.",
+          "locationHint": ""
+        },
+        "food": {
+          "label": "Food",
+          "newEntry": "New dish",
+          "empty": "No dishes yet.",
+          "delete": "Delete dish",
+          "deleteConfirm": "Delete this dish and all of its media files? This cannot be undone.",
+          "locationHint": "Dishes do not need a map pin for now. Places that serve them will come later."
+        }
+      }
     },
     "siteForm": {
       "slug": "Slug",
-      "slugHint": "The slug sets the public URL and QR target. Changing it after plaques are printed breaks old links and QR codes — reprint plaques.",
+      "slugHint": "The slug sets the public URL and QR target. Changing it after plaques are printed breaks old links and QR codes. Reprint plaques.",
       "category": "Category",
       "lat": "Latitude",
       "lng": "Longitude",
@@ -131,21 +205,24 @@
       "cover": "Cover image",
       "save": "Save",
       "create": "Create",
-      "saving": "Saving…",
+      "saving": "Saving...",
       "delete": "Delete site",
       "deleteConfirm": "Delete this site and all of its media files? This cannot be undone.",
       "deleteFailed": "Could not delete the site.",
       "qrTitle": "QR code & plaque",
-      "qrScan": "Preview of the QR code printed on the plaque. Scanning it opens this site’s public page.",
+      "qrScan": "Preview of the QR code printed on the plaque. Scanning it opens this site's public page.",
       "qrDownload": "Download plaque PNG for printing",
       "qrTargetUrl": "Target URL",
       "pickImage": "Choose image",
       "changeImage": "Change image",
       "removeImage": "Clear selection",
-      "ancient": "Ancient",
-      "islamic": "Islamic",
-      "natural": "Natural",
+      "historical": "Historical sites",
+      "handicraft": "Handicrafts",
+      "street": "Streets and axes",
+      "landmark": "Urban landmarks",
+      "food": "Food",
       "saveFailed": "Could not save. Check the fields and try again.",
+      "locationOptionalHint": "This category does not need a map pin for now.",
       "map": "Location on map",
       "mapHint": "Click the map or drag the pin to set coordinates. You can fine-tune latitude and longitude below.",
       "mapMissingKey": "Map picker is unavailable (NEXT_PUBLIC_MAP_IR_API_KEY is not set). Enter coordinates manually.",
@@ -156,6 +233,7 @@
       "block": {
         "addHeading": "Add heading",
         "addParagraph": "Add paragraph",
+        "addList": "Add list",
         "addImage": "Add image",
         "addAudio": "Add audio",
         "addVideo": "Add video",
@@ -173,6 +251,12 @@
         "imageTitle": "Image",
         "audioTitle": "Audio",
         "videoTitle": "Video",
+        "listTitle": "List",
+        "listStyle": "List style",
+        "listBullet": "Bulleted",
+        "listNumbered": "Numbered",
+        "addListItem": "Add item",
+        "removeListItem": "Remove last item",
         "text": "Text",
         "caption": "Caption",
         "embedUrl": "Embed URL",
@@ -223,8 +307,13 @@
       "deleteFailed": "Could not delete the user.",
       "editUser": "Edit user",
       "usersList": "Users",
-      "loading": "Loading…",
+      "loading": "Loading...",
       "empty": "No users yet.",
+      "search": "Search by name or phone...",
+      "first": "First page",
+      "previous": "Previous page",
+      "next": "Next page",
+      "last": "Last page",
       "createFailed": "Could not create user.",
       "saveFailed": "Could not save changes.",
       "passwordFailed": "Could not reset password.",

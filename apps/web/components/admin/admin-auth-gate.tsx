@@ -1,8 +1,8 @@
 'use client';
 
-import { useEffect, useState, type ReactNode } from 'react';
+import { useEffect, useState, type ReactNode, Suspense } from 'react';
 import { authUserSchema, type AuthUser } from '@heritage/shared-types';
-import { AdminShell } from '@/components/admin/admin-shell';
+import { AdminShell, type AdminShellCategoryLabels } from '@/components/admin/admin-shell';
 import { HeritagePageBackground } from '@/components/public/heritage-page-background';
 import { adminFetch } from '@/lib/admin-api';
 
@@ -10,7 +10,6 @@ type AdminAuthGateProps = {
   children: ReactNode;
   loginPath: string;
   labels: {
-    sites: string;
     users: string;
     logout: string;
     panelTitle: string;
@@ -19,6 +18,7 @@ type AdminAuthGateProps = {
     roleSuperAdmin: string;
     footerTagline: string;
     loading: string;
+    categories: AdminShellCategoryLabels;
   };
 };
 
@@ -58,8 +58,10 @@ export function AdminAuthGate({ children, loginPath, labels }: AdminAuthGateProp
   }
 
   return (
-    <AdminShell user={user} labels={labels}>
-      {children}
-    </AdminShell>
+    <Suspense fallback={null}>
+      <AdminShell user={user} labels={labels}>
+        {children}
+      </AdminShell>
+    </Suspense>
   );
 }

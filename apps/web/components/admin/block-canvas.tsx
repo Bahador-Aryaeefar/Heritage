@@ -1,6 +1,7 @@
 'use client';
 
 import { Fragment, useEffect, useRef, useState } from 'react';
+import type { TextSpan } from '@heritage/shared-types';
 import { BlockInsertMenu } from '@/components/admin/block-insert-menu';
 import { FormatToolbar } from '@/components/admin/format-toolbar';
 import { MediaFilePicker } from '@/components/admin/media-file-picker';
@@ -12,9 +13,11 @@ import type {
   EditorAudioBlock,
   EditorBlock,
   EditorImageBlock,
+  EditorListBlock,
   EditorTextBlock,
   EditorVideoBlock,
 } from '@/lib/copy-blocks-from-fa';
+import { spansToPlainText } from '@/lib/text-spans';
 
 /** Same label bag as `BlockListEditor`/`BlockInspector` — no canvas-only copy needed. */
 export type BlockCanvasLabels = BlockListEditorLabels;
@@ -107,13 +110,35 @@ export function BlockCanvas({
   dir,
 }: BlockCanvasProps) {
   const editorRef = useRef<SpanTextEditorHandle>(null);
+  const listItemRefs = useRef(new Map<number, SpanTextEditorHandle>());
+  const pendingFocusListItem = useRef<number | null>(null);
+  const [activeListItemIndex, setActiveListItemIndex] = useState(0);
+  const [listSelectionKey, setListSelectionKey] = useState(selectedKey);
+  const [focusNonce, setFocusNonce] = useState(0);
   const [draggingKey, setDraggingKey] = useState<string | null>(null);
   const [dropTargetIndex, setDropTargetIndex] = useState<number | null>(null);
+
+  if (listSelectionKey !== selectedKey) {
+    setListSelectionKey(selectedKey);
+    setActiveListItemIndex(0);
+  }
+
+  function requestFocusListItem(index: number) {
+    pendingFocusListItem.current = index;
+    setFocusNonce((nonce) => nonce + 1);
+  }
 
   useEffect(() => {
     if (!textFocusKey) return;
     editorRef.current?.focus();
   }, [textFocusKey]);
+
+  useEffect(() => {
+    const index = pendingFocusListItem.current;
+    if (index === null) return;
+    pendingFocusListItem.current = null;
+    listItemRefs.current.get(index)?.focusAtStart();
+  }, [focusNonce, value]);
 
   function handleDragStart(event: React.DragEvent<HTMLButtonElement>, key: string) {
     event.dataTransfer.effectAllowed = 'move';
@@ -207,8 +232,8 @@ export function BlockCanvas({
     return (
       <MediaFilePicker
         kind="audio"
-        previewUrl={null}
-        hasFile={Boolean(block.mediaId || block.clientFileKey)}
+        previewUrl={block.previewUrl ?? null}
+        hasFile={Boolean(block.mediaId || block.clientFileKey || block.previewUrl)}
         labels={{
           pick: labels.pickAudio,
           change: labels.changeAudio,
@@ -216,7 +241,13 @@ export function BlockCanvas({
           attached: labels.audioAttached,
         }}
         onPick={(file) => onPickFile?.(block, file)}
-        onRemove={() => onChangeBlock(block.key, { mediaId: undefined, clientFileKey: undefined })}
+        onRemove={() =>
+          onChangeBlock(block.key, {
+            mediaId: undefined,
+            clientFileKey: undefined,
+            previewUrl: undefined,
+          })
+        }
       />
     );
   }
@@ -224,12 +255,17 @@ export function BlockCanvas({
   function renderVideoBlock(block: EditorVideoBlock) {
     if (isValidEmbedUrl(block.embedUrl)) {
       return (
-        <div className="overflow-hidden rounded-card ring-1 ring-brown-800/10">
+        <div
+          className="overflow-hidden rounded-card ring-1 ring-brown-800/10"
+          onClick={(event) => event.stopPropagation()}
+        >
           <div className="relative aspect-video w-full bg-brown-950">
             <iframe
               src={block.embedUrl}
               title={labels.videoTitle}
-              className="pointer-events-none absolute inset-0 h-full w-full border-0"
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; fullscreen"
+              allowFullScreen
+              className="absolute inset-0 h-full w-full border-0"
             />
           </div>
         </div>
@@ -244,11 +280,117 @@ export function BlockCanvas({
     );
   }
 
+  function renderListBlock(block: EditorListBlock) {
+    const selected = selectedKey === block.key;
+    const ListTag = block.listStyle === 'NUMBERED' ? 'ol' : 'ul';
+    const listClass =
+      block.listStyle === 'NUMBERED'
+        ? 'list-decimal space-y-3 ps-6 text-[17px] leading-relaxed text-brown-800'
+        : 'list-disc space-y-3 ps-6 text-[17px] leading-relaxed text-brown-800';
+    function updateItems(items: EditorListBlock['items']) {
+      onChangeBlock(block.key, { items });
+    }
+
+    function activeListHandle() {
+      return listItemRefs.current.get(activeListItemIndex) ?? null;
+    }
+
+    function handleEnterSplit(itemIndex: number, parts: { before: TextSpan[]; after: TextSpan[] }) {
+      const items = [
+        ...block.items.slice(0, itemIndex),
+        { spans: parts.before },
+        { spans: parts.after },
+        ...block.items.slice(itemIndex + 1),
+      ];
+      updateItems(items);
+      setActiveListItemIndex(itemIndex + 1);
+      requestFocusListItem(itemIndex + 1);
+    }
+
+    function handleBackspaceAtStart(itemIndex: number) {
+      const current = block.items[itemIndex];
+      if (!current) return;
+
+      if (itemIndex === 0) {
+        if (spansToPlainText(current.spans).length === 0 && block.items.length > 1) {
+          updateItems(block.items.slice(1));
+          setActiveListItemIndex(0);
+          requestFocusListItem(0);
+        }
+        return;
+      }
+
+      const previous = block.items[itemIndex - 1]!;
+      const mergedSpans = [...previous.spans, ...current.spans];
+      const items = [
+        ...block.items.slice(0, itemIndex - 1),
+        { spans: mergedSpans },
+        ...block.items.slice(itemIndex + 1),
+      ];
+      updateItems(items);
+      setActiveListItemIndex(itemIndex - 1);
+      requestAnimationFrame(() => {
+        listItemRefs.current.get(itemIndex - 1)?.focusAtEnd();
+      });
+    }
+
+    return (
+      <div className="flex flex-col gap-2">
+        {selected ? (
+          <FormatToolbar
+            toolbarLabel={labels.formatToolbar}
+            labels={{
+              bold: labels.bold,
+              italic: labels.italic,
+              link: labels.link,
+              unlink: labels.unlink,
+            }}
+            onBold={() => activeListHandle()?.toggleBold()}
+            onItalic={() => activeListHandle()?.toggleItalic()}
+            onLink={() => activeListHandle()?.promptLink()}
+            onUnlink={() => activeListHandle()?.unlink()}
+          />
+        ) : null}
+        <ListTag className={listClass}>
+          {block.items.map((item, itemIndex) => (
+            <li key={`${block.key}-item-${itemIndex}`}>
+              <SpanTextEditor
+                ref={(handle) => {
+                  if (handle) listItemRefs.current.set(itemIndex, handle);
+                  else listItemRefs.current.delete(itemIndex);
+                }}
+                value={item.spans}
+                onChange={(spans) => {
+                  const items = block.items.map((entry, index) =>
+                    index === itemIndex ? { spans } : entry,
+                  );
+                  updateItems(items);
+                }}
+                onFocus={() => setActiveListItemIndex(itemIndex)}
+                onEnterSplit={
+                  selected ? (parts) => handleEnterSplit(itemIndex, parts) : undefined
+                }
+                onBackspaceAtStart={
+                  selected ? () => handleBackspaceAtStart(itemIndex) : undefined
+                }
+                placeholder={labels.listTitle}
+                labels={{ linkPrompt: labels.linkPrompt }}
+                dir={dir}
+              />
+            </li>
+          ))}
+        </ListTag>
+      </div>
+    );
+  }
+
   function renderBlock(block: EditorBlock) {
     switch (block.type) {
       case 'HEADING':
       case 'PARAGRAPH':
         return renderTextBlock(block);
+      case 'LIST':
+        return renderListBlock(block);
       case 'IMAGE':
         return renderImageBlock(block);
       case 'AUDIO':

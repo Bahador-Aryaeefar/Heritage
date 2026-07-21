@@ -3,18 +3,13 @@ import {
   type EditorAlign,
   type EditorBlock,
   type EditorColorToken,
+  type EditorListBlock,
   type EditorTextRole,
 } from './copy-blocks-from-fa';
 
 type EditorBlockType = EditorBlock['type'];
 
-const TEXT_TYPES = new Set<EditorBlockType>(['HEADING', 'PARAGRAPH']);
-
 const EMPTY_SPANS = [{ text: '' }] as const;
-
-function isTextBlockType(type: EditorBlockType): boolean {
-  return TEXT_TYPES.has(type);
-}
 
 function textDefaults(type: 'HEADING' | 'PARAGRAPH'): {
   textRole: EditorTextRole;
@@ -27,6 +22,15 @@ function textDefaults(type: 'HEADING' | 'PARAGRAPH'): {
   return { textRole: 'BODY', colorToken: 'BROWN_800', align: 'START' };
 }
 
+function createEmptyListBlock(key: string): EditorListBlock {
+  return {
+    key,
+    type: 'LIST',
+    listStyle: 'BULLET',
+    items: [{ spans: [{ text: '' }] }],
+  };
+}
+
 export function createEmptyBlock(type: EditorBlockType): EditorBlock {
   const key = createBlockKey();
 
@@ -34,6 +38,8 @@ export function createEmptyBlock(type: EditorBlockType): EditorBlock {
     case 'HEADING':
     case 'PARAGRAPH':
       return { key, type, spans: [{ text: '' }], ...textDefaults(type) };
+    case 'LIST':
+      return createEmptyListBlock(key);
     case 'IMAGE':
       return { key, type: 'IMAGE', caption: '' };
     case 'AUDIO':
@@ -48,6 +54,29 @@ export function convertBlockType(block: EditorBlock, next: EditorBlockType): Edi
   const fromText = block.type === 'HEADING' || block.type === 'PARAGRAPH';
   const toText = next === 'HEADING' || next === 'PARAGRAPH';
 
+  if (next === 'LIST') {
+    const seedSpans =
+      fromText && block.spans.length > 0
+        ? block.spans.map((span) => ({ ...span }))
+        : [...EMPTY_SPANS];
+    return {
+      key,
+      type: 'LIST',
+      listStyle: block.type === 'LIST' ? block.listStyle : 'BULLET',
+      items: [{ spans: seedSpans }],
+    };
+  }
+
+  if (block.type === 'LIST' && toText) {
+    const firstItem = block.items[0];
+    return {
+      key,
+      type: next,
+      spans: firstItem ? firstItem.spans.map((span) => ({ ...span })) : [...EMPTY_SPANS],
+      ...textDefaults(next),
+    };
+  }
+
   if (fromText && toText) {
     return {
       key,
@@ -61,7 +90,7 @@ export function convertBlockType(block: EditorBlock, next: EditorBlockType): Edi
     return emptyMediaBlock(key, next as 'IMAGE' | 'AUDIO' | 'VIDEO');
   }
 
-  if (!fromText && toText) {
+  if (!fromText && block.type !== 'LIST' && toText) {
     return {
       key,
       type: next,
@@ -74,7 +103,11 @@ export function convertBlockType(block: EditorBlock, next: EditorBlockType): Edi
   return emptyMediaBlock(key, next as 'IMAGE' | 'AUDIO' | 'VIDEO', caption);
 }
 
-function emptyMediaBlock(key: string, type: Exclude<EditorBlockType, 'HEADING' | 'PARAGRAPH'>, caption = ''): EditorBlock {
+function emptyMediaBlock(
+  key: string,
+  type: Exclude<EditorBlockType, 'HEADING' | 'PARAGRAPH' | 'LIST'>,
+  caption = '',
+): EditorBlock {
   switch (type) {
     case 'IMAGE':
       return { key, type: 'IMAGE', caption };

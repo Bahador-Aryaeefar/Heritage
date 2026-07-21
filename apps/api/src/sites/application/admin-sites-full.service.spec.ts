@@ -71,7 +71,7 @@ function buildAdminRow(id: string) {
   return {
     id,
     slug: 'taq-e-bostan',
-    category: 'ANCIENT',
+    category: 'HISTORICAL',
     lat: '34.3872000',
     lng: '47.1332000',
     isActive: true,
@@ -171,7 +171,7 @@ describe('AdminSitesService full write', () => {
 
     const payload: UpdateSiteFullInput = {
       slug: 'taq-e-bostan',
-      category: 'ANCIENT',
+      category: 'HISTORICAL',
       lat: '34.3872000',
       lng: '47.1332000',
       cityId: 'city-1',
@@ -193,7 +193,7 @@ describe('AdminSitesService full write', () => {
 
     const payload: UpdateSiteFullInput = {
       slug: 'taq-e-bostan',
-      category: 'ANCIENT',
+      category: 'HISTORICAL',
       lat: '1',
       lng: '2',
       cityId: 'city-1',
@@ -214,7 +214,7 @@ describe('AdminSitesService full write', () => {
 
     const payload: CreateSiteFullInput = {
       slug: 'taq-e-bostan',
-      category: 'ANCIENT',
+      category: 'HISTORICAL',
       lat: '34.3872000',
       lng: '47.1332000',
       cityId: 'city-1',
@@ -252,7 +252,7 @@ describe('AdminSitesService full write', () => {
 
     const payload: CreateSiteFullInput = {
       slug: 'taq-e-bostan',
-      category: 'ANCIENT',
+      category: 'HISTORICAL',
       lat: '34.3872000',
       lng: '47.1332000',
       cityId: 'city-1',

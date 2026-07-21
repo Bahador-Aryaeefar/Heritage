@@ -15,8 +15,10 @@ import {
   type AdminSite,
   type CreateSiteFullInput,
   type SiteCategory,
+  siteCategoryRequiresCoords,
 } from '@heritage/shared-types';
 import { ActionButton } from '@/components/ui/action-button';
+import { Badge } from '@/components/ui/badge';
 import { ImagePicker } from '@/components/ui/image-picker';
 import { Select } from '@/components/ui/select';
 import { Tabs } from '@/components/ui/tabs';
@@ -36,7 +38,7 @@ import {
 import { adminFetch, adminFetchVoid } from '@/lib/admin-api';
 import { sha256HexOfFile } from '@/lib/file-hash';
 import { optimizeImage } from '@/lib/optimize-image';
-import { createTabHistory, type TabHistory } from '@/lib/tab-history';
+import { createTabHistory } from '@/lib/tab-history';
 import { spansToPlainText } from '@/lib/text-spans';
 import { env } from '@/env';
 import {
@@ -64,6 +66,8 @@ type TabSnapshot = {
 
 type SiteFormProps = {
   site?: AdminSite;
+  /** When creating from a category tab, lock the entry to that category. */
+  defaultCategory?: SiteCategory;
 };
 
 /** Read shape (`AdminSite.translations[].blocks`) → the editor's `EditorBlock` union. */
@@ -104,6 +108,13 @@ function toEditorBlocks(blocks: AdminSite['translations'][number]['blocks']): Ed
           embedUrl: block.media.embedUrl ?? '',
           mediaId: block.media.id,
         };
+      case 'LIST':
+        return {
+          key: createBlockKey(),
+          type: 'LIST',
+          listStyle: block.listStyle,
+          items: block.items.map((item) => ({ spans: item.spans.map((span) => ({ ...span })) })),
+        };
     }
   });
 }
@@ -121,12 +132,13 @@ function initialShort(site: AdminSite | undefined, locale: ContentLocaleCode): s
   return site?.translations.find((t) => t.locale === locale)?.shortDescription ?? '';
 }
 
-export function SiteForm({ site }: SiteFormProps) {
+export function SiteForm({ site, defaultCategory = 'HISTORICAL' }: SiteFormProps) {
   const router = useRouter();
   const uiLocale = useLocale() as Locale;
   const queryClient = useQueryClient();
   const t = useTranslations('admin.siteForm');
   const tb = useTranslations('admin.siteForm.block');
+  const tc = useTranslations('admin.sites');
   const isEdit = Boolean(site);
   const formRef = useRef<HTMLFormElement>(null);
 
@@ -136,7 +148,7 @@ export function SiteForm({ site }: SiteFormProps) {
   });
 
   const [slug, setSlug] = useState(site?.slug ?? '');
-  const [category, setCategory] = useState<SiteCategory>(site?.category ?? 'ANCIENT');
+  const [category] = useState<SiteCategory>(site?.category ?? defaultCategory);
   const [lat, setLat] = useState(site?.lat ?? '');
   const [lng, setLng] = useState(site?.lng ?? '');
   const [cityId, setCityId] = useState(site?.city.id ?? '');
@@ -157,15 +169,11 @@ export function SiteForm({ site }: SiteFormProps) {
 
   const filesByKey = useRef<Map<string, File>>(new Map());
 
-  const historiesRef = useRef<Record<ContentLocaleCode, TabHistory<TabSnapshot>> | null>(null);
-  if (!historiesRef.current) {
-    historiesRef.current = {
-      fa: createTabHistory<TabSnapshot>(),
-      en: createTabHistory<TabSnapshot>(),
-      ar: createTabHistory<TabSnapshot>(),
-    };
-  }
-  const histories = historiesRef.current;
+  const [histories] = useState(() => ({
+    fa: createTabHistory<TabSnapshot>(),
+    en: createTabHistory<TabSnapshot>(),
+    ar: createTabHistory<TabSnapshot>(),
+  }));
   const historyInitialized = useRef(false);
 
   useEffect(() => {
@@ -266,6 +274,7 @@ export function SiteForm({ site }: SiteFormProps) {
   const blockLabels: BlockListEditorLabels = {
     addHeading: tb('addHeading'),
     addParagraph: tb('addParagraph'),
+    addList: tb('addList'),
     addImage: tb('addImage'),
     addAudio: tb('addAudio'),
     addVideo: tb('addVideo'),
@@ -283,6 +292,12 @@ export function SiteForm({ site }: SiteFormProps) {
     imageTitle: tb('imageTitle'),
     audioTitle: tb('audioTitle'),
     videoTitle: tb('videoTitle'),
+    listTitle: tb('listTitle'),
+    listStyle: tb('listStyle'),
+    listBullet: tb('listBullet'),
+    listNumbered: tb('listNumbered'),
+    addListItem: tb('addListItem'),
+    removeListItem: tb('removeListItem'),
     text: tb('text'),
     caption: tb('caption'),
     embedUrl: tb('embedUrl'),
@@ -330,10 +345,26 @@ export function SiteForm({ site }: SiteFormProps) {
   };
 
   const categoryOptions = [
-    { value: 'ANCIENT', label: t('ancient') },
-    { value: 'ISLAMIC', label: t('islamic') },
-    { value: 'NATURAL', label: t('natural') },
+    { value: 'HISTORICAL', label: t('historical') },
+    { value: 'HANDICRAFT', label: t('handicraft') },
+    { value: 'STREET', label: t('street') },
+    { value: 'LANDMARK', label: t('landmark') },
+    { value: 'FOOD', label: t('food') },
   ];
+
+  const categoryLabel =
+    categoryOptions.find((option) => option.value === category)?.label ?? category;
+  const requiresCoords = siteCategoryRequiresCoords(category);
+  const categoryKey = category.toLowerCase() as
+    | 'historical'
+    | 'handicraft'
+    | 'street'
+    | 'landmark'
+    | 'food';
+  const deleteConfirm = tc(`categories.${categoryKey}.deleteConfirm`);
+  const locationHint = requiresCoords ? null : tc(`categories.${categoryKey}.locationHint`);
+  const createLabel = tc(`categories.${categoryKey}.newEntry`);
+  const deleteLabel = tc(`categories.${categoryKey}.delete`);
 
   const cityOptions = (cities?.items ?? []).map((city) => {
     const preferEn = uiLocale === 'en';
@@ -348,7 +379,8 @@ export function SiteForm({ site }: SiteFormProps) {
     file: File,
   ) {
     filesByKey.current.set(block.key, file);
-    const previewUrl = block.type === 'IMAGE' ? URL.createObjectURL(file) : undefined;
+    const previewUrl =
+      block.type === 'IMAGE' || block.type === 'AUDIO' ? URL.createObjectURL(file) : undefined;
     const blocks = getSnapshot(locale).blocks;
     updateBlocks(
       locale,
@@ -433,6 +465,18 @@ export function SiteForm({ site }: SiteFormProps) {
                 ...(block.mediaId ? { mediaId: block.mediaId } : {}),
               });
               break;
+            case 'LIST': {
+              const items = block.items
+                .map((item) => ({ spans: item.spans }))
+                .filter((item) => spansToPlainText(item.spans).trim());
+              if (items.length === 0) continue;
+              out.push({
+                type: 'LIST',
+                listStyle: block.listStyle,
+                items,
+              });
+              break;
+            }
             case 'IMAGE':
             case 'AUDIO': {
               const staged = block.clientFileKey
@@ -468,12 +512,15 @@ export function SiteForm({ site }: SiteFormProps) {
         { locale: 'ar' as const, title: titleAr, shortDescription: shortAr, blocks: arBlocks },
       ];
 
+      const normalizedLat = requiresCoords ? lat : null;
+      const normalizedLng = requiresCoords ? lng : null;
+
       if (isEdit && site) {
         const payload = updateSiteFullSchema.parse({
           slug,
           category,
-          lat,
-          lng,
+          lat: normalizedLat,
+          lng: normalizedLng,
           cityId,
           isActive: site.isActive,
           cover,
@@ -489,8 +536,8 @@ export function SiteForm({ site }: SiteFormProps) {
       const payload = createSiteFullSchema.parse({
         slug,
         category,
-        lat,
-        lng,
+        lat: normalizedLat,
+        lng: normalizedLng,
         cityId,
         isActive: true,
         cover,
@@ -517,7 +564,7 @@ export function SiteForm({ site }: SiteFormProps) {
     },
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ['admin', 'sites'] });
-      router.replace('/admin/sites');
+      router.replace(`/admin/sites?category=${category}`);
       router.refresh();
     },
     onError: () => setError(t('deleteFailed')),
@@ -543,40 +590,44 @@ export function SiteForm({ site }: SiteFormProps) {
 
       <div className="grid gap-4 md:grid-cols-2">
         <Field label={t('category')}>
-          <Select
-            value={category}
-            onChange={(value) => setCategory(value as SiteCategory)}
-            options={categoryOptions}
-          />
+          <div className="flex min-h-[3.25rem] items-center rounded-button border border-brown-800/25 bg-white px-4 py-3">
+            <Badge>{categoryLabel}</Badge>
+          </div>
         </Field>
         <Field label={t('city')}>
-          <Select value={cityId} onChange={setCityId} options={cityOptions} placeholder="—" />
+          <Select value={cityId} onChange={setCityId} options={cityOptions} placeholder="-" />
         </Field>
       </div>
 
-      <LocationMapPicker
-        lat={lat}
-        lng={lng}
-        onLatLngChange={(nextLat, nextLng) => {
-          setLat(nextLat);
-          setLng(nextLng);
-        }}
-        apiKey={env.NEXT_PUBLIC_MAP_IR_API_KEY}
-        labels={{
-          map: t('map'),
-          hint: t('mapHint'),
-          missingKey: t('mapMissingKey'),
-        }}
-      />
+      {requiresCoords ? (
+        <>
+          <LocationMapPicker
+            lat={lat}
+            lng={lng}
+            onLatLngChange={(nextLat, nextLng) => {
+              setLat(nextLat);
+              setLng(nextLng);
+            }}
+            apiKey={env.NEXT_PUBLIC_MAP_IR_API_KEY}
+            labels={{
+              map: t('map'),
+              hint: t('mapHint'),
+              missingKey: t('mapMissingKey'),
+            }}
+          />
 
-      <div className="grid gap-4 md:grid-cols-2">
-        <Field label={t('lat')}>
-          <TextInput value={lat} onChange={(event) => setLat(event.target.value)} dir="ltr" />
-        </Field>
-        <Field label={t('lng')}>
-          <TextInput value={lng} onChange={(event) => setLng(event.target.value)} dir="ltr" />
-        </Field>
-      </div>
+          <div className="grid gap-4 md:grid-cols-2">
+            <Field label={t('lat')}>
+              <TextInput value={lat} onChange={(event) => setLat(event.target.value)} dir="ltr" />
+            </Field>
+            <Field label={t('lng')}>
+              <TextInput value={lng} onChange={(event) => setLng(event.target.value)} dir="ltr" />
+            </Field>
+          </div>
+        </>
+      ) : (
+        <p className="text-[15px] text-brown-600">{locationHint}</p>
+      )}
 
       <ImagePicker
         label={t('cover')}
@@ -654,7 +705,7 @@ export function SiteForm({ site }: SiteFormProps) {
 
       <div className="flex flex-wrap gap-3">
         <ActionButton type="submit" disabled={saveMutation.isPending}>
-          {saveMutation.isPending ? t('saving') : isEdit ? t('save') : t('create')}
+          {saveMutation.isPending ? t('saving') : isEdit ? t('save') : createLabel}
         </ActionButton>
         {isEdit && site ? (
           <ActionButton
@@ -662,11 +713,11 @@ export function SiteForm({ site }: SiteFormProps) {
             variant="ghost"
             disabled={deleteMutation.isPending}
             onClick={() => {
-              if (!window.confirm(t('deleteConfirm'))) return;
+              if (!window.confirm(deleteConfirm)) return;
               deleteMutation.mutate();
             }}
           >
-            {t('delete')}
+            {deleteLabel}
           </ActionButton>
         ) : null}
       </div>

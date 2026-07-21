@@ -1,4 +1,5 @@
 import { cookies } from 'next/headers';
+import { Suspense } from 'react';
 import { redirect } from 'next/navigation';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
 import { QueryProviders } from '@/components/admin/query-providers';
@@ -20,9 +21,9 @@ export default async function AdminPanelLayout({ children, params }: AdminPanelL
 
   const user = await getServerSessionUser();
   const t = await getTranslations('admin.shell');
+  const tSites = await getTranslations('admin.sites');
   const tFooter = await getTranslations('footer');
   const labels = {
-    sites: t('sites'),
     users: t('users'),
     logout: t('logout'),
     panelTitle: t('title'),
@@ -31,14 +32,23 @@ export default async function AdminPanelLayout({ children, params }: AdminPanelL
     roleSuperAdmin: t('roleSuperAdmin'),
     footerTagline: tFooter('tagline'),
     loading: t('loading'),
+    categories: {
+      HISTORICAL: tSites('categories.historical.label'),
+      HANDICRAFT: tSites('categories.handicraft.label'),
+      STREET: tSites('categories.street.label'),
+      LANDMARK: tSites('categories.landmark.label'),
+      FOOD: tSites('categories.food.label'),
+    },
   };
 
   if (user) {
     return (
       <QueryProviders>
-        <AdminShell user={user} labels={labels}>
-          {children}
-        </AdminShell>
+        <Suspense fallback={null}>
+          <AdminShell user={user} labels={labels}>
+            {children}
+          </AdminShell>
+        </Suspense>
       </QueryProviders>
     );
   }

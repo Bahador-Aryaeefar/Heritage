@@ -24,7 +24,7 @@ describe('SitesService', () => {
   it('returns 404 for inactive sites', async () => {
     prisma.site.findUnique.mockResolvedValue({
       slug: 'hidden',
-      category: 'ANCIENT',
+      category: 'HISTORICAL',
       lat: '1',
       lng: '2',
       isActive: false,

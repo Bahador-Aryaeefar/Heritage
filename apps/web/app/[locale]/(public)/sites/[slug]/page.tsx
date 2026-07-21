@@ -80,17 +80,23 @@ export default async function SiteDetailPage({ params }: PageProps) {
         <p className="mt-4 max-w-3xl text-[17px] leading-relaxed text-brown-800">
           {translation.shortDescription}
         </p>
-        <SiteLocation
-          lat={site.lat}
-          lng={site.lng}
-          cityName={cityName}
-          provinceName={provinceName}
-          locale={locale as Locale}
-          openGoogleLabel={tLocation('openGoogle')}
-          openNeshanLabel={tLocation('openNeshan')}
-          mapTitle={tLocation('mapTitle')}
-          coordinatesLabel={tLocation('coordinatesLabel')}
-        />
+        {site.lat && site.lng ? (
+          <SiteLocation
+            lat={site.lat}
+            lng={site.lng}
+            cityName={cityName}
+            provinceName={provinceName}
+            locale={locale as Locale}
+            openGoogleLabel={tLocation('openGoogle')}
+            openNeshanLabel={tLocation('openNeshan')}
+            mapTitle={tLocation('mapTitle')}
+            coordinatesLabel={tLocation('coordinatesLabel')}
+          />
+        ) : (
+          <p className="mt-3 text-sm text-teal-700">
+            {cityName} · {provinceName}
+          </p>
+        )}
         <div className="mt-8 max-w-xl">
           <SiteQrPanel
             slug={slug}

@@ -2,9 +2,18 @@ import { z } from 'zod';
 
 // --- Enums (mirror Prisma / design-system tokens) ---
 
-export const siteCategorySchema = z.enum(['ANCIENT', 'ISLAMIC', 'NATURAL']);
+export const siteCategorySchema = z.enum([
+  'HISTORICAL',
+  'HANDICRAFT',
+  'STREET',
+  'LANDMARK',
+  'FOOD',
+]);
+export const SITE_CATEGORIES = siteCategorySchema.options;
+export const SITE_CATEGORIES_REQUIRING_COORDS = ['HISTORICAL', 'STREET', 'LANDMARK'] as const;
 export const mediaTypeSchema = z.enum(['IMAGE', 'VIDEO', 'AUDIO']);
-export const contentBlockTypeSchema = z.enum(['HEADING', 'PARAGRAPH', 'IMAGE', 'VIDEO', 'AUDIO']);
+export const contentBlockTypeSchema = z.enum(['HEADING', 'PARAGRAPH', 'LIST', 'IMAGE', 'VIDEO', 'AUDIO']);
+export const listStyleSchema = z.enum(['BULLET', 'NUMBERED']);
 export const textRoleSchema = z.enum(['HERO', 'H2', 'H3', 'BODY', 'CAPTION']);
 export const colorTokenSchema = z.enum([
   'BROWN_950',
@@ -19,10 +28,30 @@ export const localeSchema = z.enum(['fa', 'en', 'ar']);
 export type SiteCategory = z.infer<typeof siteCategorySchema>;
 export type MediaType = z.infer<typeof mediaTypeSchema>;
 export type ContentBlockType = z.infer<typeof contentBlockTypeSchema>;
+export type ListStyle = z.infer<typeof listStyleSchema>;
 export type TextRole = z.infer<typeof textRoleSchema>;
 export type ColorToken = z.infer<typeof colorTokenSchema>;
 export type BlockAlign = z.infer<typeof blockAlignSchema>;
 export type Locale = z.infer<typeof localeSchema>;
+
+export function siteCategoryRequiresCoords(category: SiteCategory): boolean {
+  return (SITE_CATEGORIES_REQUIRING_COORDS as readonly SiteCategory[]).includes(category);
+}
+
+function validateSiteCoords(
+  value: { category: SiteCategory; lat?: string | null; lng?: string | null },
+  ctx: z.RefinementCtx,
+): void {
+  if (!siteCategoryRequiresCoords(value.category)) {
+    return;
+  }
+  if (!value.lat?.trim()) {
+    ctx.addIssue({ code: 'custom', path: ['lat'], message: 'lat is required for this category' });
+  }
+  if (!value.lng?.trim()) {
+    ctx.addIssue({ code: 'custom', path: ['lng'], message: 'lng is required for this category' });
+  }
+}
 
 // --- Content block spans ---
 
@@ -86,6 +115,19 @@ export const paragraphBlockSchema = textBlockBaseSchema.extend({
   type: z.literal('PARAGRAPH'),
 });
 
+export const listItemSchema = z.object({
+  spans: z.array(textSpanSchema).min(1),
+});
+
+export const listBlockSchema = z.object({
+  type: z.literal('LIST'),
+  sortOrder: z.number().int(),
+  listStyle: listStyleSchema,
+  items: z.array(listItemSchema).min(1),
+});
+
+export type ListItem = z.infer<typeof listItemSchema>;
+
 export const mediaBlockBaseSchema = z.object({
   sortOrder: z.number().int(),
   media: mediaRefSchema,
@@ -107,6 +149,7 @@ export const audioBlockSchema = mediaBlockBaseSchema.extend({
 export const contentBlockSchema = z.discriminatedUnion('type', [
   headingBlockSchema,
   paragraphBlockSchema,
+  listBlockSchema,
   imageBlockSchema,
   videoBlockSchema,
   audioBlockSchema,
@@ -148,8 +191,8 @@ export const siteTranslationDetailSchema = z.object({
 export const siteDetailSchema = z.object({
   slug: z.string(),
   category: siteCategorySchema,
-  lat: z.string(),
-  lng: z.string(),
+  lat: z.string().nullable(),
+  lng: z.string().nullable(),
   isActive: z.boolean(),
   city: z.object({ slug: z.string(), nameFa: z.string(), nameEn: z.string() }),
   province: z.object({ slug: z.string(), nameFa: z.string(), nameEn: z.string() }),
@@ -264,8 +307,16 @@ const adminVideoBlockWriteSchema = z.object({
 });
 export type AdminVideoBlockWrite = z.infer<typeof adminVideoBlockWriteSchema>;
 
+const adminListBlockWriteSchema = z.object({
+  type: z.literal('LIST'),
+  listStyle: listStyleSchema,
+  items: z.array(listItemSchema).min(1),
+});
+export type AdminListBlockWrite = z.infer<typeof adminListBlockWriteSchema>;
+
 export const adminBlockWriteSchema = z.discriminatedUnion('type', [
   adminTextBlockWriteSchema,
+  adminListBlockWriteSchema,
   adminImageBlockWriteSchema,
   adminAudioBlockWriteSchema,
   adminVideoBlockWriteSchema,
@@ -305,13 +356,14 @@ export const createSiteFullSchema = z
   .object({
     slug: siteSlugSchema,
     category: siteCategorySchema,
-    lat: z.string().min(1),
-    lng: z.string().min(1),
+    lat: z.string().nullable().optional(),
+    lng: z.string().nullable().optional(),
     cityId: z.string().min(1),
     isActive: z.boolean().optional(),
     cover: coverWriteSchema,
     translations: z.array(adminTranslationFullSchema).min(3),
   })
+  .superRefine(validateSiteCoords)
   .refine((v) => requireFaEnArTranslations(v.translations), {
     message: 'fa, en, and ar translations are required',
   });
@@ -320,13 +372,14 @@ export const updateSiteFullSchema = z
   .object({
     slug: siteSlugSchema,
     category: siteCategorySchema,
-    lat: z.string().min(1),
-    lng: z.string().min(1),
+    lat: z.string().nullable().optional(),
+    lng: z.string().nullable().optional(),
     cityId: z.string().min(1),
     isActive: z.boolean(),
     cover: coverWriteSchema,
     translations: z.array(adminTranslationFullSchema).min(3),
   })
+  .superRefine(validateSiteCoords)
   .refine((v) => requireFaEnArTranslations(v.translations), {
     message: 'fa, en, and ar translations are required',
   });
@@ -338,8 +391,8 @@ export const adminSiteSchema = z.object({
   id: z.string(),
   slug: z.string(),
   category: siteCategorySchema,
-  lat: z.string(),
-  lng: z.string(),
+  lat: z.string().nullable(),
+  lng: z.string().nullable(),
   isActive: z.boolean(),
   city: z.object({
     id: z.string(),
@@ -377,6 +430,10 @@ export function validateTextBlockFields(type: ContentBlockType, spans: unknown):
     throw new Error('Not a text block type');
   }
   return z.array(textSpanSchema).min(1).parse(spans);
+}
+
+export function validateListBlockFields(spans: unknown): ListItem[] {
+  return z.object({ items: z.array(listItemSchema).min(1) }).parse(spans).items;
 }
 
 export function validateMediaBlockType(type: ContentBlockType): void {

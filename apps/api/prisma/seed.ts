@@ -1,58 +1,47 @@
 import {
   MediaType,
   PrismaClient,
-  SiteCategory,
   UserRole,
 } from '@prisma/client';
 import bcrypt from 'bcryptjs';
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { join, resolve } from 'node:path';
 import sharp from 'sharp';
-import { buildArBlocks, buildEnBlocks, buildFaBlocks } from './taq-e-bostan-blocks';
-
-// Env is loaded by `dotenv -e ../../.env` in the `prisma:seed` script (do not import
-// `@heritage/env-loader` here — ts-node CommonJS cannot require that ESM package).
+import { SEED_SITES, toPrismaBlock, type SeedSiteDefinition } from './seed-catalog';
 
 const prisma = new PrismaClient();
 
-const SITE_SLUG = 'taq-e-bostan';
-const QR_CODE = 'TQB-SEED-001';
 const SUPER_ADMIN_PHONE = '09120086846';
 const SUPER_ADMIN_PASSWORD = '78801215Dragons*';
 const UPLOAD_DIR = resolve(process.cwd(), process.env.UPLOAD_DIR ?? 'uploads');
 const WEB_PUBLIC_MEDIA = resolve(process.cwd(), '../web/public/media');
-
 const SEED_ASSETS_DIR = join(__dirname, 'seed-assets');
 
-const SEED_PHOTO_URLS = {
-  cover:
-    'https://upload.wikimedia.org/wikipedia/commons/a/a8/Taq-e-Bostan_%28Iran%29_Sassanid_Period.JPG',
-  treeOfLife: 'https://upload.wikimedia.org/wikipedia/commons/e/e9/Taq-e_Bostan_-_tree_of_life.jpg',
-  ivan: 'https://upload.wikimedia.org/wikipedia/commons/5/54/Kermanshah-taqe_bostan.jpg',
-} as const;
+const WIKI_USER_AGENT =
+  'ShahrnamaSeed/1.0 (https://heritage.nobatix.ir; local-dev seed; contact: admin@localhost)';
 
-const SEED_VIDEO_EMBED = 'https://www.youtube.com/embed/nKsNOB0Fukw';
+function sleep(ms: number) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
 
-async function fetchRemoteImage(url: string): Promise<Buffer> {
-  const res = await fetch(url, { signal: AbortSignal.timeout(60_000) });
+async function fetchRemoteImage(url: string, attempt = 1): Promise<Buffer> {
+  const res = await fetch(url, {
+    signal: AbortSignal.timeout(60_000),
+    headers: {
+      'User-Agent': WIKI_USER_AGENT,
+      Accept: 'image/*,*/*',
+    },
+  });
+  if (res.status === 429 && attempt < 5) {
+    const waitMs = attempt * 2500;
+    console.warn(`Rate limited fetching ${url}; retrying in ${waitMs}ms…`);
+    await sleep(waitMs);
+    return fetchRemoteImage(url, attempt + 1);
+  }
   if (!res.ok) {
     throw new Error(`HTTP ${res.status} for ${url}`);
   }
   return Buffer.from(await res.arrayBuffer());
-}
-
-async function loadSeedImageFile(
-  filename: string,
-  remoteUrl: string,
-  label: string,
-): Promise<Buffer> {
-  const localPath = join(SEED_ASSETS_DIR, filename);
-  try {
-    console.log(`Loading local seed asset: ${filename}`);
-    return await readFile(localPath);
-  } catch {
-    return loadSeedImage(remoteUrl, label);
-  }
 }
 
 async function loadSeedImage(url: string, label: string): Promise<Buffer> {
@@ -65,8 +54,23 @@ async function loadSeedImage(url: string, label: string): Promise<Buffer> {
   }
 }
 
+async function loadOptionalLocalCover(
+  slug: string,
+  remoteUrl: string | null,
+  label: string,
+): Promise<Buffer | null> {
+  if (!remoteUrl) return null;
+  const localPath = join(SEED_ASSETS_DIR, `${slug}-cover.jpg`);
+  try {
+    console.log(`Loading local seed asset: ${slug}-cover.jpg`);
+    return await readFile(localPath);
+  } catch {
+    return loadSeedImage(remoteUrl, label);
+  }
+}
+
 async function saveSeedImage(siteId: string, filenameBase: string, buffer: Buffer) {
-  const processed = await sharp(buffer)
+  const processed = await sharp(buffer, { failOn: 'truncated' })
     .rotate()
     .resize({ width: 1920, withoutEnlargement: true })
     .webp({ quality: 82 })
@@ -79,6 +83,7 @@ async function saveSeedImage(siteId: string, filenameBase: string, buffer: Buffe
   return {
     url: `/uploads/sites/${siteId}/images/${fileName}`,
     mimeType: 'image/webp',
+    webp: processed,
   };
 }
 
@@ -94,7 +99,8 @@ async function mirrorImageToWebPublic(siteSlug: string, filenameBase: string, we
   await writeFile(join(dir, `${filenameBase}.webp`), webpBuffer);
 }
 
-function createMinimalWav(durationSec = 1, sampleRate = 8000): Buffer {
+/** Short synthetic “voice-like” tone burst for seed audio samples. */
+function createFakeVoiceWav(durationSec = 4, sampleRate = 16_000): Buffer {
   const numSamples = sampleRate * durationSec;
   const dataSize = numSamples * 2;
   const buffer = Buffer.alloc(44 + dataSize);
@@ -111,6 +117,18 @@ function createMinimalWav(durationSec = 1, sampleRate = 8000): Buffer {
   buffer.writeUInt16LE(16, 34);
   buffer.write('data', 36);
   buffer.writeUInt32LE(dataSize, 40);
+
+  for (let i = 0; i < numSamples; i += 1) {
+    const t = i / sampleRate;
+    const env = Math.min(1, t * 8) * Math.max(0, 1 - (t - durationSec + 0.35) / 0.35);
+    const formant =
+      0.45 * Math.sin(2 * Math.PI * 180 * t) +
+      0.3 * Math.sin(2 * Math.PI * 320 * t) +
+      0.15 * Math.sin(2 * Math.PI * 520 * t);
+    const vibrato = 1 + 0.04 * Math.sin(2 * Math.PI * 5 * t);
+    const sample = Math.max(-1, Math.min(1, formant * vibrato * env * 0.55));
+    buffer.writeInt16LE(Math.floor(sample * 32767), 44 + i * 2);
+  }
   return buffer;
 }
 
@@ -126,6 +144,7 @@ async function saveSeedAudio(siteId: string, buffer: Buffer) {
 }
 
 async function createPlaceholderImage(label: string): Promise<Buffer> {
+  const safe = label.replace(/[<>&]/g, '');
   const svg = `<svg width="1200" height="800" xmlns="http://www.w3.org/2000/svg">
     <defs>
       <linearGradient id="g" x1="0%" y1="0%" x2="100%" y2="100%">
@@ -134,7 +153,7 @@ async function createPlaceholderImage(label: string): Promise<Buffer> {
       </linearGradient>
     </defs>
     <rect width="1200" height="800" fill="url(#g)"/>
-    <text x="600" y="420" font-family="sans-serif" font-size="48" fill="#FBF7F0" text-anchor="middle">${label}</text>
+    <text x="600" y="420" font-family="sans-serif" font-size="48" fill="#FBF7F0" text-anchor="middle">${safe}</text>
   </svg>`;
   return sharp(Buffer.from(svg)).webp().toBuffer();
 }
@@ -142,6 +161,124 @@ async function createPlaceholderImage(label: string): Promise<Buffer> {
 async function resetSiteContent(siteId: string) {
   await prisma.siteContentBlock.deleteMany({ where: { siteId } });
   await prisma.media.deleteMany({ where: { siteId } });
+}
+
+async function seedSite(def: SeedSiteDefinition, cityId: string) {
+  const site = await prisma.site.upsert({
+    where: { slug: def.slug },
+    create: {
+      slug: def.slug,
+      category: def.category,
+      lat: def.lat,
+      lng: def.lng,
+      cityId,
+      isActive: true,
+    },
+    update: {
+      category: def.category,
+      lat: def.lat,
+      lng: def.lng,
+      cityId,
+      isActive: true,
+    },
+  });
+
+  for (const translation of def.translations) {
+    await prisma.siteTranslation.upsert({
+      where: { siteId_locale: { siteId: site.id, locale: translation.locale } },
+      create: {
+        siteId: site.id,
+        locale: translation.locale,
+        title: translation.title,
+        shortDescription: translation.shortDescription,
+      },
+      update: {
+        title: translation.title,
+        shortDescription: translation.shortDescription,
+      },
+    });
+  }
+
+  await resetSiteContent(site.id);
+
+  const coverBuffer = await loadOptionalLocalCover(def.slug, def.coverUrl, def.coverLabel);
+  let coverMediaId: string | null = null;
+  let sortOrder = 0;
+
+  if (coverBuffer) {
+    const coverStored = await saveSeedImage(site.id, 'cover', coverBuffer);
+    await mirrorImageToWebPublic(def.slug, 'cover', coverStored.webp);
+    const coverMedia = await prisma.media.create({
+      data: {
+        siteId: site.id,
+        type: MediaType.IMAGE,
+        url: coverStored.url,
+        mimeType: coverStored.mimeType,
+        sortOrder,
+        isCover: true,
+      },
+    });
+    coverMediaId = coverMedia.id;
+    sortOrder += 1;
+  }
+
+  const audioStored = await saveSeedAudio(site.id, createFakeVoiceWav(4));
+  const audioMedia = await prisma.media.create({
+    data: {
+      siteId: site.id,
+      type: MediaType.AUDIO,
+      url: audioStored.url,
+      mimeType: audioStored.mimeType,
+      durationSec: 4,
+      sortOrder,
+      isCover: false,
+    },
+  });
+  sortOrder += 1;
+
+  let videoMediaId: string | null = null;
+  if (def.aparatEmbed) {
+    const videoMedia = await prisma.media.create({
+      data: {
+        siteId: site.id,
+        type: MediaType.VIDEO,
+        embedUrl: def.aparatEmbed,
+        sortOrder,
+        isCover: false,
+      },
+    });
+    videoMediaId = videoMedia.id;
+  }
+
+  const blocksByLocale = def.buildBlocks({
+    coverMediaId,
+    audioMediaId: audioMedia.id,
+    videoMediaId,
+  });
+
+  for (const locale of ['fa', 'en', 'ar'] as const) {
+    const rows = blocksByLocale[locale].map((block) => toPrismaBlock(site.id, locale, block));
+    if (rows.length > 0) {
+      await prisma.siteContentBlock.createMany({ data: rows });
+    }
+  }
+
+  await prisma.qRCode.upsert({
+    where: { code: def.qrCode },
+    create: {
+      siteId: site.id,
+      code: def.qrCode,
+      isActive: true,
+    },
+    update: {
+      siteId: site.id,
+      isActive: true,
+    },
+  });
+
+  console.log(
+    `Seeded ${def.category} site "${def.slug}" (cover ${coverMediaId ?? 'none'}, video ${videoMediaId ?? 'none'})`,
+  );
 }
 
 async function main() {
@@ -173,238 +310,10 @@ async function main() {
     },
   });
 
-  const site = await prisma.site.upsert({
-    where: { slug: SITE_SLUG },
-    create: {
-      slug: SITE_SLUG,
-      category: SiteCategory.ANCIENT,
-      lat: '34.3872000',
-      lng: '47.1332000',
-      cityId: city.id,
-      isActive: true,
-    },
-    update: {
-      category: SiteCategory.ANCIENT,
-      lat: '34.3872000',
-      lng: '47.1332000',
-      cityId: city.id,
-      isActive: true,
-    },
-  });
-
-  await prisma.siteTranslation.upsert({
-    where: { siteId_locale: { siteId: site.id, locale: 'fa' } },
-    create: {
-      siteId: site.id,
-      locale: 'fa',
-      title: 'طاق بستان',
-      shortDescription:
-        'مجموعه سنگ‌نگاره‌های ساسانی در دل کوهستان کرمانشاه، نماد میراث باستانی غرب ایران.',
-    },
-    update: {
-      title: 'طاق بستان',
-      shortDescription:
-        'مجموعه سنگ‌نگاره‌های ساسانی در دل کوهستان کرمانشاه، نماد میراث باستانی غرب ایران.',
-    },
-  });
-
-  await prisma.siteTranslation.upsert({
-    where: { siteId_locale: { siteId: site.id, locale: 'en' } },
-    create: {
-      siteId: site.id,
-      locale: 'en',
-      title: 'Taq-e Bostan',
-      shortDescription:
-        'Sasanian rock reliefs carved into the mountains near Kermanshah, a landmark of ancient western Iran.',
-    },
-    update: {
-      title: 'Taq-e Bostan',
-      shortDescription:
-        'Sasanian rock reliefs carved into the mountains near Kermanshah, a landmark of ancient western Iran.',
-    },
-  });
-
-  await prisma.siteTranslation.upsert({
-    where: { siteId_locale: { siteId: site.id, locale: 'ar' } },
-    create: {
-      siteId: site.id,
-      locale: 'ar',
-      title: 'طاق بستان',
-      shortDescription:
-        'مجموعة من النقوش الصخرية الساسانية المحفورة في جبال كرمانشاه، رمز التراث القديم في غرب إيران.',
-    },
-    update: {
-      title: 'طاق بستان',
-      shortDescription:
-        'مجموعة من النقوش الصخرية الساسانية المحفورة في جبال كرمانشاه، رمز التراث القديم في غرب إيران.',
-    },
-  });
-
-  await resetSiteContent(site.id);
-
-  const coverBuffer = await loadSeedImageFile('cover.jpg', SEED_PHOTO_URLS.cover, 'Taq-e Bostan');
-  const treeBuffer = await loadSeedImageFile(
-    'tree-of-life.jpg',
-    SEED_PHOTO_URLS.treeOfLife,
-    'Tree of life',
-  );
-  const ivanBuffer = await loadSeedImageFile('large-ivan.jpg', SEED_PHOTO_URLS.ivan, 'Ivan');
-  const coverStored = await saveSeedImage(site.id, 'cover', coverBuffer);
-  const treeStored = await saveSeedImage(site.id, 'tree-of-life', treeBuffer);
-  const ivanStored = await saveSeedImage(site.id, 'large-ivan', ivanBuffer);
-
-  const coverWebp = await sharp(coverBuffer).rotate().resize({ width: 1920, withoutEnlargement: true }).webp({ quality: 82 }).toBuffer();
-  const treeWebp = await sharp(treeBuffer).rotate().resize({ width: 1920, withoutEnlargement: true }).webp({ quality: 82 }).toBuffer();
-  const ivanWebp = await sharp(ivanBuffer).rotate().resize({ width: 1920, withoutEnlargement: true }).webp({ quality: 82 }).toBuffer();
-  await mirrorImageToWebPublic(SITE_SLUG, 'cover', coverWebp);
-  await mirrorImageToWebPublic(SITE_SLUG, 'tree-of-life', treeWebp);
-  await mirrorImageToWebPublic(SITE_SLUG, 'large-ivan', ivanWebp);
-  const audioStored = await saveSeedAudio(site.id, createMinimalWav(3));
-
-  const coverMedia = await prisma.media.create({
-    data: {
-      siteId: site.id,
-      type: MediaType.IMAGE,
-      url: coverStored.url,
-      mimeType: coverStored.mimeType,
-      sortOrder: 0,
-      isCover: true,
-    },
-  });
-
-  const treeMedia = await prisma.media.create({
-    data: {
-      siteId: site.id,
-      type: MediaType.IMAGE,
-      url: treeStored.url,
-      mimeType: treeStored.mimeType,
-      sortOrder: 1,
-      isCover: false,
-    },
-  });
-
-  const ivanMedia = await prisma.media.create({
-    data: {
-      siteId: site.id,
-      type: MediaType.IMAGE,
-      url: ivanStored.url,
-      mimeType: ivanStored.mimeType,
-      sortOrder: 2,
-      isCover: false,
-    },
-  });
-
-  const audioMedia = await prisma.media.create({
-    data: {
-      siteId: site.id,
-      type: MediaType.AUDIO,
-      url: audioStored.url,
-      mimeType: audioStored.mimeType,
-      durationSec: 3,
-      sortOrder: 3,
-      isCover: false,
-    },
-  });
-
-  const videoMedia = await prisma.media.create({
-    data: {
-      siteId: site.id,
-      type: MediaType.VIDEO,
-      embedUrl: SEED_VIDEO_EMBED,
-      sortOrder: 4,
-      isCover: false,
-    },
-  });
-
-  const faBlocks = buildFaBlocks({
-    coverMediaId: coverMedia.id,
-    treeMediaId: treeMedia.id,
-    ivanMediaId: ivanMedia.id,
-    audioMediaId: audioMedia.id,
-    videoMediaId: videoMedia.id,
-  });
-
-  const enBlocks = buildEnBlocks({
-    coverMediaId: coverMedia.id,
-    treeMediaId: treeMedia.id,
-    ivanMediaId: ivanMedia.id,
-    audioMediaId: audioMedia.id,
-    videoMediaId: videoMedia.id,
-  });
-
-  const arBlocks = buildArBlocks({
-    coverMediaId: coverMedia.id,
-    treeMediaId: treeMedia.id,
-    ivanMediaId: ivanMedia.id,
-    audioMediaId: audioMedia.id,
-    videoMediaId: videoMedia.id,
-  });
-
-  for (const block of faBlocks) {
-    await prisma.siteContentBlock.create({
-      data: {
-        siteId: site.id,
-        locale: 'fa',
-        sortOrder: block.sortOrder,
-        type: block.type,
-        textRole: 'textRole' in block ? block.textRole : null,
-        colorToken: 'colorToken' in block ? block.colorToken : null,
-        align: 'align' in block ? block.align : null,
-        spans: 'spans' in block ? block.spans : undefined,
-        mediaId: 'mediaId' in block ? block.mediaId : null,
-        caption: 'caption' in block ? block.caption : null,
-      },
-    });
+  for (const [index, def] of SEED_SITES.entries()) {
+    if (index > 0) await sleep(2000);
+    await seedSite(def, city.id);
   }
-
-  for (const block of enBlocks) {
-    await prisma.siteContentBlock.create({
-      data: {
-        siteId: site.id,
-        locale: 'en',
-        sortOrder: block.sortOrder,
-        type: block.type,
-        textRole: 'textRole' in block ? block.textRole : null,
-        colorToken: 'colorToken' in block ? block.colorToken : null,
-        align: 'align' in block ? block.align : null,
-        spans: 'spans' in block ? block.spans : undefined,
-        mediaId: 'mediaId' in block ? block.mediaId : null,
-        caption: 'caption' in block ? block.caption : null,
-      },
-    });
-  }
-
-  for (const block of arBlocks) {
-    await prisma.siteContentBlock.create({
-      data: {
-        siteId: site.id,
-        locale: 'ar',
-        sortOrder: block.sortOrder,
-        type: block.type,
-        textRole: 'textRole' in block ? block.textRole : null,
-        colorToken: 'colorToken' in block ? block.colorToken : null,
-        align: 'align' in block ? block.align : null,
-        spans: 'spans' in block ? block.spans : undefined,
-        mediaId: 'mediaId' in block ? block.mediaId : null,
-        caption: 'caption' in block ? block.caption : null,
-      },
-    });
-  }
-
-  await prisma.qRCode.upsert({
-    where: { code: QR_CODE },
-    create: {
-      siteId: site.id,
-      code: QR_CODE,
-      isActive: true,
-    },
-    update: {
-      siteId: site.id,
-      isActive: true,
-    },
-  });
-
-  console.log(`Seeded site "${SITE_SLUG}" with cover media ${coverMedia.id}`);
 
   const passwordHash = await bcrypt.hash(SUPER_ADMIN_PASSWORD, 12);
   await prisma.user.upsert({

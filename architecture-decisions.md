@@ -82,7 +82,7 @@ npm install next-intl
 
 - `Province` - name, slug
 - `City` - name, slug, `province_id`
-- `Site` (historical/cultural site) - name, slug, coordinates (lat/lng), category (ancient / islamic / natural), `city_id`
+- `Site` (historical/cultural site) - name, slug, coordinates (lat/lng optional for `HANDICRAFT` and `FOOD`), category (`HISTORICAL` | `HANDICRAFT` | `STREET` | `LANDMARK` | `FOOD`), `city_id`
 - `SiteTranslation` - `site_id`, locale (fa/en), title, history text, short description
 - `Media` - `site_id`, type (image/audio), url, display order
 - `QRCode` - `site_id`, unique code, install date, status (active/inactive)
@@ -202,7 +202,7 @@ apps/web/
 
 - Locale lives in the URL path (`/`, `/en/...`, `/ar/...`), per the next-intl decision in section 4 - never in a cookie-only or client-state-only scheme, so links are shareable and indexable per locale.
 - A `LanguageSwitcher` dropdown (native names from `i18n/locales.ts`) swaps the locale segment of the current path and preserves the rest of the URL. Adding a language = extend `routing.locales` + `LOCALE_DEFINITIONS` + `messages/{code}.json`.
-- `fa` is the default locale (no prefix); `en` and `ar` are prefixed. Site **content** locales are `fa` / `en` / `ar` (required on admin create/update since 2026-07-21, §21); Arabic UI reads Arabic site copy from the API — no `ar`→`fa` collapse in `toContentLocale()`.
+- `fa` is the default locale (no prefix); `en` and `ar` are prefixed. Site **content** locales are `fa` / `en` / `ar` (required on admin create/update since 2026-07-21, §21); Arabic UI reads Arabic site copy from the API  -  no `ar`→`fa` collapse in `toContentLocale()`.
 - `hreflang` alternate tags are generated automatically by next-intl's routing config for SEO.
 
 ### 12f. State management
@@ -244,13 +244,13 @@ Verified working on this machine after the scaffold:
 |---|---|
 | `pnpm install` + workspace scripts | ok |
 | Docker Postgres (`heritage-db-1`, healthy on 5432) | ok |
-| `apps/api/.env` + root `.env` + `apps/web/.env` from examples | **Single root `.env` only** — `@heritage/env-loader` + Nest `envFilePath` + Next `next.config` + Prisma scripts via `dotenv -e ../../.env` |
+| `apps/api/.env` + root `.env` + `apps/web/.env` from examples | **Single root `.env` only**  -  `@heritage/env-loader` + Nest `envFilePath` + Next `next.config` + Prisma scripts via `dotenv -e ../../.env` |
 | Prisma client ↔ DB (`$connect`) | ok (`prisma generate` can EPERM on Windows if a node process holds `query_engine-windows.dll.node`; existing client still works) |
 | `pnpm lint` / `pnpm test` / `pnpm build` | all green |
 | Graphify code graph (`graphify update .`) | `graphify-out/` present (gitignored); re-run after structural changes |
 | Root `README.md` | documents first-time setup and daily commands |
 
-Next phase after setup: schema design (`Province`/`City`/`Site`/… per §7) — not part of install.
+Next phase after setup: schema design (`Province`/`City`/`Site`/... per §7)  -  not part of install.
 
 ## 14. Schema, content blocks, media, and public API (2026-07-17)
 
@@ -270,7 +270,7 @@ Phase 2 backend: full domain schema, flexible site pages, public read APIs, loca
 
 Field-level reference: [`heritage-schema-map.md`](./heritage-schema-map.md).
 
-## 15. Public frontend — landing and site pages (2026-07-17)
+## 15. Public frontend  -  landing and site pages (2026-07-17)
 
 | Decision | Detail | Reason |
 |---|---|---|
@@ -279,7 +279,7 @@ Field-level reference: [`heritage-schema-map.md`](./heritage-schema-map.md).
 | Static i18n | `setRequestLocale(locale)` before any `getTranslations`/`getMessages` in **every** layout and page under `[locale]/` (including `(public)/layout.tsx`) | Without it, next-intl reads `x-next-intl-locale` from `headers()` → `DYNAMIC_SERVER_USAGE` at runtime and routes opt out of SSG |
 | Landing marketing copy | next-intl JSON (`messages/fa.json`, `en.json`) | Shell UI + hero/how-it-works/banners |
 | Site body copy | API `SiteContentBlock[]` per locale | Staff-editable per site |
-| Promo banners | Static JSON slots (`home.banners.top/mid`) | Space for campaigns until admin CMS |
+| Promo banners | Topic-specific JSON slots (`home.banners.how` + `home.banners.categories.*`) with matching Wikimedia images in `landingBannerImages` | One banner per following section; no repeated marketing strips |
 | Scroll animation | CSS transitions + `RevealOnScroll` (Intersection Observer); no Framer Motion | Lightweight; respects `prefers-reduced-motion` |
 | Images | `next/image` with `remotePatterns` for API upload host and Wikimedia Commons (`upload.wikimedia.org`) | Optimized covers from `/uploads/`; landing hero/banners use CC photos until CMS |
 | Marketing photos | Bundled in `apps/web/public/media/taq-e-bostan/` | Landing hero/banners work without API or Wikimedia |
@@ -287,7 +287,7 @@ Field-level reference: [`heritage-schema-map.md`](./heritage-schema-map.md).
 | Seed assets | Committed under `apps/api/prisma/seed-assets/` + mirrored in `apps/web/public/media/` | Offline media; no live Wikimedia fetch required |
 | Decor borders | Simple `HeritageCard` (gold-tint border + soft shadow); ornate corners removed |
 | Page background | CSS diagonal stripes on `sand-50`, slow drift animation (`heritage-bg-drift`) |
-| Block renderer | `components/public/content-blocks/` maps API tokens → Tailwind (design-system §10–11) | Single renderer for seeded + future content |
+| Block renderer | `components/public/content-blocks/` maps API tokens → Tailwind (design-system §10-11) | Single renderer for seeded + future content |
 | QR generation | `QrService` plaque PNG (SVG frame + title/location + QR; brand lockup composited via `@napi-rs/canvas` for correct Persian/Latin layout) + on-screen `HeritageQrCode` |
 | QR URL | `https://heritage.nobatix.ir/sites/{slug}?src=qr` (env: `PUBLIC_WEB_BASE_URL`, `NEXT_PUBLIC_SITE_URL`) |
 | Site maps | Public map links + Google embed derived from `Site.lat`/`Site.lng` in `apps/web/lib/map-urls.ts` (Google open URL, Neshan `nshn.ir`, Google embed iframe); no stored map URLs, no Maps API key on public pages |
@@ -320,14 +320,19 @@ Example Caddy config: [`deploy/Caddyfile.example`](./deploy/Caddyfile.example).
 | Auth transport | HTTP-only cookies: `heritage_access` (JWT, ~15m) + `heritage_refresh` (opaque, ~7d) | §5 XSS-resistant cookies |
 | Refresh rotation | Each `POST /auth/refresh` revokes the presented token and issues a new pair; reuse revokes the whole `familyId` | Theft detection |
 | Same-origin admin API | Web rewrites `/api/v1/*` → Nest; browser uses `credentials: 'include'` | Cookies on web origin; middleware can gate `/admin` |
-| Admin site scope (v1, 2026-07-19) | Core CRUD: slug, category, lat/lng (Map.ir picker + text fields), city, `isActive`, fa/en title + shortDescription, cover upload | Content-block editor deferred — **superseded 2026-07-21, see §18/§19**: the editor now covers full fa/en content (title, shortDescription, ordered `SiteContentBlock`s, shared media) in one atomic write |
-| API docs | OpenAPI JSON at `/openapi.json` + Scalar UI at `/docs` (outside `/api` prefix); web rewrites `/docs` in production. OpenAPI **server** is `/` because operation paths already include `/api/v1` (global prefix + URI versioning) — do not set server to `/api/v1` or Scalar doubles the prefix | Interactive admin API reference |
-| List responses | Every list endpoint accepts `page` / `limit` (defaults 1 / 20, max 100) and returns `{ items, meta }`; shared helpers live in `common/pagination/` and shared Zod contracts in `@heritage/shared-types` | One predictable pagination contract for public and admin clients |
+| Admin site scope (v1, 2026-07-19) | Core CRUD: slug, category, lat/lng (Map.ir picker + text fields), city, `isActive`, fa/en title + shortDescription, cover upload | Content-block editor deferred  -  **superseded 2026-07-21, see §18/§19**: the editor now covers full fa/en content (title, shortDescription, ordered `SiteContentBlock`s, shared media) in one atomic write |
+| API docs | OpenAPI JSON at `/openapi.json` + Scalar UI at `/docs` (outside `/api` prefix); web rewrites `/docs` in production. OpenAPI **server** is `/` because operation paths already include `/api/v1` (global prefix + URI versioning)  -  do not set server to `/api/v1` or Scalar doubles the prefix | Interactive admin API reference |
+| List responses | Every list endpoint accepts `page` / `limit` (defaults 1 / 20, max 100) and returns `{ items, meta }`; shared helpers live in `common/pagination/` and shared Zod contracts in `@heritage/shared-types`. Admin sites also accept `category` + `search` (slug/title); admin users accept `search` (phone/displayName) | One predictable pagination contract for public and admin clients |
 | OpenAPI detail | Controllers explicitly document request bodies, success/error responses, examples, auth cookies, binary uploads, and paginated metadata through reusable helpers in `common/openapi/` | Scalar is useful as an executable API contract, not only a route index |
 | Seed SuperAdmin | Phone `09120086846` (password in seed only, bcrypt stored) | Bootstrap first maintainer account |
+| Seed catalog (2026-07-22) | `prisma/seed-catalog.ts`: **five** examples per `SiteCategory` (25 sites); covers from **Wikimedia Commons**; no seed videos; synthetic WAV "voice" sample; dandeh kebab keeps a `LIST` recipe | Enough content to demo per-category landing sections and admin lists |
+| Category cover fallback (2026-07-22) | When `coverUrl` is null, public cards and admin list thumbs render `CategoryCover` (brown→teal gradient + category line icon) instead of an empty thumb | Sites can ship without a photo; taxonomy stays recognizable |
+| Category landing (2026-07-22) | Public home: plaque hero → `CategoryStack` (no page scroll) → topic banner + How it works → per-category topic banner + `CategorySection` with `SitesCarousel` (side buttons when >4 items or tight width; no overflow-x); mixed `SitesGrid` unused; groups `GET /public/landing` by `category` | Categories stay first-class; unique banners introduce each block; crowded lists page like a slide |
 | User hard delete | `DELETE /admin/users/:id` (SUPER_ADMIN): revokes refresh tokens then deletes the row; **forbids** self-delete and deleting the last active SUPER_ADMIN (same guards as deactivate/demote) | Soft deactivate remains via PATCH; hard delete is for removing unused accounts |
 | Site create QR row | `createSiteFull` inserts a default `QRCode` (`code = {slug}-{idSuffix}`) alongside media/blocks | Visit tracking needs a QR row; plaque PNG still encodes the slug URL, not this code |
 | Admin UI delete | Sites list + site form call `DELETE /admin/sites/:id` (media files via `MediaCleanupService`, then VisitEvent → QRCode → Site); users list calls user DELETE | Cleanup order already enforced by API (§18) |
+| Site categories (2026-07-22) | `SiteCategory`: `HISTORICAL`, `HANDICRAFT`, `STREET`, `LANDMARK`, `FOOD` (replaces `ANCIENT`/`ISLAMIC`/`NATURAL`; existing rows remap on migration). `lat`/`lng` required for `HISTORICAL`/`STREET`/`LANDMARK`; optional (null) for `HANDICRAFT`/`FOOD` until multi-location support lands. Admin **sidebar** lists one nav item per category (`/admin/sites?category=...`); create locks category from query; form shows category as read-only badge | Kermanshah tourism taxonomy: monuments, crafts/souvenirs, street axes, urban hubs, and one entry per dish (UNESCO Creative City of Gastronomy framing) |
+| LIST content blocks (2026-07-22) | `ContentBlockType.LIST` + `ListStyle` (`BULLET` \| `NUMBERED`); items stored in `SiteContentBlock.spans` as `{ items: [{ spans }] }` | Recipes and step-by-step instructions in the document editor without inline contenteditable lists |
 
 Admin routes: `/admin` (fa default), `/en/admin/...`; protected by `proxy.ts` cookie check + layout `GET /auth/me` re-validation. Admin UI chrome, forms, roles, categories, and errors are fully localized via `admin.*` messages; shell and login include `LanguageSwitcher`.
 
@@ -341,18 +346,18 @@ Part of the admin site editor rework (full site create/replace as one multipart 
 | Failure handling | `staging.abort(sessionId)` / `staging.cleanup(sessionId)` both `rm -rf` the session dir; callers `abort` on any thrown error and `cleanup` after a successful transaction | No orphaned temp files on either success or failure path |
 | Content-addressed dedup | `sha256Hex()` (`apps/api/src/common/crypto/sha256.ts`) hashes each uploaded buffer; Task 5's media-resolution step reuses an existing `Media` row when its stored hash matches instead of re-uploading | Same photo across FA/EN or across repeated saves doesn't create duplicate `Media` rows/files |
 | Upload size limits | `IMAGE_MAX_BYTES = 15 MiB`, `AUDIO_MAX_BYTES = 20 MiB` (`apps/api/src/storage/upload-limits.ts`) | Bounds multipart body size before Sharp/disk work; video stays URL-only (no local video upload) per §11 |
-| Endpoint shape | `POST /admin/sites` and `PUT /admin/sites/:id` (`AnyFilesInterceptor`) replace the old JSON `POST`+`PATCH`+`POST .../cover` trio; body is `multipart/form-data` with a `payload` field (JSON, parsed then validated by `createSiteFullSchema`/`updateSiteFullSchema`) plus one file field per referenced `clientFileKey` — the multipart **field name is the `clientFileKey`** (e.g. `cover`), so the controller indexes uploads by `file.fieldname` with no prefix convention. `DELETE /admin/sites/:id` (204) replaces the ad-hoc delete path. Multer's `limits.fileSize` is set to `AUDIO_MAX_BYTES` (the larger of the two per-type caps) as an outer transport-level bound; `AdminSitesService.prepareFiles` still enforces the tighter `IMAGE_MAX_BYTES` per file kind — setting the multer ceiling to the smaller image limit would reject valid larger audio uploads before the service's own check runs | One atomic write per create/replace call instead of 2–3 round-trips; keeps the size-limit enforcement responsibility where the per-kind logic already lives |
+| Endpoint shape | `POST /admin/sites` and `PUT /admin/sites/:id` (`AnyFilesInterceptor`) replace the old JSON `POST`+`PATCH`+`POST .../cover` trio; body is `multipart/form-data` with a `payload` field (JSON, parsed then validated by `createSiteFullSchema`/`updateSiteFullSchema`) plus one file field per referenced `clientFileKey`  -  the multipart **field name is the `clientFileKey`** (e.g. `cover`), so the controller indexes uploads by `file.fieldname` with no prefix convention. `DELETE /admin/sites/:id` (204) replaces the ad-hoc delete path. Multer's `limits.fileSize` is set to `AUDIO_MAX_BYTES` (the larger of the two per-type caps) as an outer transport-level bound; `AdminSitesService.prepareFiles` still enforces the tighter `IMAGE_MAX_BYTES` per file kind  -  setting the multer ceiling to the smaller image limit would reject valid larger audio uploads before the service's own check runs | One atomic write per create/replace call instead of 2-3 round-trips; keeps the size-limit enforcement responsibility where the per-kind logic already lives |
 | Deprecated JSON write path removal | `AdminSitesService.createSite`/`updateSite`/`uploadCover` and their controller handlers are deleted (dead code, only caller was the controller). `createSiteAdminSchema`/`updateSiteAdminSchema`/`siteAdminTranslationSchema` remained exported from `@heritage/shared-types` only until `apps/web/components/admin/site-form.tsx` was rewired to the multipart contract (done); no consumer imports the legacy schemas anymore | Removing the API-side dead code doesn't require breaking the web build ahead of its own migration task |
 | `DELETE /admin/sites/:id` file/DB order | `AdminSitesService.deleteSite` collects every `Media.url` for the site and deletes each disk file (`MediaCleanupService.deleteAllMediaFilesForSite`) **before** the DB cascade, then runs one `$transaction` deleting `VisitEvent` → `QRCode` → `Site` in that order | `QRCode.site` and `VisitEvent.site` are `onDelete: Restrict` (§11), so they must be removed before the `Site` row; doing the file cleanup first means a mid-transaction DB failure never leaves the DB pointing at files that were already deleted |
 | FA/EN/AR content editor UX | Admin `SiteForm` renders `Tabs` from `CONTENT_LOCALE_DEFINITIONS` (`fa` \| `en` \| `ar`, permanent native labels + `dir`) each holding title, shortDescription, and a document-canvas `BlockListEditor`; EN and AR have "Copy from Persian" (`copyBlocksFromFa()`) with confirm when target blocks exist. Canvas media is WYSIWYG (natural `object-contain` images, visible captions, playable audio). **See §21** for rich spans, DnD, per-tab undo, and caption/slug a11y | Matches the public page's fa/en/ar model 1:1; content writing direction must not flip with the UI language switcher |
-| Video blocks | `VIDEO` blocks store an `embedUrl` only — no local video file upload, no video branch in `StagingService`/Sharp | Avoids an ffmpeg/transcoding dependency; embeds (Aparat/YouTube) cover the real use case |
+| Video blocks | `VIDEO` blocks store an `embedUrl` only  -  no local video file upload, no video branch in `StagingService`/Sharp | Avoids an ffmpeg/transcoding dependency; embeds (Aparat/YouTube) cover the real use case |
 
 ## 19. API e2e coverage for the atomic write pipeline (2026-07-21)
 
 | Decision | Detail | Reason |
 |---|---|---|
 | e2e coverage | `apps/api/test/admin-sites-full.e2e-spec.ts` exercises the §18 pipeline end-to-end against a real Postgres: login as the seed SuperAdmin (cookie auth, persisted across requests via `supertest`'s `request.agent(...)`) → `GET /admin/cities` for a real `cityId` → `POST /admin/sites` multipart (a single `clientFileKey`-keyed file reused as both the site cover and an fa `IMAGE` block, to exercise the field-name-equals-`clientFileKey` contract) → `GET` (asserts the persisted blocks plus a `Media` row with a `contentHash`) → `PUT` dropping the `IMAGE` block (asserts the now-unused `Media` row *and* its on-disk file under `UPLOAD_DIR` are both gone) → `DELETE` (asserts a subsequent `GET` 404s) | Task 6 wired the multipart controller with no dedicated test of its own; this is the first exercise of the real HTTP + Multer + Sharp + Prisma path together, not just the pure `MediaPlanner`/schema unit tests |
-| `test/jest-e2e.json` ts-jest override | Both e2e specs load `AppModule`, which imports `@heritage/env-loader` — a workspace package with `"type": "module"` (§12c). `apps/api`'s own `tsconfig.json` sets `"module": "nodenext"`, so ts-jest's per-file, Node-style ESM detection emits real `import` syntax for that dependency; Jest's CJS-only module loader can't execute that and the whole suite failed to load `AppModule`. Fixed by overriding ts-jest's `tsconfig` for the e2e transform to `module: "commonjs"` / `moduleResolution: "node"` (`resolvePackageJsonExports: false`, since TS rejects that combination otherwise), plus a `moduleNameMapper` entry pointing `@heritage/env-loader` at its TS source, mirroring the existing `@heritage/shared-types` entry. **`prisma/seed.ts` does not import `@heritage/env-loader`** — `pnpm --filter api prisma:seed` loads the root `.env` via `dotenv -e ../../.env` before `ts-node` runs the seed in CommonJS mode | Pre-existing breakage, not introduced by this task: **both** e2e specs (including the already-committed `app.e2e-spec.ts`) failed the same way before this fix. Real Node ≥20.19/22.12 (this repo runs Node 24) can `require()` a synchronous ESM module natively, so `AppModule` works fine at real runtime; only Jest's own module system needed the workaround |
+| `test/jest-e2e.json` ts-jest override | Both e2e specs load `AppModule`, which imports `@heritage/env-loader`  -  a workspace package with `"type": "module"` (§12c). `apps/api`'s own `tsconfig.json` sets `"module": "nodenext"`, so ts-jest's per-file, Node-style ESM detection emits real `import` syntax for that dependency; Jest's CJS-only module loader can't execute that and the whole suite failed to load `AppModule`. Fixed by overriding ts-jest's `tsconfig` for the e2e transform to `module: "commonjs"` / `moduleResolution: "node"` (`resolvePackageJsonExports: false`, since TS rejects that combination otherwise), plus a `moduleNameMapper` entry pointing `@heritage/env-loader` at its TS source, mirroring the existing `@heritage/shared-types` entry. **`prisma/seed.ts` does not import `@heritage/env-loader`**  -  `pnpm --filter api prisma:seed` loads the root `.env` via `dotenv -e ../../.env` before `ts-node` runs the seed in CommonJS mode | Pre-existing breakage, not introduced by this task: **both** e2e specs (including the already-committed `app.e2e-spec.ts`) failed the same way before this fix. Real Node ≥20.19/22.12 (this repo runs Node 24) can `require()` a synchronous ESM module natively, so `AppModule` works fine at real runtime; only Jest's own module system needed the workaround |
 
 ## 20. Admin site write validation hardening (2026-07-21)
 
@@ -360,30 +365,30 @@ Fixes from the whole-branch review of `feat/admin-site-editor`.
 
 | Decision | Detail | Reason |
 |---|---|---|
-| ZodError → 400 (once, globally) | `GlobalExceptionFilter` now maps a thrown `ZodError` to `400 { statusCode, error: 'Bad Request', message: 'Validation failed', details: [{ path, message }] }` in addition to passing `HttpException` through and logging everything else as a 500. The admin multipart controller keeps calling `createSiteFullSchema.parse` / `updateSiteFullSchema.parse` directly — the filter is the single place that turns a schema failure into a client 400 | Before this, `schema.parse` in `admin-sites.controller` threw `ZodError`, which the catch-all filter only knew how to log as a 500; mapping it once covers every current and future route that parses with Zod instead of wrapping each `.parse` in a try/catch |
-| Multer size limits | Already consistent and left as-is: Multer's `limits.fileSize = AUDIO_MAX_BYTES` (the larger cap) surfaces oversize bodies as `PayloadTooLargeException` (413) via `@nestjs/platform-express`'s `transformException` (an `HttpException`, so the global filter returns 413); images between `IMAGE_MAX_BYTES` and `AUDIO_MAX_BYTES` are rejected by `AdminSitesService.prepareFiles` as a 400 | Oversized uploads already become 413/400, never a 500 — no change needed |
+| ZodError → 400 (once, globally) | `GlobalExceptionFilter` now maps a thrown `ZodError` to `400 { statusCode, error: 'Bad Request', message: 'Validation failed', details: [{ path, message }] }` in addition to passing `HttpException` through and logging everything else as a 500. The admin multipart controller keeps calling `createSiteFullSchema.parse` / `updateSiteFullSchema.parse` directly  -  the filter is the single place that turns a schema failure into a client 400 | Before this, `schema.parse` in `admin-sites.controller` threw `ZodError`, which the catch-all filter only knew how to log as a 500; mapping it once covers every current and future route that parses with Zod instead of wrapping each `.parse` in a try/catch |
+| Multer size limits | Already consistent and left as-is: Multer's `limits.fileSize = AUDIO_MAX_BYTES` (the larger cap) surfaces oversize bodies as `PayloadTooLargeException` (413) via `@nestjs/platform-express`'s `transformException` (an `HttpException`, so the global filter returns 413); images between `IMAGE_MAX_BYTES` and `AUDIO_MAX_BYTES` are rejected by `AdminSitesService.prepareFiles` as a 400 | Oversized uploads already become 413/400, never a 500  -  no change needed |
 | Sharp validates before commit | Image decode/optimize (Sharp → WebP) moved out of the post-commit `promoteImage` and into `StagingService.stageImage`, called from `AdminSitesService.stageImages` **before** `prisma.$transaction`. A file that Sharp can't decode throws inside `stageImages`, which is mapped to a `BadRequestException` (400); the outer `catch` then `staging.abort`s the session, so no `Site`/`Media`/block rows are ever created. Audio is still mime/size-only validated in `prepareFiles` (also pre-commit) | Previously Sharp ran after the transaction committed, so a bad image left a persisted `Media` row with `url = null`; validating first makes a corrupt image a clean 400 with zero DB writes |
 
 Tests: `global-exception.filter.spec.ts` (ZodError→400, HttpException passthrough, unknown→500), `staging.service.spec.ts` (`stageImage` runs Sharp before writing; `promoteImage` copies without re-encoding), `admin-sites-full.service.spec.ts` (a Sharp/staging failure aborts staging and never opens the transaction). Full `apps/api` unit suite green (10 suites / 39 tests).
 
-## 21. Editor completeness — Arabic content, rich spans, caption a11y (2026-07-21)
+## 21. Editor completeness  -  Arabic content, rich spans, caption a11y (2026-07-21)
 
 Part of the editor-completeness pass (see `docs/superpowers/specs/2026-07-21-editor-completeness-design.md`).
 
 | Decision | Detail | Reason |
 |---|---|---|
-| Content locales | `localeSchema` and admin write refine require **fa, en, and ar** on create/update; `CONTENT_LOCALE_DEFINITIONS` lists native endonyms + permanent `dir` (فارسی/rtl, English/ltr, العربية/rtl) | Arabic site content is first-class; no auto-backfill migration for existing DB rows — editors add AR on next full save; seed includes AR for Taq-e Bostan |
+| Content locales | `localeSchema` and admin write refine require **fa, en, and ar** on create/update; `CONTENT_LOCALE_DEFINITIONS` lists native endonyms + permanent `dir` (فارسی/rtl, English/ltr, العربية/rtl) | Arabic site content is first-class; no auto-backfill migration for existing DB rows  -  editors add AR on next full save; seed includes AR for Taq-e Bostan |
 | Public Arabic | `toContentLocale()` returns `'fa' \| 'en' \| 'ar'` with identity for those three (removed `ar`→`fa` collapse) | Arabic UI shows Arabic title/blocks from API when present |
 | Rich text spans | Admin text writes use `spans[]` only (min 1); each span `{ text, bold?, italic?, href? }`; plain `text` field removed from write schema | Saving no longer flattens emphasis; links round-trip via optional `href` |
 | Span links (public) | `href` → `<a>` with `target="_blank"` + `rel="noopener noreferrer"` for absolute http(s) URLs; teal link styles from design system | Consistent with §10 tokens; toolbar uses URL prompt in admin |
 | Align END | Prisma `BlockAlign` + Zod: `START` \| `CENTER` \| `END`; public CSS `text-start` / `text-center` / `text-end` | RTL pages need end-aligned text; inspector chips include End |
 | Media alts removed | Drop `Media.altFa` / `Media.altEn` columns and API fields | Duplicated per-locale captions; editor never used alts |
-| Caption / slug a11y | Block media: image `alt` and audio/video `aria-label` = **caption** (empty string when no caption — no type-label fallback); cover and site-card images: `alt={slug}` | One editable caption per block locale; slug is stable for covers |
+| Caption / slug a11y | Block media: image `alt` and audio/video `aria-label` = **caption** (empty string when no caption  -  no type-label fallback); cover and site-card images: `alt={slug}` | One editable caption per block locale; slug is stable for covers |
 | Copy from FA | EN and AR tabs: clone FA block structure (spans, captions, embed URLs); keep shared `mediaId`; confirm if target tab already has blocks | Same workflow for both LTR locales |
 | Canvas reorder | HTML5 drag-and-drop on selected block handle (`reorderBlock` helper); keep inspector move up/down | Faster reorder without new DnD library |
 | Per-tab undo/redo | `createTabHistory` stack per active content tab (`{ title, shortDescription, blocks }`); Ctrl/Cmd+Z undo, Shift+Z / Y redo; 300ms coalesce for typing | History isolated per locale tab; does not cross-contaminate FA/EN/AR |
 | Rich text implementation | `SpanTextEditor` (`contenteditable`) + `FormatToolbar` (Bold/Italic/Link/Unlink); offset-based span helpers in `lib/text-spans.ts` for tests | No new rich-text npm dep; round-trip spans on save |
-| Native video | Unchanged: `VIDEO` blocks store `embedUrl` only — no local video upload | Avoids ffmpeg/transcoding; same as §18 |
+| Native video | Unchanged: `VIDEO` blocks store `embedUrl` only  -  no local video upload | Avoids ffmpeg/transcoding; same as §18 |
 
 Spec: [`docs/superpowers/specs/2026-07-21-editor-completeness-design.md`](./docs/superpowers/specs/2026-07-21-editor-completeness-design.md).
 

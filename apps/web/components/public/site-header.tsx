@@ -11,8 +11,8 @@ export function SiteHeader() {
   const [open, setOpen] = useState(false);
 
   const links = [
+    { href: '/#categories', label: t('sites') },
     { href: '/#how', label: t('how') },
-    { href: '/#sites', label: t('sites') },
     { href: '/#contact', label: t('contact') },
   ];
 

@@ -10,8 +10,10 @@ import type {
   EditorBlock,
   EditorColorToken,
   EditorImageBlock,
+  EditorListBlock,
   EditorTextRole,
 } from '@/lib/copy-blocks-from-fa';
+import type { ListStyle } from '@heritage/shared-types';
 
 export type BlockInspectorLabels = BlockListEditorLabels;
 
@@ -126,6 +128,8 @@ function typeTitle(block: EditorBlock, labels: BlockInspectorLabels): string {
       return labels.audioTitle;
     case 'VIDEO':
       return labels.videoTitle;
+    case 'LIST':
+      return labels.listTitle;
   }
 }
 
@@ -133,6 +137,7 @@ function typeOptions(labels: BlockInspectorLabels): ChipOption<EditorBlock['type
   return [
     { value: 'HEADING', label: labels.headingTitle },
     { value: 'PARAGRAPH', label: labels.paragraphTitle },
+    { value: 'LIST', label: labels.listTitle },
     { value: 'IMAGE', label: labels.imageTitle },
     { value: 'AUDIO', label: labels.audioTitle },
     { value: 'VIDEO', label: labels.videoTitle },
@@ -158,6 +163,13 @@ function colorTokenOptions(
     { value: 'BROWN_600', label: labels.colorBrown600 },
     { value: 'TEAL_700', label: labels.colorTeal700 },
     { value: 'SAND_50', label: labels.colorSand50 },
+  ];
+}
+
+function listStyleOptions(labels: BlockInspectorLabels): ChipOption<ListStyle>[] {
+  return [
+    { value: 'BULLET', label: labels.listBullet },
+    { value: 'NUMBERED', label: labels.listNumbered },
   ];
 }
 
@@ -298,6 +310,44 @@ export function BlockInspector({
                 dir="ltr"
               />
             </Field>
+          </>
+        ) : null}
+
+        {current.type === 'LIST' ? (
+          <>
+            <Field label={labels.listStyle}>
+              <ChipGroup
+                value={current.listStyle}
+                onChange={(value) => onChange({ listStyle: value })}
+                options={listStyleOptions(labels)}
+                ariaLabel={labels.listStyle}
+              />
+            </Field>
+            <div className="flex flex-wrap gap-2">
+              <ActionButton
+                type="button"
+                variant="secondary"
+                onClick={() =>
+                  onChange({
+                    items: [...current.items, { spans: [{ text: '' }] }],
+                  } satisfies Partial<EditorListBlock>)
+                }
+              >
+                {labels.addListItem}
+              </ActionButton>
+              <ActionButton
+                type="button"
+                variant="ghost"
+                disabled={current.items.length <= 1}
+                onClick={() =>
+                  onChange({
+                    items: current.items.slice(0, -1),
+                  } satisfies Partial<EditorListBlock>)
+                }
+              >
+                {labels.removeListItem}
+              </ActionButton>
+            </div>
           </>
         ) : null}
 

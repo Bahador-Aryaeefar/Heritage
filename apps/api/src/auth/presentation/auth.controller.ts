@@ -28,7 +28,7 @@ import { RolesGuard } from '../roles.guard';
 import type { AuthenticatedUser } from '../roles.decorator';
 import { AuthService } from '../application/auth.service';
 import { UsersService } from '../application/users.service';
-import { PaginationQueryDto } from '../../common/pagination/pagination';
+import { AdminUsersListQueryDto } from './admin-users-list.query';
 import {
   ADMIN_USER_EXAMPLE,
   ADMIN_USER_SCHEMA,
@@ -106,7 +106,7 @@ export class AdminUsersController {
   @Get()
   @ApiPaginatedResponse('List users', ADMIN_USER_SCHEMA, ADMIN_USER_EXAMPLE)
   @ApiProtectedErrors()
-  list(@Query() query: PaginationQueryDto) {
+  list(@Query() query: AdminUsersListQueryDto) {
     return this.usersService.listUsers(query);
   }
 

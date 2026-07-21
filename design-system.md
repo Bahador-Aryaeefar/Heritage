@@ -21,8 +21,8 @@
 | teal-200 | `#BFE0EA` | Eyebrow/badge background |
 
 ### Ratio rule
-- 60–70% of visual space: brown/sand palette
-- 10–15%: teal (interactive points only - buttons, links, active icons)
+- 60-70% of visual space: brown/sand palette
+- 10-15%: teal (interactive points only - buttons, links, active icons)
 - Teal is never used as a large background; its role is to guide, not decorate
 
 ### Status colors (phase-two - placeholder)
@@ -37,17 +37,17 @@
 
 | Role | Weight | Size (desktop) |
 |---|---|---|
-| H1 (hero) | 900 (Black) | 32–52px (clamp) |
-| H2 (section) | 900 (Black) | 24–34px |
-| H3 (card) | 700 (Bold) | 15–17px |
-| Body text | 400 (Regular) | 15–17px |
+| H1 (hero) | 900 (Black) | 32-52px (clamp) |
+| H2 (section) | 900 (Black) | 24-34px |
+| H3 (card) | 700 (Bold) | 15-17px |
+| Body text | 400 (Regular) | 15-17px |
 | Eyebrow/label | 700 (Bold) | 12px, letter-spacing |
-| Caption/metadata | 400–500 | 12–13px |
+| Caption/metadata | 400-500 | 12-13px |
 
 ## 3. Spacing & sizing
 
 - Base unit: 4px (multiples of 4: 8, 12, 16, 20, 24, 28, 32...)
-- Border-radius: 10px for buttons/inputs, 14–16px for cards, 24px for large containers (hero visual)
+- Border-radius: 10px for buttons/inputs, 14-16px for cards, 24px for large containers (hero visual)
 - Section spacing: 70px vertical on desktop, ~40px on mobile
 
 ## 4. Base components
@@ -60,12 +60,12 @@
 
 ### Cards (Site Card)
 - sand-100 background, no heavy shadow - just a thin border (brown at low opacity)
-- Image at the top of the card; when no real photo exists yet, use a brown→teal gradient placeholder
+- Image at the top of the card; when no real photo exists yet, use `CategoryCover` (brown→teal gradient + category line icon)
 
 ### Badge/Eyebrow
 - **One size only:** `inline-flex`, `rounded-full`, `px-3 py-1`, `text-xs font-bold tracking-wide`
 - **Tones (color only):** `default` = teal-200 / teal-700; `muted` = brown-800/10 / brown-600 (inactive/neutral status)
-- Never invent a second pill with different padding or `text-[11px]` — use `components/ui/badge.tsx` with a tone
+- Never invent a second pill with different padding or `text-[11px]`  -  use `components/ui/badge.tsx` with a tone
 - Component: `apps/web/components/ui/badge.tsx`
 
 ## 5. Logo
@@ -79,7 +79,7 @@
 
 - Site photos should be natural and documentary, not stock/generic
 - Avoid color filters or overlays on real photos; the brown background palette already provides enough harmony
-- Where a real photo isn't ready yet, use a brown→teal gradient placeholder (not flat gray)
+- Where a real photo isn't ready yet, use `CategoryCover`  -  brown→teal gradient with a simple line icon per `SiteCategory` (`components/ui/category-cover.tsx`), not flat gray
 
 ## 7. RTL notes
 
@@ -92,7 +92,7 @@
 | Name | Width | Note |
 |---|---|---|
 | Mobile | up to 700px | Grids collapse to one column, nav becomes hidden/hamburger |
-| Tablet | 700–900px | Two-column grid in some sections |
+| Tablet | 700-900px | Two-column grid in some sections |
 | Desktop | 900px+ | Full multi-column layout |
 
 > Since a large share of traffic comes from QR scans on mobile, design should be tested mobile-first, not just made responsive after the desktop version.
@@ -105,15 +105,15 @@
 
 ## 10. Site content blocks (API → future renderer)
 
-Public site pages are built from ordered **content blocks** (see `heritage-schema-map.md`). Text blocks use these API tokens — map them to §1–2 when building the Next renderer:
+Public site pages are built from ordered **content blocks** (see `heritage-schema-map.md`). Text blocks use these API tokens  -  map them to §1-2 when building the Next renderer:
 
 | API `textRole` | Maps to |
 |---|---|
-| `HERO` | H1 (hero) — weight 900, clamp 32–52px |
-| `H2` | H2 (section) — weight 900, 24–34px |
-| `H3` | H3 (card) — weight 700, 15–17px |
-| `BODY` | Body — weight 400, **17px**, default color **`brown-800`** on patterned backgrounds |
-| `CAPTION` | Caption/metadata — weight 400–500, 12–13px |
+| `HERO` | H1 (hero)  -  weight 900, clamp 32-52px |
+| `H2` | H2 (section)  -  weight 900, 24-34px |
+| `H3` | H3 (card)  -  weight 700, 15-17px |
+| `BODY` | Body  -  weight 400, **17px**, default color **`brown-800`** on patterned backgrounds |
+| `CAPTION` | Caption/metadata  -  weight 400-500, 12-13px |
 
 | API `colorToken` | Tailwind / hex |
 |---|---|
@@ -129,7 +129,7 @@ Inline **bold** / *italic* / links come from span flags on each text run, not fr
 |---|---|
 | `bold` | `<strong>` |
 | `italic` | `<em>` |
-| `href` | `<a>` — `font-bold text-teal-700 hover:text-teal-500`; absolute http(s) links open in a new tab with `rel="noopener noreferrer"` |
+| `href` | `<a>`  -  `font-bold text-teal-700 hover:text-teal-500`; absolute http(s) links open in a new tab with `rel="noopener noreferrer"` |
 
 | API `align` | Tailwind |
 |---|---|
@@ -137,7 +137,7 @@ Inline **bold** / *italic* / links come from span flags on each text run, not fr
 | `CENTER` | `text-center` |
 | `END` | `text-end` |
 
-**Media accessibility (2026-07-21):** block image `alt` and audio/video `aria-label` = the block **caption** for that locale (empty when caption is absent). Cover and site-card thumbnails use **`alt={slug}`** — no separate alt fields on `Media`.
+**Media accessibility (2026-07-21):** block image `alt` and audio/video `aria-label` = the block **caption** for that locale (empty when caption is absent). Cover and site-card thumbnails use **`alt={slug}`**  -  no separate alt fields on `Media`.
 
 ## 11. Public page layout (landing + site detail)
 
@@ -145,13 +145,18 @@ Reference mock: [`heritage.html`](./heritage.html). Implemented in `apps/web/com
 
 ### Landing section order
 
-1. **Site header** — logo lockup, anchor nav, language switcher; hamburger below 900px
-2. **Hero** — two-column grid (copy + plaque visual); collapses to one column on mobile
-3. **Promo banner (top)** — full-width strip below hero
-4. **How it works** — section head + 3 step cards
-5. **Promo banner (mid)** — second full-width strip
-6. **Sites grid** — API-driven cards, 3 columns → 1 on mobile
-7. **Site footer** — brown-950 band, centered caption; shared `SiteFooter` on public pages and admin (panel + login); `flex-1` main keeps footer at bottom on short pages; bottom padding includes `env(safe-area-inset-bottom)` on mobile
+1. **Site header**  -  logo lockup, anchor nav (`#categories`, `#how`, `#contact`), language switcher; hamburger below 900px
+2. **Hero**  -  two-column grid (copy + plaque visual); secondary CTA → `#categories`
+3. **Category stack**  -  3D fanned cards on a `sand-100/90` band; card transition ~500ms; dwell between switches ~5.5s; click/tab only changes the active card (no page scroll); `prefers-reduced-motion` → flat crossfade (`components/public/category-stack.tsx`)
+4. **Topic promo banners**  -  one unique full-bleed photo strip **immediately above** How it works and above each category section (not above the stack; no repeats). Copy under `home.banners.how` / `home.banners.categories.*`; images in `lib/heritage-images.ts` (`landingBannerImages`, Wikimedia Commons URLs)
+5. **How it works**  -  section head + 3 step cards
+6. **Five category sections**  -  each `id="category-..."`, short blurb, sites for that category via `SitesCarousel` (`components/public/sites-carousel.tsx` + `category-section.tsx`):
+   - Card density/variant differs by category (featured / compact / rail / default); FOOD keeps teal rank badges
+   - If **more than 4 items** or the viewport cannot fit the full list → side prev/next buttons advance **one card at a time** (slide animation, **no** overflow-x scrollbar)
+   - Otherwise a static wrapping grid
+7. **Site footer**  -  brown-950 band, centered caption; shared `SiteFooter` on public pages and admin (panel + login); `flex-1` main keeps footer at bottom on short pages; bottom padding includes `env(safe-area-inset-bottom)` on mobile
+
+Mixed single `SitesGrid` stays unused on the landing.
 
 Section vertical padding: 70px desktop / 40px mobile (§3).
 
@@ -160,7 +165,7 @@ Section vertical padding: 70px desktop / 40px mobile (§3).
 | Element | Spec |
 |---|---|
 | Eyebrow | §4 Badge |
-| Headline | H1 clamp 26–38px, weight 900; accent phrase in `teal-700` |
+| Headline | H1 clamp 26-38px, weight 900; accent phrase in `teal-700` |
 | Lead | 15px, `brown-600`, max-width ~672px (`max-w-2xl`) |
 | CTA row | Primary + secondary buttons (§4), gap 12px |
 | Photo | Real Taq-e Bostan photo (Wikimedia Commons via `lib/heritage-images.ts`); 4:3 aspect, rounded container; plaque overlay: brand lockup at **top-left** on opaque `sand-50` card with white logo pad (matches header lockup palette), site name **16px** + location **14px** + download **12px** + QR at bottom |
@@ -169,7 +174,7 @@ Page content max width: **1400px** (`max-w-[1400px]`), full viewport horizontal 
 
 ### Copy punctuation
 
-User-facing strings must not use em dashes (`—`) or decorative separator lines (repeated `-` / `_` patterns). Use commas, periods, or short sentences instead.
+**No AI punctuation anywhere** (UI, i18n, seed, comments, guides, commits). Banned: em dash, en dash used as prose, ellipsis character, curly quotes, decorative bullets/stars. Prefer commas, periods, colons, ASCII hyphen `-`, straight quotes, and `...`. Empty placeholders use ASCII `-`. Full list: `.cursor/rules/no-ai-punctuation.mdc`.
 
 ### Step card
 
@@ -187,23 +192,25 @@ Full-width strip with optional background photo (`imageSrc`) and dark overlay fo
 | `neutral` | `sand-100` | `brown-950/72` |
 | `accent` | `teal-700` | `teal-900/82` |
 
-Min height 140px; padding 32px 6vw; inner content max-width 1400px. Title 18–20px; body 14–15px. CTA uses primary button (on accent/image: inverted sand button).
+Min height 140px; padding 32px 6vw; inner content max-width 1400px. Title 18-20px; body 14-15px. CTA uses primary button (on accent/image: inverted sand button).
 
-Content source: `messages/*.json` → `home.banners.top` / `home.banners.mid`; photos from `lib/heritage-images.ts` until a CMS exists.
+Content source: `messages/*.json` → `home.banners.how` and `home.banners.categories.{HISTORICAL|HANDICRAFT|STREET|LANDMARK|FOOD}`; photos from `landingBannerImages` in `lib/heritage-images.ts` (Wikimedia) until a CMS exists.
 
 ### Site card
 
 - Radius 16px, `sand-100`, 1px border brown-800/8%
-- Thumb: 150px height, cover image or brown→teal gradient placeholder; cover `alt={site.slug}`
-- Body padding 18px; title 15px bold; description **15px** `brown-800`
+- Thumb: 150px height (`default`), or `featured` / `compact` / `rail` variants for category layouts; cover image or `CategoryCover`; cover `alt={site.slug}` / fallback `aria-label={slug}`
+- Optional `index` badge (teal-700) for food ranking
+- Body padding 18px (compact: tighter); title 15px bold (featured 17px); description **15px** `brown-800`
+- Landing lists use `SitesCarousel`: side prev/next when item count > 4 or cards do not fit; no overflow-x rail scroll
 
 ### Site detail article
 
 - Max width **1400px** (same as landing); block gap 32px
-- Page hero: title (H1 clamp 26–38px), shortDescription (**17px** `brown-800`), category badge, location block (`SiteLocation`)
+- Page hero: title (H1 clamp 26-38px), shortDescription (**17px** `brown-800`), category badge, location block (`SiteLocation`)
 - Location block: city/province line (`text-sm text-teal-700`), coordinates caption (`text-xs text-brown-600`, locale-aware digits), Google Maps + Neshan links (`text-sm font-bold text-teal-700`), Google Maps iframe (`max-w-3xl`, `aspect-video`, `rounded-container`, `ring-brown-800/8`, `loading="lazy"`)
 - Main content in semi-opaque panel: `rounded-container bg-sand-100/95`, ring, light backdrop blur for contrast over the patterned background
-- Blocks rendered via `BlockRenderer` (§10 token map); H2 clamp 22–28px, body **17px**
+- Blocks rendered via `BlockRenderer` (§10 token map); H2 clamp 22-28px, body **17px**
 - Inline images: **`max-w-lg`**, centered, `object-contain`, not full-bleed
 
 ### Motion (scroll reveal)
@@ -251,26 +258,27 @@ Full content width up to **1400px** (same as landing). Article blocks sit in a s
 
 Implemented under `/admin` (fa default) and `/en/admin/...`. Shares public page atmosphere (`HeritagePageBackground` diagonal stripes).
 
-**Type scale (must match §2 — no freestyle `text-sm` / `text-[11px]` for body chrome):**
+**Type scale (must match §2  -  no freestyle `text-sm` / `text-[11px]` for body chrome):**
 
 | Role | Size | Where |
 |---|---|---|
 | Page title | `clamp(22px, 2.4vw, 30px)` black | Sites / users H1 |
 | Body / interactive | **15px** (`text-[15px]`) | Nav, buttons, inputs, select rows, list titles, status copy, errors |
 | Field label / table header | **12px** bold (`text-xs`) | `Field`, map label, column headers |
-| Caption / metadata | **12–13px** | Slug, phone, file name, map hint |
+| Caption / metadata | **12-13px** | Slug, phone, file name, map hint |
 | Brand tagline only | `text-[11px]` tracking-wide | Sidebar tagline (documented exception) |
 
 **Layout:**
 
 | Element | Spec |
 |---|---|
-| Shell | Floating `rounded-container` sidebar + top bar on opaque `sand-100`; logo on white pad; active nav `teal-700` pill; header includes language dropdown + localized role badge; host chrome `z-30` so menus clear the body; **shared `SiteFooter`** below the shell (same brown-950 band as public) |
+| Shell | Floating `rounded-container` sidebar + top bar on opaque `sand-100`; logo on white pad; sidebar nav = **five category links** (`HISTORICAL`...`FOOD`) + Users (SuperAdmin); active = `teal-700` pill; header includes language dropdown + localized role badge; host chrome `z-30` so menus clear the body; **shared `SiteFooter`** below the shell (same brown-950 band as public) |
 | Main panel | Opaque sand-100; padding `p-5` / `md:p-6`; nested lists/cards use **white** + `border-brown-800/15` |
-| Forms | **Full width of main** — do not center with `max-w-3xl` / `mx-auto` (login card may stay `max-w-md`) |
-| Site edit QR | On edit only: white `rounded-card` `AdminSiteQrPanel` — live `HeritageQrCode` from slug URL + plaque PNG download (`/downloads/sites/{slug}/plaque.png`); target URL label follows page `dir`, URL value in nested `dir="ltr"` span |
+| Forms | **Full width of main**  -  do not center with `max-w-3xl` / `mx-auto` (login card may stay `max-w-md`) |
+| Site edit QR | On edit only: white `rounded-card` `AdminSiteQrPanel`  -  live `HeritageQrCode` from slug URL + plaque PNG download (`/downloads/sites/{slug}/plaque.png`); target URL label follows page `dir`, URL value in nested `dir="ltr"` span |
+| Lists | Filtered by sidebar category (`?category=` + API `category`); white nested rows on sand panels (`items-center`): cover thumb → title + status `Badge` (`gap-1`, `items-start`) → **slug** (before actions) → Edit/Delete; search + always-visible pagination: first / prev / up to **3** nearby page numbers / next / last (icon buttons + teal current page; 10/page) on sites and users; page H1 + New CTA / empty / delete copy is per-category |
+| Category + location | Category is **locked** from the active tab (create) or existing entry (edit)  -  shown as `Badge`, not a Select. Map/lat/lng only for `HISTORICAL`/`STREET`/`LANDMARK`; handicraft/food show category-specific location hint instead |
 | Login | Opaque sand-100 card; language switcher above; **shared `SiteFooter`** below centered card |
-| Lists | White nested rows on sand panels; cover thumb for sites; `Badge` for role/status; row **Edit** + confirm **Delete** |
 | Form controls | Inputs/selects/image picker sit on **white** with `border-brown-800/25`. Select + language switcher use 20×20 `ChevronIcon` |
 | Users | Parent CSS grid + `subgrid` rows; phone uses inner `dir="ltr"` span; **Add user** / **Edit** modals; **Delete** (disabled for self) with confirm |
 | i18n | All admin chrome + forms + errors via `messages/{fa,en,ar}.json` under `admin.*` |
@@ -280,7 +288,7 @@ Implemented under `/admin` (fa default) and `/en/admin/...`. Shares public page 
 | Control | Spec |
 |---|---|
 | `TextInput` / `TextArea` / `Field` | `rounded-button`, **white** fill, `border-brown-800/25`; focus ring `teal-700/15` |
-| `Select` | Custom button + **portaled** dropdown (`fixed` on `document.body`, inline `zIndex: 1100`) so menus clear Leaflet panes/controls (400–1000) and fields below; positioning via `lib/measure-portal-menu.ts` (flip-up, `maxHeight`, `visualViewport` clamp); white fill; 20×20 `ChevronIcon` |
+| `Select` | Custom button + **portaled** dropdown (`fixed` on `document.body`, inline `zIndex: 1100`) so menus clear Leaflet panes/controls (400-1000) and fields below; positioning via `lib/measure-portal-menu.ts` (flip-up, `maxHeight`, `visualViewport` clamp); white fill; 20×20 `ChevronIcon` |
 | `Checkbox` | Custom 20px square; off = white + brown border; on = teal fill + check |
 | `ImagePicker` | Dashed white `rounded-card` preview; pick/change/clear via `ActionButton` (not ad-hoc `text-xs` pills) |
 | `ChevronIcon` | Shared 20×20 stroke chevron for Select + LanguageSwitcher |
@@ -290,18 +298,18 @@ Implemented under `/admin` (fa default) and `/en/admin/...`. Shares public page 
 
 ### Document block editor (`BlockListEditor` shell)
 
-Ordered editor for a site's `SiteContentBlock` rows (one instance per locale tab, §10). **Document canvas + side inspector** — not a stack of per-block form cards. Specs: [`docs/superpowers/specs/2026-07-21-document-canvas-editor-design.md`](docs/superpowers/specs/2026-07-21-document-canvas-editor-design.md), [`docs/superpowers/specs/2026-07-21-editor-completeness-design.md`](docs/superpowers/specs/2026-07-21-editor-completeness-design.md).
+Ordered editor for a site's `SiteContentBlock` rows (one instance per locale tab, §10). **Document canvas + side inspector**  -  not a stack of per-block form cards. Specs: [`docs/superpowers/specs/2026-07-21-document-canvas-editor-design.md`](docs/superpowers/specs/2026-07-21-document-canvas-editor-design.md), [`docs/superpowers/specs/2026-07-21-editor-completeness-design.md`](docs/superpowers/specs/2026-07-21-editor-completeness-design.md).
 
 **Shell** (`components/admin/block-list-editor.tsx`): owns `selectedKey` / `textFocusKey`; composes `BlockCanvas` + `BlockInspector`. Same controlled API as before: `value: EditorBlock[]` / `onChange` / `labels` / optional `onPickFile`. Structural edits use `lib/block-editor-utils.ts` (`insertBlockAt`, `moveBlock`, `reorderBlock`, `convertBlockType`). See `lib/copy-blocks-from-fa.ts` for the `EditorBlock` union and `copyBlocksFromFa()` (EN "copy from FA").
 
 | Element | Spec |
 |---|---|
-| Layout | `flex-col` on narrow viewports; `lg:flex-row` — canvas `flex-1`, inspector beside it on large screens |
+| Layout | `flex-col` on narrow viewports; `lg:flex-row`  -  canvas `flex-1`, inspector beside it on large screens |
 | Selection | One block at a time; click canvas background deselects; stale selection cleared when the block leaves `value` |
 | Keyboard | **Escape** deselects; **Delete/Backspace** removes the selected block only when focus is **not** in `INPUT` / `TEXTAREA` / `SELECT` / contenteditable (so in-canvas typing and inspector fields stay safe) |
-| File picking | Shell never hashes/optimizes — `onPickFile(block, file)` bubbles raw `File` to the caller (`lib/file-hash.ts`, `lib/optimize-image.ts`); multipart field name === `clientFileKey` on save |
+| File picking | Shell never hashes/optimizes  -  `onPickFile(block, file)` bubbles raw `File` to the caller (`lib/file-hash.ts`, `lib/optimize-image.ts`); multipart field name === `clientFileKey` on save |
 | Copy from FA | New keys + copied spans/caption/embedUrl; keeps `mediaId`, drops FA-only `clientFileKey`/`previewUrl`; used from EN **and AR** tabs |
-| `contentDir` | Optional `dir` prop (`rtl` \| `ltr`) from active content tab — passed to title/short fields and canvas text editors so FA/AR stay RTL and EN LTR regardless of admin UI locale |
+| `contentDir` | Optional `dir` prop (`rtl` \| `ltr`) from active content tab  -  passed to title/short fields and canvas text editors so FA/AR stay RTL and EN LTR regardless of admin UI locale |
 
 #### `SpanTextEditor` (`components/admin/span-text-editor.tsx`)
 
@@ -309,7 +317,7 @@ Ordered editor for a site's `SiteContentBlock` rows (one instance per locale tab
 
 #### `FormatToolbar` (`components/admin/format-toolbar.tsx`)
 
-Shown above the selected text block in the canvas. **Bold / Italic / Link / Unlink** as `rounded-button` chips (white + `border-brown-800/15`, **12px** bold — same chip pattern as inspector). Link opens `window.prompt` for URL; blank URL clears `href`. Labels under `admin.siteForm.block.*`.
+Shown above the selected text block in the canvas. **Bold / Italic / Link / Unlink** as `rounded-button` chips (white + `border-brown-800/15`, **12px** bold  -  same chip pattern as inspector). Link opens `window.prompt` for URL; blank URL clears `href`. Labels under `admin.siteForm.block.*`.
 
 #### `BlockCanvas` (`components/admin/block-canvas.tsx`)
 
@@ -318,40 +326,48 @@ Single **white** document surface: `rounded-card`, `border-brown-800/15`, `px-6 
 | Element | Spec |
 |---|---|
 | Text (HEADING/PARAGRAPH) | `SpanTextEditor` (`contenteditable`) with typography from public `TextBlock` maps (`roleClasses` / `colorClasses` / `alignClasses` in `text-block.tsx`); when selected, `FormatToolbar` above the block |
-| Format toolbar | `FormatToolbar` — `rounded-button` chips matching inspector `ChipGroup` (white + `border-brown-800/15`, **12px** bold); actions: Bold / Italic / Link (prompt) / Unlink; i18n under `admin.siteForm.block.*` |
-| Image / Audio | `MediaFilePicker` on canvas (pick/change/remove); **caption not on canvas** |
-| Video | Valid `http(s)` embed → `aspect-video` iframe preview; else dashed placeholder labeled with embed URL copy |
-| Selected block | Wrapper `ring-2 ring-teal-700/40`, `rounded-button`, `-m-1 p-1`; **drag handle** (6-dot grip, white chip, `cursor-grab`) above content — only when selected; HTML5 DnD reorders via `reorderBlock` (handle is `draggable`, not the text editor) |
+| Format toolbar | `FormatToolbar`  -  `rounded-button` chips matching inspector `ChipGroup` (white + `border-brown-800/15`, **12px** bold); actions: Bold / Italic / Link (prompt) / Unlink; i18n under `admin.siteForm.block.*` |
+| Image / Audio | `MediaFilePicker` on canvas (pick/change/remove); **caption not on canvas**; audio shows playable `<audio controls>` when `previewUrl` is set (saved `/uploads/...` or local `blob:`) |
+| Video | Valid `http(s)` embed → playable `aspect-video` iframe (`pointer-events` enabled, click does not deselect via stopPropagation); else dashed placeholder labeled with embed URL copy |
+| Selected block | Wrapper `ring-2 ring-teal-700/40`, `rounded-button`, `-m-1 p-1`; **drag handle** (6-dot grip, white chip, `cursor-grab`) above content  -  only when selected; HTML5 DnD reorders via `reorderBlock` (handle is `draggable`, not the text editor) |
 | Drop target | While dragging, target block gets stronger `ring-teal-700/60`; dragged block `opacity-60` |
-| Insert gaps | Before each block and at the end: centered **+** via `BlockInsertMenu` (`variant="gap"` / `"end"`) — white 36×36, `border-2 border-brown-800/20`, bold **+** (`aria-label` = `labels.addBlock`) |
+| Insert gaps | Before each block and at the end: centered **+** via `BlockInsertMenu` (`variant="gap"` / `"end"`)  -  white 36×36, `border-2 border-brown-800/20`, bold **+** (`aria-label` = `labels.addBlock`) |
 | Empty list | **15px** `brown-600` hint (`labels.empty`) above end insert |
 
 #### `BlockInsertMenu` (`components/admin/block-insert-menu.tsx`)
 
-Portaled menu (`fixed`, `zIndex: 1100`) — Heading / Paragraph / Image / Audio / Video. Gap and end triggers are the same icon-only **+** button. Uses shared `measurePortalMenu` (flip-up + scrollable `maxHeight`) so end-of-canvas inserts stay on screen.
+Portaled menu (`fixed`, `zIndex: 1100`)  -  Heading / Paragraph / **List** / Image / Audio / Video. Gap and end triggers are the same icon-only **+** button. Uses shared `measurePortalMenu` (flip-up + scrollable `maxHeight`) so end-of-canvas inserts stay on screen.
+
+#### `ListBlock` (`components/public/content-blocks/list-block.tsx` + editor canvas/inspector)
+
+Bulleted or numbered lists for recipes and steps. Stored as `ContentBlockType.LIST` with `listStyle` (`BULLET` \| `NUMBERED`) and `items: [{ spans }]`. Canvas: one `FormatToolbar` at the **top of the list block** (not per item); each item is a `SpanTextEditor`. **Enter** splits / creates the next item; **Shift+Enter** inserts a soft line break in the same item; **Backspace** at the start of an item merges with the previous (or removes an empty first sibling). Inspector toggles bullet vs numbered and add/remove items.
+
+#### `CategoryCover` (`components/ui/category-cover.tsx`)
+
+Default cover when `coverUrl` is null (public `SiteCard`, admin sites-list thumbs). Full-bleed brown→teal gradient + one line icon per category (`HISTORICAL` arch, `HANDICRAFT` giveh-like form, `STREET` street facade, `LANDMARK` map pin, `FOOD` bowl). Icons use `brown-800/70` stroke; no emoji.
 
 #### `BlockInspector` (`components/admin/block-inspector.tsx`)
 
-Type, style, media, caption, embed URL, reorder, delete — **not** on the canvas.
+Type, style, media, caption, embed URL, reorder, delete  -  **not** on the canvas.
 
 | Element | Spec |
 |---|---|
 | Desktop (`md+`, ≥700px) | Sticky aside `w-[280px]`, white `rounded-card`, `border-brown-800/15`, `p-4`, `top-4`; empty state: **15px** `brown-600` (`labels.inspectorEmpty`) |
 | Mobile (`<700px`) | Bottom sheet when a block is selected: `fixed` bottom, `z-[1100]`, `max-h-[75vh]`, `rounded-t-card`, header = type title + `ghost` close (`labels.closeInspector`) |
 | All types | `Select` block type → `convertBlockType` |
-| Text | `Select`s for `textRole` / `colorToken` / `align` (Start \| Center \| End — same options as §10) |
+| Text | `Select`s for `textRole` / `colorToken` / `align` (Start \| Center \| End  -  same options as §10) |
 | Image / Audio | `TextInput` caption + `MediaFilePicker` |
 | Video | `TextInput` caption + `TextInput dir="ltr"` embed URL |
 | Actions | `ghost` move up / move down (disabled at ends) + delete; top border `border-brown-800/10` |
 
 ### `SiteForm` (`components/admin/site-form.tsx`)
 
-Full-width admin editor for creating/replacing a site. Reads all copy from `useTranslations('admin.siteForm')` (no `labels` prop — pages render `<SiteForm />` / `<SiteForm site={site} />`).
+Full-width admin editor for creating/replacing a site. Reads all copy from `useTranslations('admin.siteForm')` (no `labels` prop  -  pages render `<SiteForm />` / `<SiteForm site={site} />`).
 
 | Element | Spec |
 |---|---|
-| Shared meta | `slug` (`dir="ltr"`, editable on create and update with reprint warning), `category`/`city` `Select`s, `LocationMapPicker` + `lat`/`lng` `TextInput`s, cover via `ImagePicker` (`isActive` not edited here — create defaults `true`, edit preserves existing) |
-| Locale content | Three `Tabs` from `CONTENT_LOCALE_DEFINITIONS` (فارسی / English / العربية — native endonyms, not next-intl labels); each tab = title + short-description `Field`s with permanent `contentDir` (`rtl` for FA+AR, `ltr` for EN) + document-canvas `BlockListEditor` |
+| Shared meta | `slug` (`dir="ltr"`, editable on create and update with reprint warning), `category`/`city` `Select`s, `LocationMapPicker` + `lat`/`lng` `TextInput`s, cover via `ImagePicker` (`isActive` not edited here  -  create defaults `true`, edit preserves existing) |
+| Locale content | Three `Tabs` from `CONTENT_LOCALE_DEFINITIONS` (فارسی / English / العربية  -  native endonyms, not next-intl labels); each tab = title + short-description `Field`s with permanent `contentDir` (`rtl` for FA+AR, `ltr` for EN) + document-canvas `BlockListEditor` |
 | Copy from FA | EN and AR tabs each show a `secondary` `ActionButton` "Copy from Persian" (right-aligned above the editor); `window.confirm` when the target tab already has blocks |
 | Undo / redo | Per active content tab only (`lib/tab-history.ts`): Ctrl/Cmd+Z undo, Ctrl/Cmd+Shift+Z or Ctrl+Y redo; coalesces typing bursts (~300ms) |
 | Save | One atomic multipart request: `POST /admin/sites` (create) or `PUT /admin/sites/:id` (replace). `payload` requires fa/en/ar translations; text blocks send `spans` (empty plain-text blocks omitted). Each staged file is optimized (images via `lib/optimize-image.ts`) then hashed (`lib/file-hash.ts`). A hash matching an existing `site.media[].contentHash` → reference by `mediaId` (no upload); otherwise the file is appended once with the multipart **field name === its `clientFileKey`** and identical picks are deduped onto that one part (cover processed first). The old dual JSON + `.../cover` mutation path is removed |
@@ -361,12 +377,12 @@ Full-width admin editor for creating/replacing a site. Reads all copy from `useT
 - Compact **dropdown**: white trigger, `border-brown-800/25`, teal code chip + native name + 20px `ChevronIcon`; menu white with stronger shadow
 - Menu: **portaled** to `document.body` (`fixed`, `zIndex: 1100`, same stacking rule as `Select`); scrollable; flip-up + viewport clamp via `lib/measure-portal-menu.ts`; each row = code chip + native name
 - Active row: teal-700 fill / sand-50 text (same pattern as `Select`)
-- Locale catalog: `i18n/locales.ts` (`LOCALE_DEFINITIONS`) — add code + nativeName + dir + messages JSON when shipping a language
+- Locale catalog: `i18n/locales.ts` (`LOCALE_DEFINITIONS`)  -  add code + nativeName + dir + messages JSON when shipping a language
 - Current UI locales: `fa` (default, no prefix), `en`, `ar` (RTL)
 
 ### Form field contrast
 
-- On `sand-100` panels, controls use **white** fill + `border-brown-800/25` (TextInput, Select, ImagePicker, Checkbox off-state). Avoid `sand-50` nested in `sand-100` — contrast is too low on the striped page background.
+- On `sand-100` panels, controls use **white** fill + `border-brown-800/25` (TextInput, Select, ImagePicker, Checkbox off-state). Avoid `sand-50` nested in `sand-100`  -  contrast is too low on the striped page background.
 
 Components: `language-switcher.tsx` (public + admin header + login).
 

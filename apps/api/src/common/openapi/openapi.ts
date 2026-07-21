@@ -181,7 +181,7 @@ const SITE_TRANSLATION_SCHEMA: SchemaObject = {
 
 export const SITE_CARD_EXAMPLE = {
   slug: 'taq-e-bostan',
-  category: 'ANCIENT',
+  category: 'HISTORICAL',
   coverUrl: 'http://localhost:4000/uploads/taq-e-bostan/cover.webp',
   city: {
     slug: 'kermanshah-city',
@@ -199,8 +199,8 @@ export const SITE_CARD_SCHEMA: SchemaObject = {
     slug: { type: 'string', example: SITE_CARD_EXAMPLE.slug },
     category: {
       type: 'string',
-      enum: ['ANCIENT', 'ISLAMIC', 'NATURAL'],
-      example: 'ANCIENT',
+      enum: ['HISTORICAL', 'HANDICRAFT', 'STREET', 'LANDMARK', 'FOOD'],
+      example: 'HISTORICAL',
     },
     coverUrl: { type: 'string', nullable: true, example: SITE_CARD_EXAMPLE.coverUrl },
     city: {
@@ -219,7 +219,7 @@ export const SITE_CARD_SCHEMA: SchemaObject = {
 export const ADMIN_SITE_EXAMPLE = {
   id: 'cm123site',
   slug: 'taq-e-bostan',
-  category: 'ANCIENT',
+  category: 'HISTORICAL',
   lat: '34.3872000',
   lng: '47.1332000',
   isActive: true,
@@ -253,8 +253,8 @@ export const ADMIN_SITE_SCHEMA: SchemaObject = {
     slug: { type: 'string', example: ADMIN_SITE_EXAMPLE.slug },
     category: {
       type: 'string',
-      enum: ['ANCIENT', 'ISLAMIC', 'NATURAL'],
-      example: 'ANCIENT',
+      enum: ['HISTORICAL', 'HANDICRAFT', 'STREET', 'LANDMARK', 'FOOD'],
+      example: 'HISTORICAL',
     },
     lat: { type: 'string', example: ADMIN_SITE_EXAMPLE.lat },
     lng: { type: 'string', example: ADMIN_SITE_EXAMPLE.lng },
@@ -350,7 +350,7 @@ const SITE_FULL_TRANSLATIONS_EXAMPLE = SITE_TRANSLATIONS_EXAMPLE.map((translatio
 
 export const CREATE_SITE_FULL_EXAMPLE = {
   slug: 'new-heritage-site',
-  category: 'ANCIENT',
+  category: 'HISTORICAL',
   lat: '34.3872000',
   lng: '47.1332000',
   cityId: 'cm123city',
@@ -361,7 +361,7 @@ export const CREATE_SITE_FULL_EXAMPLE = {
 
 export const UPDATE_SITE_FULL_EXAMPLE = {
   slug: 'new-heritage-site',
-  category: 'ANCIENT',
+  category: 'HISTORICAL',
   lat: '34.3872000',
   lng: '47.1332000',
   cityId: 'cm123city',

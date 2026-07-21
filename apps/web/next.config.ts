@@ -22,6 +22,11 @@ function uploadRemotePatterns(): NonNullable<NextConfig['images']>['remotePatter
       port: '4000',
       pathname: '/uploads/**',
     },
+    {
+      protocol: 'https',
+      hostname: 'upload.wikimedia.org',
+      pathname: '/wikipedia/commons/**',
+    },
   ];
 
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL;

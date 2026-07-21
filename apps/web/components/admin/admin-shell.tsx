@@ -1,8 +1,9 @@
 'use client';
 
 import { useLocale } from 'next-intl';
+import { useSearchParams } from 'next/navigation';
 import { Link, usePathname } from '@/i18n/navigation';
-import type { AuthUser } from '@heritage/shared-types';
+import { SITE_CATEGORIES, siteCategorySchema, type AuthUser, type SiteCategory } from '@heritage/shared-types';
 import { HeritagePageBackground } from '@/components/public/heritage-page-background';
 import { LanguageSwitcher } from '@/components/public/language-switcher';
 import { LogoMark } from '@/components/public/logo-mark';
@@ -13,11 +14,12 @@ import { adminFetchVoid } from '@/lib/admin-api';
 import { localizedPath } from '@/i18n/locales';
 import type { Locale } from '@/i18n/routing';
 
+export type AdminShellCategoryLabels = Record<SiteCategory, string>;
+
 type AdminShellProps = {
   user: AuthUser;
   children: React.ReactNode;
   labels: {
-    sites: string;
     users: string;
     logout: string;
     panelTitle: string;
@@ -25,26 +27,60 @@ type AdminShellProps = {
     roleAdmin: string;
     roleSuperAdmin: string;
     footerTagline: string;
+    categories: AdminShellCategoryLabels;
   };
 };
 
+function parseCategory(value: string | null): SiteCategory {
+  const parsed = siteCategorySchema.safeParse(value);
+  return parsed.success ? parsed.data : 'HISTORICAL';
+}
+
+function NavLink({
+  href,
+  label,
+  active,
+}: {
+  href: string;
+  label: string;
+  active: boolean;
+}) {
+  return (
+    <Link
+      href={href}
+      className={`block rounded-button px-3.5 py-2.5 text-[15px] font-bold transition-colors ${
+        active
+          ? 'bg-teal-700 text-sand-50 shadow-[0_4px_12px_rgba(29,111,140,0.28)]'
+          : 'text-brown-800 hover:bg-white'
+      }`}
+    >
+      {label}
+    </Link>
+  );
+}
+
 export function AdminShell({ user, children, labels }: AdminShellProps) {
   const pathname = usePathname();
+  const searchParams = useSearchParams();
   const locale = useLocale() as Locale;
   const isSuperAdmin = user.role === 'SUPER_ADMIN';
   const loginPath = localizedPath(locale, '/admin/login');
+  const activeCategory = parseCategory(searchParams.get('category'));
+  const onSitesSection =
+    pathname === '/admin/sites' ||
+    pathname.startsWith('/admin/sites/new') ||
+    /^\/admin\/sites\/[^/]+$/.test(pathname);
 
   async function logout() {
     await adminFetchVoid('/auth/logout', { method: 'POST' });
     window.location.href = loginPath;
   }
 
-  const navItems = [
-    { href: '/admin/sites', label: labels.sites, match: '/admin/sites' },
-    ...(isSuperAdmin
-      ? [{ href: '/admin/users', label: labels.users, match: '/admin/users' }]
-      : []),
-  ];
+  const categoryItems = SITE_CATEGORIES.map((category) => ({
+    href: `/admin/sites?category=${category}`,
+    label: labels.categories[category],
+    category,
+  }));
 
   return (
     <div className="relative flex min-h-screen flex-col text-brown-950">
@@ -66,22 +102,23 @@ export function AdminShell({ user, children, labels }: AdminShellProps) {
               </div>
             </div>
             <nav className="mt-4 space-y-1.5">
-              {navItems.map((item) => {
-                const active = pathname.startsWith(item.match);
+              {categoryItems.map((item) => {
+                const active =
+                  onSitesSection &&
+                  (pathname === '/admin/sites' || pathname.startsWith('/admin/sites/new')
+                    ? item.category === activeCategory
+                    : false);
                 return (
-                  <Link
-                    key={item.href}
-                    href={item.href}
-                    className={`block rounded-button px-3.5 py-2.5 text-[15px] font-bold transition-colors ${
-                      active
-                        ? 'bg-teal-700 text-sand-50 shadow-[0_4px_12px_rgba(29,111,140,0.28)]'
-                        : 'text-brown-800 hover:bg-white'
-                    }`}
-                  >
-                    {item.label}
-                  </Link>
+                  <NavLink key={item.href} href={item.href} label={item.label} active={active} />
                 );
               })}
+              {isSuperAdmin ? (
+                <NavLink
+                  href="/admin/users"
+                  label={labels.users}
+                  active={pathname.startsWith('/admin/users')}
+                />
+              ) : null}
             </nav>
           </div>
         </aside>
@@ -102,23 +139,39 @@ export function AdminShell({ user, children, labels }: AdminShellProps) {
               </div>
             </div>
             <div className="flex flex-wrap items-center gap-2">
-              <div className="flex items-center gap-2 md:hidden">
-                {navItems.map((item) => {
-                  const active = pathname.startsWith(item.match);
+              <div className="flex max-w-full flex-wrap items-center gap-2 md:hidden">
+                {categoryItems.map((item) => {
+                  const active =
+                    onSitesSection &&
+                    (pathname === '/admin/sites' || pathname.startsWith('/admin/sites/new')
+                      ? item.category === activeCategory
+                      : false);
                   return (
                     <Link
                       key={item.href}
                       href={item.href}
                       className={`rounded-button px-3 py-2 text-[15px] font-bold ${
-                          active
-                            ? 'bg-teal-700 text-sand-50'
-                            : 'bg-white text-brown-800 ring-1 ring-brown-800/20'
+                        active
+                          ? 'bg-teal-700 text-sand-50'
+                          : 'bg-white text-brown-800 ring-1 ring-brown-800/20'
                       }`}
                     >
                       {item.label}
                     </Link>
                   );
                 })}
+                {isSuperAdmin ? (
+                  <Link
+                    href="/admin/users"
+                    className={`rounded-button px-3 py-2 text-[15px] font-bold ${
+                      pathname.startsWith('/admin/users')
+                        ? 'bg-teal-700 text-sand-50'
+                        : 'bg-white text-brown-800 ring-1 ring-brown-800/20'
+                    }`}
+                  >
+                    {labels.users}
+                  </Link>
+                ) : null}
               </div>
               <LanguageSwitcher />
               <ActionButton type="button" variant="secondary" onClick={() => void logout()}>

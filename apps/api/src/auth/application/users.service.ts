@@ -14,11 +14,7 @@ import type {
   UpdateUserPasswordInput,
 } from '@heritage/shared-types';
 import { handlePrismaError } from '../../common/filters/handle-prisma-error';
-import {
-  normalizePagination,
-  paginatedResponse,
-  type PaginationQueryDto,
-} from '../../common/pagination/pagination';
+import { normalizePagination, paginatedResponse } from '../../common/pagination/pagination';
 import { PrismaService } from '../../prisma/prisma.service';
 import { AuthService } from './auth.service';
 
@@ -29,15 +25,29 @@ export class UsersService {
     private readonly authService: AuthService,
   ) {}
 
-  async listUsers(query: PaginationQueryDto): Promise<PaginatedResponse<AdminUser>> {
+  async listUsers(query: {
+    page?: number;
+    limit?: number;
+    search?: string;
+  }): Promise<PaginatedResponse<AdminUser>> {
     const pagination = normalizePagination(query);
+    const search = query.search?.trim();
+    const where = search
+      ? {
+          OR: [
+            { phone: { contains: search, mode: 'insensitive' as const } },
+            { displayName: { contains: search, mode: 'insensitive' as const } },
+          ],
+        }
+      : {};
     const [users, totalItems] = await this.prisma.$transaction([
       this.prisma.user.findMany({
+        where,
         orderBy: { createdAt: 'asc' },
         skip: pagination.skip,
         take: pagination.limit,
       }),
-      this.prisma.user.count(),
+      this.prisma.user.count({ where }),
     ]);
     return paginatedResponse(
       users.map((user) => this.toAdminUser(user)),

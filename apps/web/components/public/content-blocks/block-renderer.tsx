@@ -3,6 +3,7 @@ import { TextBlock } from './text-block';
 import { ImageBlock } from './image-block';
 import { AudioBlock } from './audio-block';
 import { VideoBlock } from './video-block';
+import { ListBlock } from './list-block';
 import { RevealOnScroll } from '@/components/public/reveal-on-scroll';
 
 type BlockRendererProps = {
@@ -11,7 +12,8 @@ type BlockRendererProps = {
   siteSlug: string;
 };
 
-export function BlockRenderer({ blocks, locale, siteSlug }: BlockRendererProps) {
+export function BlockRenderer({ blocks, locale: _locale, siteSlug }: BlockRendererProps) {
+  void _locale;
   return (
     <div className="flex flex-col gap-8">
       {blocks.map((block) => (
@@ -24,6 +26,9 @@ export function BlockRenderer({ blocks, locale, siteSlug }: BlockRendererProps) 
               align={block.align}
               spans={block.spans}
             />
+          ) : null}
+          {block.type === 'LIST' ? (
+            <ListBlock listStyle={block.listStyle} items={block.items} />
           ) : null}
           {block.type === 'IMAGE' ? (
             <ImageBlock media={block.media} caption={block.caption} siteSlug={siteSlug} />

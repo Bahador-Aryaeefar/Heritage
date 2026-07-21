@@ -27,7 +27,7 @@ export function Select({
   value,
   onChange,
   options,
-  placeholder = '—',
+  placeholder = '-',
   disabled = false,
   dir,
 }: SelectProps) {

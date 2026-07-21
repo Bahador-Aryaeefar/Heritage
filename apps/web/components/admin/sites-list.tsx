@@ -4,40 +4,68 @@ import { useState } from 'react';
 import { useLocale } from 'next-intl';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Link } from '@/i18n/navigation';
-import { adminSiteSchema, paginatedResponseSchema } from '@heritage/shared-types';
+import {
+  adminSiteSchema,
+  paginatedResponseSchema,
+  type SiteCategory,
+} from '@heritage/shared-types';
 import type { Locale } from '@/i18n/routing';
 import { toContentLocale } from '@/i18n/locales';
 import { ActionButton } from '@/components/ui/action-button';
 import { Badge } from '@/components/ui/badge';
+import { CategoryCover } from '@/components/ui/category-cover';
+import { TextInput } from '@/components/ui/text-field';
+import { ListPagination } from '@/components/admin/list-pagination';
 import { adminFetch, adminFetchVoid } from '@/lib/admin-api';
+import { useDebouncedValue } from '@/lib/use-debounced-value';
 
 const sitesSchema = paginatedResponseSchema(adminSiteSchema);
+const PAGE_SIZE = 10;
+
+type CategoryCopy = {
+  label: string;
+  newEntry: string;
+  empty: string;
+  deleteConfirm: string;
+};
 
 type SitesListProps = {
+  category: SiteCategory;
   labels: {
-    title: string;
-    newSite: string;
     active: string;
     inactive: string;
     edit: string;
     delete: string;
-    deleteConfirm: string;
     deleteFailed: string;
     loading: string;
-    empty: string;
-    ancient: string;
-    islamic: string;
-    natural: string;
+    search: string;
+    first: string;
+    previous: string;
+    next: string;
+    last: string;
+    category: CategoryCopy;
   };
 };
 
-export function SitesList({ labels }: SitesListProps) {
+export function SitesList({ category, labels }: SitesListProps) {
   const locale = useLocale() as Locale;
   const queryClient = useQueryClient();
   const [error, setError] = useState<string | null>(null);
+  const [page, setPage] = useState(1);
+  const [search, setSearch] = useState('');
+  const debouncedSearch = useDebouncedValue(search, 300);
+
   const { data, isLoading } = useQuery({
-    queryKey: ['admin', 'sites'],
-    queryFn: () => adminFetch('/admin/sites?page=1&limit=100', sitesSchema),
+    queryKey: ['admin', 'sites', category, page, debouncedSearch],
+    queryFn: () => {
+      const params = new URLSearchParams({
+        page: String(page),
+        limit: String(PAGE_SIZE),
+        category,
+      });
+      if (debouncedSearch.trim()) params.set('search', debouncedSearch.trim());
+      return adminFetch(`/admin/sites?${params}`, sitesSchema);
+    },
   });
 
   const deleteMutation = useMutation({
@@ -52,29 +80,36 @@ export function SitesList({ labels }: SitesListProps) {
     onError: () => setError(labels.deleteFailed),
   });
 
-  const categoryLabel = {
-    ANCIENT: labels.ancient,
-    ISLAMIC: labels.islamic,
-    NATURAL: labels.natural,
-  } as const;
-
   const sites = data?.items ?? [];
+  const meta = data?.meta;
 
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <h1 className="text-[clamp(22px,2.4vw,30px)] font-black text-brown-950">{labels.title}</h1>
+        <h1 className="text-[clamp(22px,2.4vw,30px)] font-black text-brown-950">
+          {labels.category.label}
+        </h1>
         <Link
-          href="/admin/sites/new"
+          href={`/admin/sites/new?category=${category}`}
           className="inline-flex rounded-button bg-teal-700 px-5 py-2.5 text-[15px] font-bold text-sand-50 transition-transform hover:-translate-y-0.5"
         >
-          {labels.newSite}
+          {labels.category.newEntry}
         </Link>
       </div>
 
+      <TextInput
+        value={search}
+        onChange={(event) => {
+          setSearch(event.target.value);
+          setPage(1);
+        }}
+        placeholder={labels.search}
+        aria-label={labels.search}
+      />
+
       {isLoading ? <p className="text-[15px] text-brown-600">{labels.loading}</p> : null}
       {!isLoading && sites.length === 0 ? (
-        <p className="text-[15px] text-brown-600">{labels.empty}</p>
+        <p className="text-[15px] text-brown-600">{labels.category.empty}</p>
       ) : null}
       {error ? <p className="text-[15px] text-[#B44B3D]">{error}</p> : null}
 
@@ -88,27 +123,31 @@ export function SitesList({ labels }: SitesListProps) {
           return (
             <div
               key={site.id}
-              className="flex flex-wrap items-center gap-4 rounded-card border border-brown-800/15 bg-white p-4"
+              className="flex items-center gap-4 rounded-card border border-brown-800/15 bg-white p-4 max-md:flex-wrap"
             >
-              <div className="h-16 w-20 shrink-0 overflow-hidden rounded-button bg-linear-to-br from-brown-800/20 to-teal-700/25">
+              <div className="h-16 w-20 shrink-0 overflow-hidden rounded-button">
                 {site.coverUrl ? (
                   // eslint-disable-next-line @next/next/no-img-element
                   <img src={site.coverUrl} alt="" className="h-full w-full object-cover" />
-                ) : null}
+                ) : (
+                  <CategoryCover category={site.category} />
+                )}
               </div>
-              <div className="min-w-0 flex-1">
-                <div className="text-[15px] font-bold text-brown-950">{title}</div>
-                <div className="mt-0.5 text-[13px] text-brown-600" dir="ltr">
-                  {site.slug}
+              <div className="flex min-w-0 flex-1 flex-col items-start justify-center gap-1">
+                <div className="max-w-full truncate text-[15px] font-bold leading-tight text-brown-950">
+                  {title}
                 </div>
-                <div className="mt-2 flex flex-wrap gap-2">
-                  <Badge>{categoryLabel[site.category]}</Badge>
-                  <Badge tone={site.isActive ? 'default' : 'muted'}>
-                    {site.isActive ? labels.active : labels.inactive}
-                  </Badge>
-                </div>
+                <Badge tone={site.isActive ? 'default' : 'muted'}>
+                  {site.isActive ? labels.active : labels.inactive}
+                </Badge>
               </div>
-              <div className="flex flex-wrap gap-2">
+              <div
+                className="min-w-0 max-w-[40%] shrink truncate text-[13px] leading-tight text-brown-600"
+                dir="ltr"
+              >
+                {site.slug}
+              </div>
+              <div className="flex shrink-0 flex-wrap items-center gap-2">
                 <Link
                   href={`/admin/sites/${site.id}`}
                   className="inline-flex cursor-pointer items-center justify-center rounded-button border-2 border-brown-800 bg-transparent px-5 py-2.5 text-[15px] font-bold text-brown-800 transition-transform hover:-translate-y-0.5"
@@ -120,7 +159,7 @@ export function SitesList({ labels }: SitesListProps) {
                   variant="ghost"
                   disabled={deleteMutation.isPending}
                   onClick={() => {
-                    if (!window.confirm(labels.deleteConfirm)) return;
+                    if (!window.confirm(labels.category.deleteConfirm)) return;
                     deleteMutation.mutate(site.id);
                   }}
                 >
@@ -131,6 +170,19 @@ export function SitesList({ labels }: SitesListProps) {
           );
         })}
       </div>
+
+      {meta ? (
+        <ListPagination
+          meta={meta}
+          onPageChange={setPage}
+          labels={{
+            first: labels.first,
+            previous: labels.previous,
+            next: labels.next,
+            last: labels.last,
+          }}
+        />
+      ) : null}
     </div>
   );
 }

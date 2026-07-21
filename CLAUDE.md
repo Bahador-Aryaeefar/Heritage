@@ -2,6 +2,10 @@
 
 This file is read automatically by Claude Code (and most agent harnesses that support `CLAUDE.md`/`AGENTS.md`) at the start of a session in this repo. It applies to every task, not just large ones.
 
+## Rule 0 - No em dashes or AI punctuation
+
+Never use em dashes (`—`), en dashes as prose (`–`), ellipsis characters (`…`), curly quotes, or decorative bullet/star glyphs in UI copy, i18n, seed data, comments, docs, or commits. Use plain ASCII punctuation (`,`, `.`, `-`, `'`, `"`, `...`). Cursor rule: `.cursor/rules/no-ai-punctuation.mdc`.
+
 ## Rule 1 - Read the guide files before any update
 
 Before writing, editing, or generating any code, config, or content in this repo, read both:

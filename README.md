@@ -10,10 +10,10 @@ Monorepo for the Shahrnama QR/public site and admin API for Kermanshah cultural 
 
 Living docs (read before changing code):
 
-- [`architecture-decisions.md`](./architecture-decisions.md) — stack, structure, backend/frontend conventions
-- [`design-system.md`](./design-system.md) — colors, type, components
-- [`CLAUDE.md`](./CLAUDE.md) — agent workflow (guides → Graphify → implement → update guides)
-- [`.cursor/rules/design-system.mdc`](./.cursor/rules/design-system.mdc) — always-on rule: use UI primitives, no one-off pills/type
+- [`architecture-decisions.md`](./architecture-decisions.md)  -  stack, structure, backend/frontend conventions
+- [`design-system.md`](./design-system.md)  -  colors, type, components
+- [`CLAUDE.md`](./CLAUDE.md)  -  agent workflow (guides → Graphify → implement → update guides)
+- [`.cursor/rules/design-system.mdc`](./.cursor/rules/design-system.mdc)  -  always-on rule: use UI primitives, no one-off pills/type
 
 ## Prerequisites
 
@@ -105,7 +105,9 @@ Uploaded media is stored under `apps/api/uploads/` (gitignored) and served at `/
 pnpm --filter api prisma:seed
 ```
 
-Landing and banner photos are bundled under `apps/web/public/media/taq-e-bostan/`. Site page images use the same paths (seed mirrors webp on every `prisma:seed`).
+**Seed content:** **five** active examples per category (25 sites) with FA/EN/AR copy, Wikimedia Commons cover photos, and a short fake voice WAV  -  **no seed videos**. Sites without a cover show a category icon on a brown→teal gradient (`CategoryCover`). Catalog: `apps/api/prisma/seed-catalog.ts`.
+
+Landing and banner photos for Taq-e Bostan are bundled under `apps/web/public/media/taq-e-bostan/`. Site page images use `/uploads/...` from the API (seed mirrors cover webp into web public when enabled).
 
 The page background uses diagonal stripes with a slow drift animation (`heritage-bg-drift` in `globals.css`).
 
@@ -129,13 +131,13 @@ Set `PUBLIC_WEB_BASE_URL` (API) and `NEXT_PUBLIC_SITE_URL` (web) in the **repo r
 
 | URL | Page |
 |---|---|
-| `http://localhost:3000/` | Landing (Persian default: hero, banners, site grid) |
-| `http://localhost:3000/sites/taq-e-bostan` | Site detail with content blocks, coordinates, Google/Neshan map links, and embedded Google map |
-| `http://localhost:3000/admin` | Admin panel (sites CRUD + delete with media cleanup; FA/EN/AR document-canvas editor; QR preview + plaque download on site edit; users for SuperAdmin including delete) |
+| `http://localhost:3000/` | Landing (Persian default: plaque hero, 3D category stack, topic promo banners, how-it-works, five per-category carousels) |
+| `http://localhost:3000/sites/taq-e-bostan` | Site detail with content blocks (including bulleted/numbered lists), coordinates when set, Google/Neshan map links, and embedded Google map |
+| `http://localhost:3000/admin` | Admin panel (sidebar categories: historical / handicraft / street / landmark / food; FA/EN/AR document-canvas editor; QR preview + plaque download on edit; users for SuperAdmin including delete) |
 | `http://localhost:3000/admin/login` | Admin sign-in (localized) |
 | `http://localhost:3000/docs` | Scalar API docs (rewritten to API) |
 | `http://localhost:3000/en/admin` | English admin panel |
-| `http://localhost:3000/ar/...` | Arabic UI locale (RTL; reads Arabic site content from API — fa/en/ar required on admin save) |
+| `http://localhost:3000/ar/...` | Arabic UI locale (RTL; reads Arabic site content from API  -  fa/en/ar required on admin save) |
 
 Requires API running on port 4000 with migrate + seed.
 
@@ -143,7 +145,7 @@ Requires API running on port 4000 with migrate + seed.
 
 ## Phase status
 
-**Phase 4 admin:** JWT cookie auth with rotating refresh tokens, SuperAdmin user management (create/edit/password/delete — cannot delete self or the last SuperAdmin), Admin/SuperAdmin site CRUD + delete at `/admin` (delete removes media files then QR/visit rows). Site edit shows a live QR preview and plaque PNG download; slug is editable on create and update (warning: reprint plaques after a slug change). Full **FA/EN/AR** document-canvas editor (locale tabs with native endonyms + permanent `dir`, copy-from-FA for EN and AR, rich text spans with bold/italic/links, drag-reorder, per-tab undo/redo, WYSIWYG image/audio with captions + playable audio, cover/media picker) that saves atomically via one multipart request to `POST`/`PUT /admin/sites`, and Scalar docs at `/docs`. Creating a site also inserts a default `QRCode` row for visit tracking. Block media accessibility uses the per-locale **caption** as image `alt` / audio-video `aria-label`; cover and card images use the site **slug** as `alt` (no separate media alt fields). Visit analytics remain deferred.
+**Phase 4 admin:** JWT cookie auth with rotating refresh tokens, SuperAdmin user management (create/edit/password/delete  -  cannot delete self or the last SuperAdmin; list search + pagination), Admin/SuperAdmin site CRUD + delete at `/admin` (per-category lists with search + pagination) (delete removes media files then QR/visit rows). Sites use five tourism categories (`HISTORICAL`, `HANDICRAFT`, `STREET`, `LANDMARK`, `FOOD`); map coordinates are required for monument/street/landmark entries and optional for handicraft/food until multi-location support lands. Site edit shows a live QR preview and plaque PNG download; slug is editable on create and update (warning: reprint plaques after a slug change). Full **FA/EN/AR** document-canvas editor (locale tabs with native endonyms + permanent `dir`, copy-from-FA for EN and AR, rich text spans with bold/italic/links, **LIST blocks** for recipes/steps, drag-reorder, per-tab undo/redo, WYSIWYG image/audio with captions + playable audio, cover/media picker) that saves atomically via one multipart request to `POST`/`PUT /admin/sites`, and Scalar docs at `/docs`. Creating a site also inserts a default `QRCode` row for visit tracking. Block media accessibility uses the per-locale **caption** as image `alt` / audio-video `aria-label`; cover and card images use the site **slug** as `alt` (no separate media alt fields). Visit analytics remain deferred.
 
 ## Deploy on VPS (Docker + Caddy)
 
@@ -178,7 +180,7 @@ Root `docker-compose.yml` is **dev-only** (Postgres). Production uses `docker-co
 git clone <your-repo-url> heritage
 cd heritage
 cp .env.production.example .env.production
-# Edit .env.production — set a strong POSTGRES_PASSWORD and PUBLIC_SITE_URL
+# Edit .env.production  -  set a strong POSTGRES_PASSWORD and PUBLIC_SITE_URL
 ```
 
 Key variables:
@@ -236,13 +238,13 @@ Expected health: `{ "status": "ok", "database": "up" }`.
 ### Common pitfalls
 
 1. **`NEXT_PUBLIC_SITE_URL`** is baked into the web image at build time. After changing domain, rebuild: `docker compose -f docker-compose.prod.yml --env-file .env.production up -d --build web`.
-2. **`API_BASE_URL` must not be the public HTTPS URL** inside the web container — use the internal Docker hostname `http://api:4000/api/v1`. Server Components fetch the API over the internal network; Caddy never needs to proxy server-side fetches.
+2. **`API_BASE_URL` must not be the public HTTPS URL** inside the web container  -  use the internal Docker hostname `http://api:4000/api/v1`. Server Components fetch the API over the internal network; Caddy never needs to proxy server-side fetches.
 3. **`PUBLIC_ASSET_BASE_URL` must be the public origin** (`https://heritage.nobatix.ir`), not `localhost`, or API JSON will return broken upload URLs.
 4. **Cross-origin** is avoided by serving everything on one domain; do not point the browser at `:4000` directly.
 5. **Plaque downloads** rely on the Next.js rewrite in `apps/web/next.config.ts`; if you bypass Next.js and proxy only `/api/*` in Caddy, use `GET /api/v1/public/sites/{slug}/qr.png` instead.
 6. **Production migrations** use `prisma migrate deploy` (not `migrate dev`). Set `RUN_MIGRATIONS=false` after first deploy if you prefer manual control.
 7. **Back up** the `heritage_pgdata` and `api_uploads` Docker volumes.
-8. **Iran mirror** — if `docker.io` is unreachable, pull Postgres via ArvanCloud mirror (see `architecture-decisions.md` §13) before `compose up`.
+8. **Iran mirror**  -  if `docker.io` is unreachable, pull Postgres via ArvanCloud mirror (see `architecture-decisions.md` §13) before `compose up`.
 
 ### Updating a release
 

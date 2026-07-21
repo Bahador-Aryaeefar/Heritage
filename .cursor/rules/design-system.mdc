@@ -1,0 +1,31 @@
+---
+description: Always follow design-system.md tokens and UI primitives; never invent one-off pills or type scales
+alwaysApply: true
+---
+
+# Design system is mandatory
+
+Before any UI change, read `design-system.md` (and `architecture-decisions.md`). Implement with existing tokens and primitives. Do not freestyle sizes, colors, or radii.
+
+## Hard rules
+
+- **Pills/badges:** only `components/ui/badge.tsx`. Same padding/type for every pill; change color via `tone` (`default` | `muted`). Never ad-hoc `rounded-full` + custom `px`/`py`/`text-[11px]`.
+- **Buttons:** `ActionButton` (admin forms/actions) or `Button` (public links). Match their padding/type; do not copy-paste near-miss classes. Enabled controls always use `cursor: pointer` (see `globals.css`).
+- **Language switcher:** use `LanguageSwitcher` dropdown + `LOCALE_DEFINITIONS` in `i18n/locales.ts`. Do not revive a FA/EN pill strip; new languages are catalog entries, not one-off buttons.
+- **Surface contrast:** on `sand-100` panels, form controls and nested cards use **white** + clearer brown borders. Never nest near-white `sand-50` on `sand-100` (washes out on the striped bg).
+- **Select chevron:** use `ChevronIcon` (20×20), not a tiny text glyph.
+- **Type scale:** use §2 sizes (eyebrow/label `text-xs`, body/interactive **`text-[15px]`** not Tailwind `text-sm`/14px, H3 `text-[15px] font-bold`, captions `text-xs` / `text-[13px]`). Admin forms are **full width of main** (no `max-w-3xl`). Avoid unexplained arbitrary sizes unless already documented (e.g. brand tagline `text-[11px]`).
+- **Colors/radii:** only tokens from `globals.css` / design-system (`brown-*`, `sand-*`, `teal-*`, `rounded-button|card|container`).
+- **Punctuation:** no em dashes or AI characters (see `no-ai-punctuation.mdc`).
+- **After UI decisions:** update `design-system.md` in the same session (CLAUDE.md Rule 2).
+
+## Examples
+
+```tsx
+// BAD: second pill size
+<span className="rounded-full px-2.5 py-0.5 text-[11px] font-bold bg-teal-200">Active</span>
+
+// GOOD
+<Badge>Active</Badge>
+<Badge tone="muted">Inactive</Badge>
+```

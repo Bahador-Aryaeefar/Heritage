@@ -6,7 +6,7 @@
  * a `previewUrl` to render a thumbnail before upload.
  */
 
-import type { TextSpan } from '@heritage/shared-types';
+import type { ListStyle, TextSpan } from '@heritage/shared-types';
 
 export type EditorTextRole = 'HERO' | 'H2' | 'H3' | 'BODY' | 'CAPTION';
 export type EditorColorToken = 'BROWN_950' | 'BROWN_800' | 'BROWN_600' | 'TEAL_700' | 'SAND_50';
@@ -36,6 +36,15 @@ export type EditorAudioBlock = {
   caption: string;
   mediaId?: string;
   clientFileKey?: string;
+  /** Same-origin /uploads URL or blob: URL for playable canvas/inspector preview. */
+  previewUrl?: string;
+};
+
+export type EditorListBlock = {
+  key: string;
+  type: 'LIST';
+  listStyle: ListStyle;
+  items: Array<{ spans: TextSpan[] }>;
 };
 
 export type EditorVideoBlock = {
@@ -46,7 +55,12 @@ export type EditorVideoBlock = {
   mediaId?: string;
 };
 
-export type EditorBlock = EditorTextBlock | EditorImageBlock | EditorAudioBlock | EditorVideoBlock;
+export type EditorBlock =
+  | EditorTextBlock
+  | EditorListBlock
+  | EditorImageBlock
+  | EditorAudioBlock
+  | EditorVideoBlock;
 
 /** New client-side identity for a block row. Not sent to the API. */
 export function createBlockKey(): string {
@@ -85,6 +99,13 @@ export function copyBlocksFromFa(fa: EditorBlock[]): EditorBlock[] {
           caption: block.caption,
           embedUrl: block.embedUrl,
           ...(block.mediaId ? { mediaId: block.mediaId } : {}),
+        };
+      case 'LIST':
+        return {
+          key,
+          type: 'LIST',
+          listStyle: block.listStyle,
+          items: block.items.map((item) => ({ spans: item.spans.map((span) => ({ ...span })) })),
         };
       case 'IMAGE':
       case 'AUDIO':

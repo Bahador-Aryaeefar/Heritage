@@ -11,9 +11,11 @@ datasource db {
 }
 
 enum SiteCategory {
-  ANCIENT
-  ISLAMIC
-  NATURAL
+  HISTORICAL
+  HANDICRAFT
+  STREET
+  LANDMARK
+  FOOD
 }
 
 enum MediaType {
@@ -25,9 +27,15 @@ enum MediaType {
 enum ContentBlockType {
   HEADING
   PARAGRAPH
+  LIST
   IMAGE
   VIDEO
   AUDIO
+}
+
+enum ListStyle {
+  BULLET
+  NUMBERED
 }
 
 enum TextRole {
@@ -90,8 +98,8 @@ model Site {
   id           String             @id @default(cuid())
   slug         String             @unique
   category     SiteCategory
-  lat          Decimal            @db.Decimal(10, 7)
-  lng          Decimal            @db.Decimal(10, 7)
+  lat          Decimal?           @db.Decimal(10, 7)
+  lng          Decimal?           @db.Decimal(10, 7)
   cityId       String
   isActive     Boolean            @default(true)
   createdAt    DateTime           @default(now())
@@ -151,6 +159,7 @@ model SiteContentBlock {
   textRole  TextRole?
   colorToken ColorToken?
   align     BlockAlign?
+  listStyle ListStyle?
   spans     Json?
   mediaId   String?
   caption   String?

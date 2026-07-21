@@ -9,12 +9,13 @@ describe('MediaCleanupService', () => {
       delete: jest.fn(),
     },
   };
+  const deleteByUrl = jest.fn();
   const storage: jest.Mocked<StorageService> = {
     processImage: jest.fn(),
     saveProcessedImage: jest.fn(),
     saveImage: jest.fn(),
     saveBinary: jest.fn(),
-    deleteByUrl: jest.fn(),
+    deleteByUrl,
     toAbsoluteUrl: jest.fn(),
   };
 
@@ -43,8 +44,8 @@ describe('MediaCleanupService', () => {
       });
       expect(prisma.media.delete).toHaveBeenCalledWith({ where: { id: 'media-1' } });
       expect(prisma.media.delete).toHaveBeenCalledWith({ where: { id: 'media-2' } });
-      expect(storage.deleteByUrl).toHaveBeenCalledWith('/uploads/sites/site-1/images/a.webp');
-      expect(storage.deleteByUrl).toHaveBeenCalledWith('/uploads/sites/site-1/audio/b.mp3');
+      expect(deleteByUrl).toHaveBeenCalledWith('/uploads/sites/site-1/images/a.webp');
+      expect(deleteByUrl).toHaveBeenCalledWith('/uploads/sites/site-1/audio/b.mp3');
       expect(count).toBe(2);
     });
 
@@ -54,7 +55,7 @@ describe('MediaCleanupService', () => {
       const count = await service.deleteUnusedMediaForSite('site-1');
 
       expect(prisma.media.delete).toHaveBeenCalledWith({ where: { id: 'media-3' } });
-      expect(storage.deleteByUrl).not.toHaveBeenCalled();
+      expect(deleteByUrl).not.toHaveBeenCalled();
       expect(count).toBe(1);
     });
 
@@ -64,7 +65,7 @@ describe('MediaCleanupService', () => {
       const count = await service.deleteUnusedMediaForSite('site-1');
 
       expect(prisma.media.delete).not.toHaveBeenCalled();
-      expect(storage.deleteByUrl).not.toHaveBeenCalled();
+      expect(deleteByUrl).not.toHaveBeenCalled();
       expect(count).toBe(0);
     });
   });
@@ -83,9 +84,9 @@ describe('MediaCleanupService', () => {
         where: { siteId: 'site-1' },
         select: { url: true },
       });
-      expect(storage.deleteByUrl).toHaveBeenCalledTimes(2);
-      expect(storage.deleteByUrl).toHaveBeenCalledWith('/uploads/sites/site-1/images/cover.webp');
-      expect(storage.deleteByUrl).toHaveBeenCalledWith('/uploads/sites/site-1/audio/track.mp3');
+      expect(deleteByUrl).toHaveBeenCalledTimes(2);
+      expect(deleteByUrl).toHaveBeenCalledWith('/uploads/sites/site-1/images/cover.webp');
+      expect(deleteByUrl).toHaveBeenCalledWith('/uploads/sites/site-1/audio/track.mp3');
       expect(prisma.media.delete).not.toHaveBeenCalled();
     });
   });

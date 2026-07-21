@@ -52,7 +52,7 @@ export function LandingHero({
           <p className="mt-4 max-w-2xl text-[17px] leading-relaxed text-brown-800">{description}</p>
           <div className="mt-7 flex flex-wrap gap-3">
             <Button href="#how">{ctaPrimary}</Button>
-            <Button href="#sites" variant="secondary">
+            <Button href="#categories" variant="secondary">
               {ctaSecondary}
             </Button>
           </div>

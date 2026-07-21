@@ -11,6 +11,7 @@ import type {
   CityOption,
   CreateSiteFullInput,
   PaginatedResponse,
+  SiteCategory,
   UpdateSiteFullInput,
 } from '@heritage/shared-types';
 import { PrismaService } from '../../prisma/prisma.service';
@@ -205,16 +206,38 @@ export class AdminSitesService {
     private readonly cleanup: MediaCleanupService,
   ) {}
 
-  async listSites(query: PaginationQueryDto): Promise<PaginatedResponse<AdminSite>> {
+  async listSites(query: {
+    page?: number;
+    limit?: number;
+    category?: SiteCategory;
+    search?: string;
+  }): Promise<PaginatedResponse<AdminSite>> {
     const pagination = normalizePagination(query);
+    const search = query.search?.trim();
+    const where = {
+      ...(query.category ? { category: query.category } : {}),
+      ...(search
+        ? {
+            OR: [
+              { slug: { contains: search, mode: 'insensitive' as const } },
+              {
+                translations: {
+                  some: { title: { contains: search, mode: 'insensitive' as const } },
+                },
+              },
+            ],
+          }
+        : {}),
+    };
     const [sites, totalItems] = await this.prisma.$transaction([
       this.prisma.site.findMany({
+        where,
         select: adminSiteSelect,
         orderBy: { createdAt: 'asc' },
         skip: pagination.skip,
         take: pagination.limit,
       }),
-      this.prisma.site.count(),
+      this.prisma.site.count({ where }),
     ]);
     return paginatedResponse(
       sites.map((site) => this.mapAdminSite(site)),
@@ -248,8 +271,8 @@ export class AdminSitesService {
           data: {
             slug: payload.slug,
             category: payload.category,
-            lat: payload.lat,
-            lng: payload.lng,
+            lat: payload.lat?.trim() ? payload.lat : null,
+            lng: payload.lng?.trim() ? payload.lng : null,
             cityId: payload.cityId,
             isActive: payload.isActive ?? true,
             translations: {
@@ -308,8 +331,8 @@ export class AdminSitesService {
           data: {
             slug: payload.slug,
             category: payload.category,
-            lat: payload.lat,
-            lng: payload.lng,
+            lat: payload.lat?.trim() ? payload.lat : null,
+            lng: payload.lng?.trim() ? payload.lng : null,
             cityId: payload.cityId,
             isActive: payload.isActive,
           },
@@ -557,6 +580,18 @@ export class AdminSitesService {
           return;
         }
 
+        if (block.type === 'LIST') {
+          blockRows.push({
+            siteId,
+            locale: translation.locale,
+            sortOrder: index,
+            type: block.type,
+            listStyle: block.listStyle,
+            spans: { items: block.items },
+          });
+          return;
+        }
+
         blockRows.push({
           siteId,
           locale: translation.locale,
@@ -660,8 +695,8 @@ export class AdminSitesService {
       id: site.id,
       slug: site.slug,
       category: site.category,
-      lat: site.lat.toString(),
-      lng: site.lng.toString(),
+      lat: site.lat?.toString() ?? null,
+      lng: site.lng?.toString() ?? null,
       isActive: site.isActive,
       city: {
         id: site.city.id,

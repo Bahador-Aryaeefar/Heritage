@@ -66,8 +66,9 @@ describe('Admin sites — atomic multipart write + cleanup (e2e)', () => {
       // NestJS defaults POST handlers to 201 Created; AuthController.login has no @HttpCode override.
       .expect(201);
 
-    expect(res.body.phone).toBe(SUPER_ADMIN_PHONE);
-    expect(res.body.role).toBe('SUPER_ADMIN');
+    const body = res.body as { phone: string; role: string };
+    expect(body.phone).toBe(SUPER_ADMIN_PHONE);
+    expect(body.role).toBe('SUPER_ADMIN');
   });
 
   let cityId: string;
@@ -76,7 +77,9 @@ describe('Admin sites — atomic multipart write + cleanup (e2e)', () => {
     const res = await agent.get('/api/v1/admin/cities?limit=1').expect(200);
     const body = res.body as PaginatedResponse<CityOption>;
     expect(body.items.length).toBeGreaterThan(0);
-    cityId = body.items[0]!.id;
+    const firstCity = body.items[0];
+    expect(firstCity).toBeDefined();
+    cityId = firstCity.id;
   });
 
   let siteId: string;
@@ -86,7 +89,7 @@ describe('Admin sites — atomic multipart write + cleanup (e2e)', () => {
   it('creates a site atomically via multipart: metadata + fa/en/ar blocks + a cover image reused as an IMAGE block', async () => {
     const payload: CreateSiteFullInput = {
       slug,
-      category: 'ANCIENT',
+      category: 'HISTORICAL',
       lat: '34.100000',
       lng: '47.200000',
       cityId,
@@ -159,16 +162,19 @@ describe('Admin sites — atomic multipart write + cleanup (e2e)', () => {
     siteId = body.id;
 
     expect(body.media).toHaveLength(1);
-    const media = body.media[0]!;
+    const media = body.media[0];
+    expect(media).toBeDefined();
     expect(media.isCover).toBe(true);
     expect(media.contentHash).toMatch(/^[a-f0-9]{64}$/);
     expect(media.url).toBeTruthy();
     expect(media).not.toHaveProperty('altFa');
     expect(media).not.toHaveProperty('altEn');
     coverMediaId = media.id;
-    coverUrl = media.url!;
+    expect(media.url).toEqual(expect.any(String));
+    coverUrl = media.url as string;
 
-    const fa = body.translations.find((t) => t.locale === 'fa')!;
+    const fa = body.translations.find((t) => t.locale === 'fa');
+    expect(fa).toBeDefined();
     expect(fa.blocks.map((b) => b.type)).toEqual(['PARAGRAPH', 'IMAGE']);
     const paragraphBlock = fa.blocks[0] as { spans: { text: string; bold?: boolean; href?: string }[] };
     expect(paragraphBlock.spans).toEqual([
@@ -180,7 +186,8 @@ describe('Admin sites — atomic multipart write + cleanup (e2e)', () => {
     // MediaPlanner dedupes them onto the single created Media row.
     expect(imageBlock.media.id).toBe(coverMediaId);
 
-    const ar = body.translations.find((t) => t.locale === 'ar')!;
+    const ar = body.translations.find((t) => t.locale === 'ar');
+    expect(ar).toBeDefined();
     expect(ar.blocks.map((b) => b.type)).toEqual(['PARAGRAPH']);
 
     // The staged file was promoted to disk under UPLOAD_DIR before the response returned.
@@ -192,28 +199,33 @@ describe('Admin sites — atomic multipart write + cleanup (e2e)', () => {
     const body = res.body as AdminSite;
 
     expect(body.media).toHaveLength(1);
-    expect(body.media[0]!.contentHash).toMatch(/^[a-f0-9]{64}$/);
-    expect(body.media[0]).not.toHaveProperty('altFa');
-    expect(body.media[0]).not.toHaveProperty('altEn');
+    const media = body.media[0];
+    expect(media).toBeDefined();
+    expect(media.contentHash).toMatch(/^[a-f0-9]{64}$/);
+    expect(media).not.toHaveProperty('altFa');
+    expect(media).not.toHaveProperty('altEn');
 
-    const en = body.translations.find((t) => t.locale === 'en')!;
+    const en = body.translations.find((t) => t.locale === 'en');
+    expect(en).toBeDefined();
     expect(en.blocks.map((b) => b.type)).toEqual(['PARAGRAPH']);
 
-    const fa = body.translations.find((t) => t.locale === 'fa')!;
+    const fa = body.translations.find((t) => t.locale === 'fa');
+    expect(fa).toBeDefined();
     const paragraphBlock = fa.blocks[0] as { spans: { text: string; bold?: boolean; href?: string }[] };
     expect(paragraphBlock.spans).toEqual([
       { text: 'Hello ', bold: true },
       { text: 'link', href: 'https://example.com' },
     ]);
 
-    const ar = body.translations.find((t) => t.locale === 'ar')!;
+    const ar = body.translations.find((t) => t.locale === 'ar');
+    expect(ar).toBeDefined();
     expect(ar.blocks.map((b) => b.type)).toEqual(['PARAGRAPH']);
   });
 
   it('PUT replacing the site without the IMAGE block deletes the now-unused image (DB row + disk file)', async () => {
     const payload: UpdateSiteFullInput = {
       slug,
-      category: 'ANCIENT',
+      category: 'HISTORICAL',
       lat: '34.100000',
       lng: '47.200000',
       cityId,
@@ -273,7 +285,8 @@ describe('Admin sites — atomic multipart write + cleanup (e2e)', () => {
     const body = res.body as AdminSite;
     expect(body.media).toHaveLength(0);
 
-    const fa = body.translations.find((t) => t.locale === 'fa')!;
+    const fa = body.translations.find((t) => t.locale === 'fa');
+    expect(fa).toBeDefined();
     expect(fa.blocks.map((b) => b.type)).toEqual(['PARAGRAPH']);
 
     // MediaCleanupService.deleteUnusedMediaForSite removed the disk file too.

@@ -22,6 +22,7 @@ import { createSiteFullSchema, updateSiteFullSchema } from '@heritage/shared-typ
 import { AdminSitesService } from '../application/admin-sites.service';
 import { PaginationQueryDto } from '../../common/pagination/pagination';
 import { AUDIO_MAX_BYTES } from '../../storage/upload-limits';
+import { AdminSitesListQueryDto } from './admin-sites-list.query';
 import {
   ADMIN_SITE_EXAMPLE,
   ADMIN_SITE_SCHEMA,
@@ -72,7 +73,7 @@ export class AdminSitesController {
   @Get('sites')
   @ApiPaginatedResponse('List sites, including inactive sites', ADMIN_SITE_SCHEMA, ADMIN_SITE_EXAMPLE)
   @ApiProtectedErrors()
-  listSites(@Query() query: PaginationQueryDto) {
+  listSites(@Query() query: AdminSitesListQueryDto) {
     return this.adminSitesService.listSites(query);
   }
 

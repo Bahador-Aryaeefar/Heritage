@@ -9,5 +9,5 @@ type AdminIndexProps = {
 export default async function AdminIndexPage({ params }: AdminIndexProps) {
   const { locale } = await params;
   setRequestLocale(locale);
-  redirect(localizedPath(locale, '/admin/sites'));
+  redirect(localizedPath(locale, '/admin/sites?category=HISTORICAL'));
 }

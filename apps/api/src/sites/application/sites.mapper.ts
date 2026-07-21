@@ -2,6 +2,7 @@ import { ContentBlockType, Media, Prisma, SiteContentBlock } from '@prisma/clien
 import {
   contentBlockSchema,
   landingResponseSchema,
+  listItemSchema,
   localeSchema,
   siteDetailSchema,
   textSpanSchema,
@@ -10,6 +11,7 @@ import {
   type MediaRef,
   type SiteDetail,
 } from '@heritage/shared-types';
+import { z } from 'zod';
 
 export const siteCardSelect = {
   id: true,
@@ -87,6 +89,16 @@ export function mapBlock(
     };
   }
 
+  if (block.type === ContentBlockType.LIST) {
+    const items = z.object({ items: listItemSchema.array().min(1) }).parse(block.spans ?? {}).items;
+    return {
+      type: 'LIST',
+      sortOrder: block.sortOrder,
+      listStyle: block.listStyle!,
+      items,
+    };
+  }
+
   if (!block.media) {
     throw new Error(`Media block ${block.id} is missing media relation`);
   }
@@ -142,8 +154,8 @@ export function mapSiteDetail(
   return {
     slug: site.slug,
     category: site.category,
-    lat: site.lat.toString(),
-    lng: site.lng.toString(),
+    lat: site.lat?.toString() ?? null,
+    lng: site.lng?.toString() ?? null,
     isActive: site.isActive,
     city: {
       slug: site.city.slug,

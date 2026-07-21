@@ -1,9 +1,11 @@
 import { describe, expect, it } from 'vitest';
 import type { TextSpan } from '@heritage/shared-types';
 import {
+  insertNewlineAt,
   normalizeSpans,
   serializeSpans,
   setLink,
+  splitSpansAt,
   spansToPlainText,
   toggleMark,
   type TextSelection,
@@ -130,5 +132,20 @@ describe('setLink', () => {
   it('leaves spans unchanged for an empty selection', () => {
     const spans: TextSpan[] = [{ text: 'Hello' }];
     expect(setLink(spans, sel(1, 1), 'https://example.com')).toEqual([{ text: 'Hello' }]);
+  });
+});
+
+describe('splitSpansAt', () => {
+  it('splits plain text at the caret', () => {
+    expect(splitSpansAt([{ text: 'Hello' }], 2)).toEqual({
+      before: [{ text: 'He' }],
+      after: [{ text: 'llo' }],
+    });
+  });
+});
+
+describe('insertNewlineAt', () => {
+  it('inserts a newline character at the caret', () => {
+    expect(insertNewlineAt([{ text: 'ab' }], 1)).toEqual([{ text: 'a\nb' }]);
   });
 });

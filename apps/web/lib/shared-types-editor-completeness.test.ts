@@ -40,7 +40,7 @@ describe('editor-completeness shared-types', () => {
 
     const base = {
       slug: 't',
-      category: 'ANCIENT' as const,
+      category: 'HISTORICAL' as const,
       lat: '34',
       lng: '47',
       cityId: 'c',

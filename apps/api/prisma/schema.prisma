@@ -49,6 +49,7 @@ enum ColorToken {
 enum BlockAlign {
   START
   CENTER
+  END
 }
 
 enum VisitSource {
@@ -124,8 +125,6 @@ model Media {
   mimeType    String?
   contentHash String?
   durationSec Int?
-  altFa       String?
-  altEn       String?
   sortOrder   Int        @default(0)
   isCover     Boolean    @default(false)
   createdAt   DateTime   @default(now())

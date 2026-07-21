@@ -1,6 +1,4 @@
-import type { ContentBlock } from '@heritage/shared-types';
-import { toContentLocale } from '@/i18n/locales';
-import type { Locale as UiLocale } from '@/i18n/routing';
+import type { ContentBlock, Locale } from '@heritage/shared-types';
 import { TextBlock } from './text-block';
 import { ImageBlock } from './image-block';
 import { AudioBlock } from './audio-block';
@@ -9,12 +7,11 @@ import { RevealOnScroll } from '@/components/public/reveal-on-scroll';
 
 type BlockRendererProps = {
   blocks: ContentBlock[];
-  locale: UiLocale | string;
+  locale: Locale;
   siteSlug: string;
 };
 
 export function BlockRenderer({ blocks, locale, siteSlug }: BlockRendererProps) {
-  const contentLocale = toContentLocale(locale);
   return (
     <div className="flex flex-col gap-8">
       {blocks.map((block) => (
@@ -29,18 +26,13 @@ export function BlockRenderer({ blocks, locale, siteSlug }: BlockRendererProps) 
             />
           ) : null}
           {block.type === 'IMAGE' ? (
-            <ImageBlock
-              media={block.media}
-              caption={block.caption}
-              locale={contentLocale}
-              siteSlug={siteSlug}
-            />
+            <ImageBlock media={block.media} caption={block.caption} siteSlug={siteSlug} />
           ) : null}
           {block.type === 'AUDIO' ? (
-            <AudioBlock media={block.media} caption={block.caption} locale={contentLocale} />
+            <AudioBlock media={block.media} caption={block.caption} />
           ) : null}
           {block.type === 'VIDEO' ? (
-            <VideoBlock media={block.media} caption={block.caption} locale={contentLocale} />
+            <VideoBlock media={block.media} caption={block.caption} />
           ) : null}
         </RevealOnScroll>
       ))}

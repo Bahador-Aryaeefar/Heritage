@@ -7,7 +7,6 @@ import { RevealOnScroll } from '@/components/public/reveal-on-scroll';
 import { getLanding } from '@/lib/sites';
 import { heritageImages } from '@/lib/heritage-images';
 import { buildPlaqueQrUrl, buildSiteQrPngUrl } from '@/lib/qr-url';
-import { toContentLocale } from '@/i18n/locales';
 import type { Locale } from '@/i18n/routing';
 
 export const revalidate = 60;
@@ -24,13 +23,12 @@ export default async function HomePage({ params }: PageProps) {
   const landing = await getLanding();
   const steps = t.raw('how.steps') as Array<{ title: string; body: string }>;
   const heroImageSrc = heritageImages.hero.src;
-  const contentLocale = toContentLocale(locale);
-  const heroAlt =
-    contentLocale === 'fa' ? heritageImages.hero.altFa : heritageImages.hero.altEn;
+  // Static landing photos only have fa/en alts — Arabic UI uses the Persian alt.
+  const heroAlt = locale === 'en' ? heritageImages.hero.altEn : heritageImages.hero.altFa;
   const bannerTopAlt =
-    contentLocale === 'fa' ? heritageImages.bannerTop.altFa : heritageImages.bannerTop.altEn;
+    locale === 'en' ? heritageImages.bannerTop.altEn : heritageImages.bannerTop.altFa;
   const bannerMidAlt =
-    contentLocale === 'fa' ? heritageImages.bannerMid.altFa : heritageImages.bannerMid.altEn;
+    locale === 'en' ? heritageImages.bannerMid.altEn : heritageImages.bannerMid.altFa;
   const qrUrl = buildPlaqueQrUrl('taq-e-bostan');
   const plaqueDownloadUrl = buildSiteQrPngUrl('taq-e-bostan');
   const tQr = await getTranslations('site.qr');

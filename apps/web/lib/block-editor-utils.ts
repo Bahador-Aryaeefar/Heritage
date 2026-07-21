@@ -10,6 +10,8 @@ type EditorBlockType = EditorBlock['type'];
 
 const TEXT_TYPES = new Set<EditorBlockType>(['HEADING', 'PARAGRAPH']);
 
+const EMPTY_SPANS = [{ text: '' }] as const;
+
 function isTextBlockType(type: EditorBlockType): boolean {
   return TEXT_TYPES.has(type);
 }
@@ -31,7 +33,7 @@ export function createEmptyBlock(type: EditorBlockType): EditorBlock {
   switch (type) {
     case 'HEADING':
     case 'PARAGRAPH':
-      return { key, type, text: '', ...textDefaults(type) };
+      return { key, type, spans: [{ text: '' }], ...textDefaults(type) };
     case 'IMAGE':
       return { key, type: 'IMAGE', caption: '' };
     case 'AUDIO':
@@ -50,7 +52,7 @@ export function convertBlockType(block: EditorBlock, next: EditorBlockType): Edi
     return {
       key,
       type: next,
-      text: block.text,
+      spans: block.spans.map((span) => ({ ...span })),
       ...textDefaults(next),
     };
   }
@@ -63,7 +65,7 @@ export function convertBlockType(block: EditorBlock, next: EditorBlockType): Edi
     return {
       key,
       type: next,
-      text: '',
+      spans: [...EMPTY_SPANS],
       ...textDefaults(next),
     };
   }
@@ -81,6 +83,27 @@ function emptyMediaBlock(key: string, type: Exclude<EditorBlockType, 'HEADING' |
     case 'VIDEO':
       return { key, type: 'VIDEO', caption, embedUrl: '' };
   }
+}
+
+export function reorderBlock(
+  blocks: EditorBlock[],
+  fromIndex: number,
+  toIndex: number,
+): EditorBlock[] {
+  if (
+    fromIndex < 0 ||
+    fromIndex >= blocks.length ||
+    toIndex < 0 ||
+    toIndex >= blocks.length ||
+    fromIndex === toIndex
+  ) {
+    return blocks;
+  }
+
+  const next = blocks.slice();
+  const [item] = next.splice(fromIndex, 1);
+  next.splice(toIndex, 0, item!);
+  return next;
 }
 
 export function moveBlock(

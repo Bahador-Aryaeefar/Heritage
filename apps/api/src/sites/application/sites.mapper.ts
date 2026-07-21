@@ -67,8 +67,6 @@ export function mapMediaRef(media: Media, toAbsoluteUrl: (url: string) => string
     type: media.type,
     url: media.url ? toAbsoluteUrl(media.url) : null,
     embedUrl: media.embedUrl,
-    altFa: media.altFa,
-    altEn: media.altEn,
     durationSec: media.durationSec,
   };
 }

@@ -165,6 +165,7 @@ function alignOptions(labels: BlockInspectorLabels): ChipOption<EditorAlign>[] {
   return [
     { value: 'START', label: labels.alignStart },
     { value: 'CENTER', label: labels.alignCenter },
+    { value: 'END', label: labels.alignEnd },
   ];
 }
 

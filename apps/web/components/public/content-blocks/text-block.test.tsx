@@ -24,4 +24,38 @@ describe('TextBlock', () => {
     expect(screen.getByText('bold').tagName).toBe('STRONG');
     expect(screen.getByText('italic').tagName).toBe('EM');
   });
+
+  it('renders href spans as teal links after bold/italic wrappers', () => {
+    render(
+      <TextBlock
+        type="PARAGRAPH"
+        textRole="BODY"
+        colorToken="BROWN_800"
+        align="START"
+        spans={[
+          { text: 'Visit ', bold: true, href: 'https://example.com' },
+          { text: 'plain' },
+        ]}
+      />,
+    );
+
+    const link = screen.getByRole('link', { name: 'Visit' });
+    expect(link).toHaveAttribute('href', 'https://example.com');
+    expect(link).toHaveClass('font-bold', 'text-teal-700', 'hover:text-teal-500');
+    expect(link.querySelector('strong')).not.toBeNull();
+  });
+
+  it('applies text-end for END align', () => {
+    render(
+      <TextBlock
+        type="HEADING"
+        textRole="H2"
+        colorToken="BROWN_950"
+        align="END"
+        spans={[{ text: 'Aligned' }]}
+      />,
+    );
+
+    expect(screen.getByRole('heading', { level: 2 })).toHaveClass('text-end');
+  });
 });

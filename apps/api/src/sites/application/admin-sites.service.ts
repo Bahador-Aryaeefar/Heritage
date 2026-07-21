@@ -53,8 +53,6 @@ const adminSiteSelect = {
       type: true,
       url: true,
       embedUrl: true,
-      altFa: true,
-      altEn: true,
       contentHash: true,
       isCover: true,
     },
@@ -559,7 +557,7 @@ export class AdminSitesService {
           textRole: block.textRole,
           colorToken: block.colorToken,
           align: block.align,
-          spans: [{ text: block.text }],
+          spans: block.spans,
         });
       });
     }
@@ -675,8 +673,6 @@ export class AdminSitesService {
         type: m.type,
         url: m.url ? toAbsoluteUrl(m.url) : null,
         embedUrl: m.embedUrl,
-        altFa: m.altFa,
-        altEn: m.altEn,
         contentHash: m.contentHash,
         isCover: m.isCover,
       })),

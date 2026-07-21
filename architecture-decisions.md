@@ -202,7 +202,7 @@ apps/web/
 
 - Locale lives in the URL path (`/`, `/en/...`, `/ar/...`), per the next-intl decision in section 4 - never in a cookie-only or client-state-only scheme, so links are shareable and indexable per locale.
 - A `LanguageSwitcher` dropdown (native names from `i18n/locales.ts`) swaps the locale segment of the current path and preserves the rest of the URL. Adding a language = extend `routing.locales` + `LOCALE_DEFINITIONS` + `messages/{code}.json`.
-- `fa` is the default locale (no prefix); `en` and `ar` are prefixed. Site **content** translations remain `fa`/`en` in the API for now; Arabic UI falls back to Persian site copy via `toContentLocale()` until `ar` SiteTranslation rows exist.
+- `fa` is the default locale (no prefix); `en` and `ar` are prefixed. Site **content** locales are `fa` / `en` / `ar` (required on admin create/update since 2026-07-21, §21); Arabic UI reads Arabic site copy from the API — no `ar`→`fa` collapse in `toContentLocale()`.
 - `hreflang` alternate tags are generated automatically by next-intl's routing config for SEO.
 
 ### 12f. State management
@@ -259,7 +259,7 @@ Phase 2 backend: full domain schema, flexible site pages, public read APIs, loca
 | Decision | Detail | Reason |
 |---|---|---|
 | Content model | `SiteTranslation` holds `title` + `shortDescription` only; page body = ordered `SiteContentBlock` rows per locale | Supports mixed headings, styled text (bold/italic spans), images, video, audio without HTML in the DB |
-| Text styling | Design-system tokens only: `textRole`, `colorToken`, `align`; inline emphasis via `spans: { text, bold?, italic? }[]` | Keeps Persian pages on-brand; admin editor can expose a fixed palette later |
+| Text styling | Design-system tokens only: `textRole`, `colorToken`, `align` (`START` \| `CENTER` \| `END`); inline emphasis via `spans: { text, bold?, italic?, href? }[]` | Keeps pages on-brand; admin editor exposes the fixed palette + rich spans (§21) |
 | Media types | `IMAGE` (sharp → WebP), `VIDEO`/`AUDIO` (store as-is); video may use `embedUrl` instead of local file | Matches arch §11 upload pipeline; defers transcoding |
 | Storage | `StorageService` interface + `LocalDiskStorageService`; served at `/uploads/*` via `@nestjs/serve-static` | Swappable to S3/CDN later without rewriting MediaService |
 | Media file lifecycle | Write to disk only via `save*FromBuffer` / `replace*FromBuffer`; on DB failure the new file is deleted before the error propagates; replace deletes the previous file only after a successful row update; `deleteMedia` removes the DB row first, then the file | Avoids dangling uploads when create/update fails |
@@ -341,7 +341,7 @@ Part of the admin site editor rework (full site create/replace as one multipart 
 | Endpoint shape | `POST /admin/sites` and `PUT /admin/sites/:id` (`AnyFilesInterceptor`) replace the old JSON `POST`+`PATCH`+`POST .../cover` trio; body is `multipart/form-data` with a `payload` field (JSON, parsed then validated by `createSiteFullSchema`/`updateSiteFullSchema`) plus one file field per referenced `clientFileKey` — the multipart **field name is the `clientFileKey`** (e.g. `cover`), so the controller indexes uploads by `file.fieldname` with no prefix convention. `DELETE /admin/sites/:id` (204) replaces the ad-hoc delete path. Multer's `limits.fileSize` is set to `AUDIO_MAX_BYTES` (the larger of the two per-type caps) as an outer transport-level bound; `AdminSitesService.prepareFiles` still enforces the tighter `IMAGE_MAX_BYTES` per file kind — setting the multer ceiling to the smaller image limit would reject valid larger audio uploads before the service's own check runs | One atomic write per create/replace call instead of 2–3 round-trips; keeps the size-limit enforcement responsibility where the per-kind logic already lives |
 | Deprecated JSON write path removal | `AdminSitesService.createSite`/`updateSite`/`uploadCover` and their controller handlers are deleted (dead code, only caller was the controller). `createSiteAdminSchema`/`updateSiteAdminSchema`/`siteAdminTranslationSchema` remained exported from `@heritage/shared-types` only until `apps/web/components/admin/site-form.tsx` was rewired to the multipart contract (done); no consumer imports the legacy schemas anymore | Removing the API-side dead code doesn't require breaking the web build ahead of its own migration task |
 | `DELETE /admin/sites/:id` file/DB order | `AdminSitesService.deleteSite` collects every `Media.url` for the site and deletes each disk file (`MediaCleanupService.deleteAllMediaFilesForSite`) **before** the DB cascade, then runs one `$transaction` deleting `VisitEvent` → `QRCode` → `Site` in that order | `QRCode.site` and `VisitEvent.site` are `onDelete: Restrict` (§11), so they must be removed before the `Site` row; doing the file cleanup first means a mid-transaction DB failure never leaves the DB pointing at files that were already deleted |
-| FA/EN content editor UX | Admin `SiteForm` renders `Tabs` for the two **content** locales (`CONTENT_LOCALE_DEFINITIONS` in `i18n/locales.ts`: permanent native labels `فارسی` / `English`, permanent `dir` rtl/ltr on title/short fields + document canvas). Labels are **not** next-intl UI strings — they stay the same regardless of admin chrome language. Each tab holds title, shortDescription, and a `BlockListEditor`; EN has a "Copy from Persian" action (`copyBlocksFromFa()`) that clones FA's block structure, keeps shared `mediaId`s, and confirms before overwriting existing EN blocks. Canvas media blocks are WYSIWYG vs the public page (natural `object-contain` images, visible captions, playable audio via `previewUrl`) | Content writing direction must not flip with the UI language switcher; matches `SiteTranslation` fa/en 1:1; editors should see true layout before publish |
+| FA/EN/AR content editor UX | Admin `SiteForm` renders `Tabs` from `CONTENT_LOCALE_DEFINITIONS` (`fa` \| `en` \| `ar`, permanent native labels + `dir`) each holding title, shortDescription, and a document-canvas `BlockListEditor`; EN and AR have "Copy from Persian" (`copyBlocksFromFa()`) with confirm when target blocks exist. Canvas media is WYSIWYG (natural `object-contain` images, visible captions, playable audio). **See §21** for rich spans, DnD, per-tab undo, and caption/slug a11y | Matches the public page's fa/en/ar model 1:1; content writing direction must not flip with the UI language switcher |
 | Video blocks | `VIDEO` blocks store an `embedUrl` only — no local video file upload, no video branch in `StagingService`/Sharp | Avoids an ffmpeg/transcoding dependency; embeds (Aparat/YouTube) cover the real use case |
 
 ## 19. API e2e coverage for the atomic write pipeline (2026-07-21)
@@ -362,6 +362,27 @@ Fixes from the whole-branch review of `feat/admin-site-editor`.
 | Sharp validates before commit | Image decode/optimize (Sharp → WebP) moved out of the post-commit `promoteImage` and into `StagingService.stageImage`, called from `AdminSitesService.stageImages` **before** `prisma.$transaction`. A file that Sharp can't decode throws inside `stageImages`, which is mapped to a `BadRequestException` (400); the outer `catch` then `staging.abort`s the session, so no `Site`/`Media`/block rows are ever created. Audio is still mime/size-only validated in `prepareFiles` (also pre-commit) | Previously Sharp ran after the transaction committed, so a bad image left a persisted `Media` row with `url = null`; validating first makes a corrupt image a clean 400 with zero DB writes |
 
 Tests: `global-exception.filter.spec.ts` (ZodError→400, HttpException passthrough, unknown→500), `staging.service.spec.ts` (`stageImage` runs Sharp before writing; `promoteImage` copies without re-encoding), `admin-sites-full.service.spec.ts` (a Sharp/staging failure aborts staging and never opens the transaction). Full `apps/api` unit suite green (10 suites / 39 tests).
+
+## 21. Editor completeness — Arabic content, rich spans, caption a11y (2026-07-21)
+
+Part of the editor-completeness pass (see `docs/superpowers/specs/2026-07-21-editor-completeness-design.md`).
+
+| Decision | Detail | Reason |
+|---|---|---|
+| Content locales | `localeSchema` and admin write refine require **fa, en, and ar** on create/update; `CONTENT_LOCALE_DEFINITIONS` lists native endonyms + permanent `dir` (فارسی/rtl, English/ltr, العربية/rtl) | Arabic site content is first-class; no auto-backfill migration for existing DB rows — editors add AR on next full save; seed includes AR for Taq-e Bostan |
+| Public Arabic | `toContentLocale()` returns `'fa' \| 'en' \| 'ar'` with identity for those three (removed `ar`→`fa` collapse) | Arabic UI shows Arabic title/blocks from API when present |
+| Rich text spans | Admin text writes use `spans[]` only (min 1); each span `{ text, bold?, italic?, href? }`; plain `text` field removed from write schema | Saving no longer flattens emphasis; links round-trip via optional `href` |
+| Span links (public) | `href` → `<a>` with `target="_blank"` + `rel="noopener noreferrer"` for absolute http(s) URLs; teal link styles from design system | Consistent with §10 tokens; toolbar uses URL prompt in admin |
+| Align END | Prisma `BlockAlign` + Zod: `START` \| `CENTER` \| `END`; public CSS `text-start` / `text-center` / `text-end` | RTL pages need end-aligned text; inspector chips include End |
+| Media alts removed | Drop `Media.altFa` / `Media.altEn` columns and API fields | Duplicated per-locale captions; editor never used alts |
+| Caption / slug a11y | Block media: image `alt` and audio/video `aria-label` = **caption** (empty string when no caption — no type-label fallback); cover and site-card images: `alt={slug}` | One editable caption per block locale; slug is stable for covers |
+| Copy from FA | EN and AR tabs: clone FA block structure (spans, captions, embed URLs); keep shared `mediaId`; confirm if target tab already has blocks | Same workflow for both LTR locales |
+| Canvas reorder | HTML5 drag-and-drop on selected block handle (`reorderBlock` helper); keep inspector move up/down | Faster reorder without new DnD library |
+| Per-tab undo/redo | `createTabHistory` stack per active content tab (`{ title, shortDescription, blocks }`); Ctrl/Cmd+Z undo, Shift+Z / Y redo; 300ms coalesce for typing | History isolated per locale tab; does not cross-contaminate FA/EN/AR |
+| Rich text implementation | `SpanTextEditor` (`contenteditable`) + `FormatToolbar` (Bold/Italic/Link/Unlink); offset-based span helpers in `lib/text-spans.ts` for tests | No new rich-text npm dep; round-trip spans on save |
+| Native video | Unchanged: `VIDEO` blocks store `embedUrl` only — no local video upload | Avoids ffmpeg/transcoding; same as §18 |
+
+Spec: [`docs/superpowers/specs/2026-07-21-editor-completeness-design.md`](./docs/superpowers/specs/2026-07-21-editor-completeness-design.md).
 
 ## Open questions
 

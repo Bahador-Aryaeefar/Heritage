@@ -22,7 +22,7 @@ export function SiteCard({ site, locale }: SiteCardProps) {
           {coverSrc ? (
             <Image
               src={coverSrc}
-              alt={translation.title}
+              alt={site.slug}
               fill
               className="object-cover"
               sizes="(max-width: 900px) 100vw, 33vw"

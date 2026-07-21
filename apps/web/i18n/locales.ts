@@ -1,9 +1,10 @@
-import { routing, type Locale } from './routing';
+import { routing, type Locale as UiLocale } from './routing';
+import type { Locale } from '@heritage/shared-types';
 
 export type LocaleDirection = 'rtl' | 'ltr';
 
 export type LocaleDefinition = {
-  code: Locale;
+  code: UiLocale;
   /** Native endonym shown in the switcher (فارسی, English, العربية). */
   nativeName: string;
   /** BCP 47 tag for number/date formatting. */
@@ -15,7 +16,7 @@ export type LocaleDefinition = {
  * UI locale catalog — add an entry here + `messages/{code}.json` + routing.locales
  * when shipping a new language. Content locales (SiteTranslation) may lag behind.
  */
-export const LOCALE_DEFINITIONS: Record<Locale, LocaleDefinition> = {
+export const LOCALE_DEFINITIONS: Record<UiLocale, LocaleDefinition> = {
   fa: {
     code: 'fa',
     nativeName: 'فارسی',
@@ -38,7 +39,7 @@ export const LOCALE_DEFINITIONS: Record<Locale, LocaleDefinition> = {
 
 export function getLocaleDefinition(locale: string): LocaleDefinition {
   if (locale in LOCALE_DEFINITIONS) {
-    return LOCALE_DEFINITIONS[locale as Locale];
+    return LOCALE_DEFINITIONS[locale as UiLocale];
   }
   return LOCALE_DEFINITIONS[routing.defaultLocale];
 }
@@ -64,31 +65,27 @@ export function localizedPath(locale: string, path: string): string {
  * Site content locales (`SiteTranslation`) — independent of the UI locale catalog.
  * Tab labels use `nativeName` (never next-intl); panels/canvas use permanent `dir`.
  */
-export type ContentLocaleCode = 'fa' | 'en';
+export type ContentLocaleCode = Locale;
 
 export type ContentLocaleDefinition = {
   code: ContentLocaleCode;
-  /** Permanent endonym for content tabs (فارسی / English) — not UI-translated. */
+  /** Permanent endonym for content tabs (فارسی / English / العربية) — not UI-translated. */
   nativeName: string;
   dir: LocaleDirection;
 };
 
-export const CONTENT_LOCALE_DEFINITIONS: Record<
-  ContentLocaleCode,
-  ContentLocaleDefinition
-> = {
+export const CONTENT_LOCALE_DEFINITIONS: Record<ContentLocaleCode, ContentLocaleDefinition> = {
   fa: { code: 'fa', nativeName: 'فارسی', dir: 'rtl' },
   en: { code: 'en', nativeName: 'English', dir: 'ltr' },
+  ar: { code: 'ar', nativeName: 'العربية', dir: 'rtl' },
 };
 
 export const CONTENT_LOCALES = Object.keys(
   CONTENT_LOCALE_DEFINITIONS,
 ) as ContentLocaleCode[];
 
-/**
- * Map UI locale → content locale stored on sites (currently fa | en only).
- * Arabic UI falls back to Persian content until `ar` SiteTranslation exists.
- */
+/** Map UI locale → site content locale (fa | en | ar). */
 export function toContentLocale(locale: string): ContentLocaleCode {
-  return locale === 'en' ? 'en' : 'fa';
+  if (locale === 'en' || locale === 'ar') return locale;
+  return 'fa';
 }

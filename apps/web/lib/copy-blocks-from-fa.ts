@@ -2,19 +2,20 @@
  * Editor-side shape for `SiteContentBlock` rows (see `heritage-schema-map.md` §"SiteContentBlock").
  * Mirrors the admin write schemas in `@heritage/shared-types`
  * (`adminTextBlockWriteSchema` / `adminImageBlockWriteSchema` / `adminAudioBlockWriteSchema` /
- * `adminVideoBlockWriteSchema`) plus a client-only `key` for React list identity and, for images
- * and audio, a `previewUrl` to render / play media before upload. Text blocks use a single `text`
- * string here (no inline bold/italic spans) — the editor does not expose span-level formatting yet.
+ * `adminVideoBlockWriteSchema`) plus a client-only `key` for React list identity and, for images,
+ * a `previewUrl` to render a thumbnail before upload.
  */
+
+import type { TextSpan } from '@heritage/shared-types';
 
 export type EditorTextRole = 'HERO' | 'H2' | 'H3' | 'BODY' | 'CAPTION';
 export type EditorColorToken = 'BROWN_950' | 'BROWN_800' | 'BROWN_600' | 'TEAL_700' | 'SAND_50';
-export type EditorAlign = 'START' | 'CENTER';
+export type EditorAlign = 'START' | 'CENTER' | 'END';
 
 export type EditorTextBlock = {
   key: string;
   type: 'HEADING' | 'PARAGRAPH';
-  text: string;
+  spans: TextSpan[];
   textRole: EditorTextRole;
   colorToken: EditorColorToken;
   align: EditorAlign;
@@ -35,8 +36,6 @@ export type EditorAudioBlock = {
   caption: string;
   mediaId?: string;
   clientFileKey?: string;
-  /** Object URL or persisted media URL — used for in-canvas / inspector playback. */
-  previewUrl?: string;
 };
 
 export type EditorVideoBlock = {
@@ -59,7 +58,7 @@ export function createBlockKey(): string {
 
 /**
  * Start an EN (or other locale) block list from the FA blocks: new client keys, same order,
- * same starting text/caption/embedUrl values, `mediaId` kept (the underlying file already lives
+ * same starting span/caption/embedUrl values, `mediaId` kept (the underlying file already lives
  * on the server so both locales can reference it). `clientFileKey`/`previewUrl` are dropped —
  * they point at a file staged for the FA tab's own upload; the target locale must pick its own
  * file (or keep the shared `mediaId` if there is one) rather than silently reusing FA's pending upload.
@@ -74,7 +73,7 @@ export function copyBlocksFromFa(fa: EditorBlock[]): EditorBlock[] {
         return {
           key,
           type: block.type,
-          text: block.text,
+          spans: block.spans.map((span) => ({ ...span })),
           textRole: block.textRole,
           colorToken: block.colorToken,
           align: block.align,

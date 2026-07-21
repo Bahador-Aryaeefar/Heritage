@@ -1,7 +1,7 @@
 'use client';
 
 import dynamic from 'next/dynamic';
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useLocale, useTranslations } from 'next-intl';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useRouter } from '@/i18n/navigation';
@@ -35,10 +35,12 @@ import {
 import { adminFetch } from '@/lib/admin-api';
 import { sha256HexOfFile } from '@/lib/file-hash';
 import { optimizeImage } from '@/lib/optimize-image';
+import { createTabHistory, type TabHistory } from '@/lib/tab-history';
+import { spansToPlainText } from '@/lib/text-spans';
 import { env } from '@/env';
 import {
   CONTENT_LOCALE_DEFINITIONS,
-  toContentLocale,
+  CONTENT_LOCALES,
   type ContentLocaleCode,
 } from '@/i18n/locales';
 import type { Locale } from '@/i18n/routing';
@@ -51,9 +53,13 @@ const LocationMapPicker = dynamic(
 
 const citiesSchema = paginatedResponseSchema(cityOptionSchema);
 
-type ContentLocale = ContentLocaleCode;
-
 type MediaRef = { mediaId?: string; clientFileKey?: string; contentHash?: string };
+
+type TabSnapshot = {
+  title: string;
+  shortDescription: string;
+  blocks: EditorBlock[];
+};
 
 type SiteFormProps = {
   site?: AdminSite;
@@ -68,7 +74,7 @@ function toEditorBlocks(blocks: AdminSite['translations'][number]['blocks']): Ed
         return {
           key: createBlockKey(),
           type: block.type,
-          text: block.spans.map((span) => span.text).join(''),
+          spans: block.spans.map((span) => ({ ...span })),
           textRole: block.textRole,
           colorToken: block.colorToken,
           align: block.align,
@@ -101,9 +107,17 @@ function toEditorBlocks(blocks: AdminSite['translations'][number]['blocks']): Ed
   });
 }
 
-function initialBlocks(site: AdminSite | undefined, locale: ContentLocale): EditorBlock[] {
+function initialBlocks(site: AdminSite | undefined, locale: ContentLocaleCode): EditorBlock[] {
   const translation = site?.translations.find((t) => t.locale === locale);
   return translation ? toEditorBlocks(translation.blocks) : [];
+}
+
+function initialTitle(site: AdminSite | undefined, locale: ContentLocaleCode): string {
+  return site?.translations.find((t) => t.locale === locale)?.title ?? '';
+}
+
+function initialShort(site: AdminSite | undefined, locale: ContentLocaleCode): string {
+  return site?.translations.find((t) => t.locale === locale)?.shortDescription ?? '';
 }
 
 export function SiteForm({ site }: SiteFormProps) {
@@ -113,6 +127,7 @@ export function SiteForm({ site }: SiteFormProps) {
   const t = useTranslations('admin.siteForm');
   const tb = useTranslations('admin.siteForm.block');
   const isEdit = Boolean(site);
+  const formRef = useRef<HTMLFormElement>(null);
 
   const { data: cities } = useQuery({
     queryKey: ['admin', 'cities'],
@@ -125,28 +140,127 @@ export function SiteForm({ site }: SiteFormProps) {
   const [lng, setLng] = useState(site?.lng ?? '');
   const [cityId, setCityId] = useState(site?.city.id ?? '');
 
-  const [activeTab, setActiveTab] = useState<ContentLocale>('fa');
-  const [titleFa, setTitleFa] = useState(
-    site?.translations.find((tr) => tr.locale === 'fa')?.title ?? '',
-  );
-  const [titleEn, setTitleEn] = useState(
-    site?.translations.find((tr) => tr.locale === 'en')?.title ?? '',
-  );
-  const [shortFa, setShortFa] = useState(
-    site?.translations.find((tr) => tr.locale === 'fa')?.shortDescription ?? '',
-  );
-  const [shortEn, setShortEn] = useState(
-    site?.translations.find((tr) => tr.locale === 'en')?.shortDescription ?? '',
-  );
+  const [activeTab, setActiveTab] = useState<ContentLocaleCode>('fa');
+  const [titleFa, setTitleFa] = useState(() => initialTitle(site, 'fa'));
+  const [titleEn, setTitleEn] = useState(() => initialTitle(site, 'en'));
+  const [titleAr, setTitleAr] = useState(() => initialTitle(site, 'ar'));
+  const [shortFa, setShortFa] = useState(() => initialShort(site, 'fa'));
+  const [shortEn, setShortEn] = useState(() => initialShort(site, 'en'));
+  const [shortAr, setShortAr] = useState(() => initialShort(site, 'ar'));
   const [blocksFa, setBlocksFa] = useState<EditorBlock[]>(() => initialBlocks(site, 'fa'));
   const [blocksEn, setBlocksEn] = useState<EditorBlock[]>(() => initialBlocks(site, 'en'));
+  const [blocksAr, setBlocksAr] = useState<EditorBlock[]>(() => initialBlocks(site, 'ar'));
 
   const [coverFile, setCoverFile] = useState<File | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  // Raw files staged by block key. The block itself only carries `clientFileKey`/`previewUrl`;
-  // the actual bytes to hash/optimize/upload live here until save.
   const filesByKey = useRef<Map<string, File>>(new Map());
+
+  const historiesRef = useRef<Record<ContentLocaleCode, TabHistory<TabSnapshot>> | null>(null);
+  if (!historiesRef.current) {
+    historiesRef.current = {
+      fa: createTabHistory<TabSnapshot>(),
+      en: createTabHistory<TabSnapshot>(),
+      ar: createTabHistory<TabSnapshot>(),
+    };
+  }
+  const histories = historiesRef.current;
+  const historyInitialized = useRef(false);
+
+  useEffect(() => {
+    if (historyInitialized.current) return;
+    historyInitialized.current = true;
+    histories.fa.push({ title: titleFa, shortDescription: shortFa, blocks: blocksFa });
+    histories.en.push({ title: titleEn, shortDescription: shortEn, blocks: blocksEn });
+    histories.ar.push({ title: titleAr, shortDescription: shortAr, blocks: blocksAr });
+  }, [
+    histories,
+    titleFa,
+    shortFa,
+    blocksFa,
+    titleEn,
+    shortEn,
+    blocksEn,
+    titleAr,
+    shortAr,
+    blocksAr,
+  ]);
+
+  function getSnapshot(locale: ContentLocaleCode): TabSnapshot {
+    switch (locale) {
+      case 'fa':
+        return { title: titleFa, shortDescription: shortFa, blocks: blocksFa };
+      case 'en':
+        return { title: titleEn, shortDescription: shortEn, blocks: blocksEn };
+      case 'ar':
+        return { title: titleAr, shortDescription: shortAr, blocks: blocksAr };
+    }
+  }
+
+  function applySnapshot(locale: ContentLocaleCode, snapshot: TabSnapshot) {
+    switch (locale) {
+      case 'fa':
+        setTitleFa(snapshot.title);
+        setShortFa(snapshot.shortDescription);
+        setBlocksFa(snapshot.blocks);
+        break;
+      case 'en':
+        setTitleEn(snapshot.title);
+        setShortEn(snapshot.shortDescription);
+        setBlocksEn(snapshot.blocks);
+        break;
+      case 'ar':
+        setTitleAr(snapshot.title);
+        setShortAr(snapshot.shortDescription);
+        setBlocksAr(snapshot.blocks);
+        break;
+    }
+  }
+
+  function updateTitle(locale: ContentLocaleCode, title: string) {
+    const next = { ...getSnapshot(locale), title };
+    applySnapshot(locale, next);
+    histories[locale].pushCoalesced(next, 'title');
+  }
+
+  function updateShort(locale: ContentLocaleCode, shortDescription: string) {
+    const next = { ...getSnapshot(locale), shortDescription };
+    applySnapshot(locale, next);
+    histories[locale].pushCoalesced(next, 'short');
+  }
+
+  function updateBlocks(locale: ContentLocaleCode, blocks: EditorBlock[]) {
+    const next = { ...getSnapshot(locale), blocks };
+    applySnapshot(locale, next);
+    // Coalesce rapid canvas typing; structural edits still become separate steps after ~300ms idle.
+    histories[locale].pushCoalesced(next, 'blocks');
+  }
+
+  function handleUndo() {
+    const snapshot = histories[activeTab].undo();
+    if (snapshot) applySnapshot(activeTab, snapshot);
+  }
+
+  function handleRedo() {
+    const snapshot = histories[activeTab].redo();
+    if (snapshot) applySnapshot(activeTab, snapshot);
+  }
+
+  function handleFormKeyDown(event: React.KeyboardEvent<HTMLFormElement>) {
+    const target = event.target as Node | null;
+    if (!target || !formRef.current?.contains(target)) return;
+
+    const mod = event.metaKey || event.ctrlKey;
+    if (!mod) return;
+
+    if (event.key === 'z' && !event.shiftKey) {
+      event.preventDefault();
+      handleUndo();
+    } else if ((event.key === 'z' && event.shiftKey) || event.key === 'y') {
+      event.preventDefault();
+      handleRedo();
+    }
+  }
 
   const blockLabels: BlockListEditorLabels = {
     addHeading: tb('addHeading'),
@@ -157,6 +271,7 @@ export function SiteForm({ site }: SiteFormProps) {
     addBlock: tb('addBlock'),
     moveUp: tb('moveUp'),
     moveDown: tb('moveDown'),
+    dragReorder: tb('dragReorder'),
     delete: tb('delete'),
     empty: tb('empty'),
     inspectorEmpty: tb('inspectorEmpty'),
@@ -185,6 +300,13 @@ export function SiteForm({ site }: SiteFormProps) {
     colorSand50: tb('colorSand50'),
     alignStart: tb('alignStart'),
     alignCenter: tb('alignCenter'),
+    alignEnd: tb('alignEnd'),
+    bold: tb('bold'),
+    italic: tb('italic'),
+    link: tb('link'),
+    unlink: tb('unlink'),
+    linkPrompt: tb('linkPrompt'),
+    formatToolbar: tb('formatToolbar'),
     pickImage: t('pickImage'),
     changeImage: t('changeImage'),
     removeImage: t('removeImage'),
@@ -194,6 +316,18 @@ export function SiteForm({ site }: SiteFormProps) {
     audioAttached: tb('audioAttached'),
   };
 
+  const titleLabels: Record<ContentLocaleCode, string> = {
+    fa: t('titleFa'),
+    en: t('titleEn'),
+    ar: t('titleAr'),
+  };
+
+  const shortLabels: Record<ContentLocaleCode, string> = {
+    fa: t('shortFa'),
+    en: t('shortEn'),
+    ar: t('shortAr'),
+  };
+
   const categoryOptions = [
     { value: 'ANCIENT', label: t('ancient') },
     { value: 'ISLAMIC', label: t('islamic') },
@@ -201,56 +335,48 @@ export function SiteForm({ site }: SiteFormProps) {
   ];
 
   const cityOptions = (cities?.items ?? []).map((city) => {
-    const preferEn = toContentLocale(uiLocale) === 'en';
+    const preferEn = uiLocale === 'en';
     const cityName = preferEn ? city.nameEn : city.nameFa;
     const provinceName = preferEn ? city.province.nameEn : city.province.nameFa;
     return { value: city.id, label: `${cityName} · ${provinceName}` };
   });
 
   function handlePickFile(
-    locale: ContentLocale,
+    locale: ContentLocaleCode,
     block: EditorImageBlock | EditorAudioBlock,
     file: File,
   ) {
     filesByKey.current.set(block.key, file);
-    const list = locale === 'fa' ? blocksFa : blocksEn;
-    const existing = list.find((candidate) => candidate.key === block.key);
-    if (
-      existing &&
-      (existing.type === 'IMAGE' || existing.type === 'AUDIO') &&
-      existing.previewUrl?.startsWith('blob:')
-    ) {
-      URL.revokeObjectURL(existing.previewUrl);
-    }
-    const previewUrl = URL.createObjectURL(file);
-    const setBlocks = locale === 'fa' ? setBlocksFa : setBlocksEn;
-    setBlocks((prev) =>
-      prev.map((candidate) =>
+    const previewUrl = block.type === 'IMAGE' ? URL.createObjectURL(file) : undefined;
+    const blocks = getSnapshot(locale).blocks;
+    updateBlocks(
+      locale,
+      blocks.map((candidate) =>
         candidate.key === block.key
           ? ({
               ...candidate,
               mediaId: undefined,
               clientFileKey: block.key,
-              previewUrl,
+              ...(previewUrl ? { previewUrl } : {}),
             } as EditorBlock)
           : candidate,
       ),
     );
   }
 
-  function handleCopyFromFa() {
-    if (blocksEn.length > 0 && !window.confirm(t('copyConfirm'))) {
+  function handleCopyFromFa(target: 'en' | 'ar') {
+    const targetBlocks = target === 'en' ? blocksEn : blocksAr;
+    const confirmKey = target === 'en' ? 'copyConfirm' : 'copyConfirmAr';
+    if (targetBlocks.length > 0 && !window.confirm(t(confirmKey))) {
       return;
     }
-    setBlocksEn(copyBlocksFromFa(blocksFa));
+    updateBlocks(target, copyBlocksFromFa(blocksFa));
   }
 
   const saveMutation = useMutation({
     mutationFn: async () => {
       const formData = new FormData();
 
-      // hash of already-persisted media → its id, so an unchanged file is referenced by mediaId
-      // (no re-upload). Session dedupe collapses identical picks (e.g. cover reused as a block).
       const existingByHash = new Map<string, string>();
       for (const media of site?.media ?? []) {
         if (media.contentHash) existingByHash.set(media.contentHash, media.id);
@@ -273,7 +399,6 @@ export function SiteForm({ site }: SiteFormProps) {
         return ref;
       }
 
-      // Cover first so an identical file reused inside a block collapses onto the "cover" part.
       let cover: CreateSiteFullInput['cover'];
       if (coverFile) {
         cover = await resolveFile('cover', coverFile);
@@ -287,15 +412,18 @@ export function SiteForm({ site }: SiteFormProps) {
         for (const block of blocks) {
           switch (block.type) {
             case 'HEADING':
-            case 'PARAGRAPH':
+            case 'PARAGRAPH': {
+              const plain = spansToPlainText(block.spans).trim();
+              if (!plain) continue;
               out.push({
                 type: block.type,
                 textRole: block.textRole,
                 colorToken: block.colorToken,
                 align: block.align,
-                text: block.text,
+                spans: block.spans,
               });
               break;
+            }
             case 'VIDEO':
               out.push({
                 type: 'VIDEO',
@@ -315,7 +443,6 @@ export function SiteForm({ site }: SiteFormProps) {
               } else if (block.mediaId) {
                 ref = { mediaId: block.mediaId };
               }
-              // media block with neither a file nor an existing mediaId: skip
               if (ref) {
                 out.push({
                   type: block.type,
@@ -332,10 +459,12 @@ export function SiteForm({ site }: SiteFormProps) {
 
       const faBlocks = await buildBlocks(blocksFa);
       const enBlocks = await buildBlocks(blocksEn);
+      const arBlocks = await buildBlocks(blocksAr);
 
       const translations = [
         { locale: 'fa' as const, title: titleFa, shortDescription: shortFa, blocks: faBlocks },
         { locale: 'en' as const, title: titleEn, shortDescription: shortEn, blocks: enBlocks },
+        { locale: 'ar' as const, title: titleAr, shortDescription: shortAr, blocks: arBlocks },
       ];
 
       if (isEdit && site) {
@@ -379,9 +508,14 @@ export function SiteForm({ site }: SiteFormProps) {
     onError: () => setError(t('saveFailed')),
   });
 
+  const activeContent = CONTENT_LOCALE_DEFINITIONS[activeTab];
+  const activeSnapshot = getSnapshot(activeTab);
+
   return (
     <form
+      ref={formRef}
       className="w-full space-y-6"
+      onKeyDown={handleFormKeyDown}
       onSubmit={(event) => {
         event.preventDefault();
         setError(null);
@@ -444,81 +578,51 @@ export function SiteForm({ site }: SiteFormProps) {
       <div className="space-y-4">
         <Tabs
           value={activeTab}
-          onChange={(value) => setActiveTab(value as ContentLocale)}
-          items={[
-            {
-              value: CONTENT_LOCALE_DEFINITIONS.fa.code,
-              label: CONTENT_LOCALE_DEFINITIONS.fa.nativeName,
-            },
-            {
-              value: CONTENT_LOCALE_DEFINITIONS.en.code,
-              label: CONTENT_LOCALE_DEFINITIONS.en.nativeName,
-            },
-          ]}
+          onChange={(value) => setActiveTab(value as ContentLocaleCode)}
+          items={CONTENT_LOCALES.map((code) => ({
+            value: code,
+            label: CONTENT_LOCALE_DEFINITIONS[code].nativeName,
+          }))}
         />
 
-        {activeTab === 'fa' ? (
-          <div className="space-y-4">
-            <Field label={t('titleFa')}>
-              <TextInput
-                value={titleFa}
-                onChange={(event) => setTitleFa(event.target.value)}
-                dir={CONTENT_LOCALE_DEFINITIONS.fa.dir}
-              />
-            </Field>
-            <Field label={t('shortFa')}>
-              <TextArea
-                value={shortFa}
-                onChange={(event) => setShortFa(event.target.value)}
-                rows={3}
-                dir={CONTENT_LOCALE_DEFINITIONS.fa.dir}
-              />
-            </Field>
-            <span className="block text-xs font-bold tracking-wide text-brown-800">
+        <div className="space-y-4">
+          <Field label={titleLabels[activeTab]}>
+            <TextInput
+              value={activeSnapshot.title}
+              onChange={(event) => updateTitle(activeTab, event.target.value)}
+              dir={activeContent.dir}
+            />
+          </Field>
+          <Field label={shortLabels[activeTab]}>
+            <TextArea
+              value={activeSnapshot.shortDescription}
+              onChange={(event) => updateShort(activeTab, event.target.value)}
+              rows={3}
+              dir={activeContent.dir}
+            />
+          </Field>
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <span className="text-xs font-bold tracking-wide text-brown-800">
               {t('contentBlocks')}
             </span>
-            <BlockListEditor
-              value={blocksFa}
-              onChange={setBlocksFa}
-              labels={blockLabels}
-              contentDir={CONTENT_LOCALE_DEFINITIONS.fa.dir}
-              onPickFile={(block, file) => handlePickFile('fa', block, file)}
-            />
-          </div>
-        ) : (
-          <div className="space-y-4">
-            <Field label={t('titleEn')}>
-              <TextInput
-                value={titleEn}
-                onChange={(event) => setTitleEn(event.target.value)}
-                dir={CONTENT_LOCALE_DEFINITIONS.en.dir}
-              />
-            </Field>
-            <Field label={t('shortEn')}>
-              <TextArea
-                value={shortEn}
-                onChange={(event) => setShortEn(event.target.value)}
-                rows={3}
-                dir={CONTENT_LOCALE_DEFINITIONS.en.dir}
-              />
-            </Field>
-            <div className="flex flex-wrap items-center justify-between gap-3">
-              <span className="text-xs font-bold tracking-wide text-brown-800">
-                {t('contentBlocks')}
-              </span>
-              <ActionButton type="button" variant="secondary" onClick={handleCopyFromFa}>
+            {activeTab !== 'fa' ? (
+              <ActionButton
+                type="button"
+                variant="secondary"
+                onClick={() => handleCopyFromFa(activeTab)}
+              >
                 {t('copyFromFa')}
               </ActionButton>
-            </div>
-            <BlockListEditor
-              value={blocksEn}
-              onChange={setBlocksEn}
-              labels={blockLabels}
-              contentDir={CONTENT_LOCALE_DEFINITIONS.en.dir}
-              onPickFile={(block, file) => handlePickFile('en', block, file)}
-            />
+            ) : null}
           </div>
-        )}
+          <BlockListEditor
+            value={activeSnapshot.blocks}
+            onChange={(blocks) => updateBlocks(activeTab, blocks)}
+            labels={blockLabels}
+            contentDir={activeContent.dir}
+            onPickFile={(block, file) => handlePickFile(activeTab, block, file)}
+          />
+        </div>
       </div>
 
       {error ? <p className="text-[15px] text-[#B44B3D]">{error}</p> : null}

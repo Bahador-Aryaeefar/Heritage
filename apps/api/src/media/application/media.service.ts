@@ -20,8 +20,6 @@ export interface CreateMediaInput {
   embedUrl?: string | null;
   mimeType?: string | null;
   durationSec?: number | null;
-  altFa?: string | null;
-  altEn?: string | null;
   sortOrder?: number;
   isCover?: boolean;
 }
@@ -68,8 +66,6 @@ export class MediaService {
           embedUrl: input.embedUrl ?? null,
           mimeType: input.mimeType ?? null,
           durationSec: input.durationSec ?? null,
-          altFa: input.altFa ?? null,
-          altEn: input.altEn ?? null,
           sortOrder: input.sortOrder ?? 0,
           isCover: input.isCover ?? false,
         },

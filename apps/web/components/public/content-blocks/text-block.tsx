@@ -20,6 +20,7 @@ const colorClasses: Record<ColorToken, string> = {
 const alignClasses: Record<BlockAlign, string> = {
   START: 'text-start',
   CENTER: 'text-center',
+  END: 'text-end',
 };
 
 type TextBlockProps = {
@@ -29,6 +30,10 @@ type TextBlockProps = {
   align: BlockAlign;
   spans: TextSpan[];
 };
+
+function isExternalHttpUrl(href: string): boolean {
+  return /^https?:\/\//i.test(href);
+}
 
 export function TextBlock({ type, textRole, colorToken, align, spans }: TextBlockProps) {
   const className = `${roleClasses[textRole]} ${colorClasses[colorToken]} ${alignClasses[align]}`;
@@ -40,6 +45,19 @@ export function TextBlock({ type, textRole, colorToken, align, spans }: TextBloc
         let content: ReactNode = span.text;
         if (span.bold) content = <strong>{content}</strong>;
         if (span.italic) content = <em>{content}</em>;
+        if (span.href) {
+          content = (
+            <a
+              href={span.href}
+              className="font-bold text-teal-700 hover:text-teal-500"
+              {...(isExternalHttpUrl(span.href)
+                ? { target: '_blank', rel: 'noopener noreferrer' }
+                : {})}
+            >
+              {content}
+            </a>
+          );
+        }
         return <span key={`${index}-${span.text.slice(0, 8)}`}>{content}</span>;
       })}
     </Tag>

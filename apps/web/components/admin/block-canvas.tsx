@@ -1,8 +1,10 @@
 'use client';
 
-import { Fragment, useEffect, useId, useRef } from 'react';
-import { ActionButton } from '@/components/ui/action-button';
+import { Fragment, useEffect, useRef, useState } from 'react';
 import { BlockInsertMenu } from '@/components/admin/block-insert-menu';
+import { FormatToolbar } from '@/components/admin/format-toolbar';
+import { MediaFilePicker } from '@/components/admin/media-file-picker';
+import { SpanTextEditor, type SpanTextEditorHandle } from '@/components/admin/span-text-editor';
 import { alignClasses, colorClasses, roleClasses } from '@/components/public/content-blocks/text-block';
 import type { BlockListEditorLabels } from '@/components/admin/block-list-editor';
 import type { LocaleDirection } from '@/i18n/locales';
@@ -17,24 +19,23 @@ import type {
 /** Same label bag as `BlockListEditor`/`BlockInspector` — no canvas-only copy needed. */
 export type BlockCanvasLabels = BlockListEditorLabels;
 
+/** MIME type for block-key drag payloads — avoids collisions with plain-text drags. */
+const BLOCK_DRAG_MIME = 'application/x-heritage-block-key';
+
 type BlockCanvasProps = {
   value: EditorBlock[];
   selectedKey: string | null;
   onSelect: (key: string | null) => void;
   onChangeBlock: (key: string, patch: Partial<EditorBlock>) => void;
   onInsertAt: (index: number, type: EditorBlock['type']) => void;
+  onReorder: (fromIndex: number, toIndex: number) => void;
   onPickFile?: (block: EditorImageBlock | EditorAudioBlock, file: File) => void;
   labels: BlockCanvasLabels;
-  /** When set, focus that block's in-canvas textarea (text blocks only) once after an insert. */
+  /** When set, focus that block's in-canvas editor (text blocks only) once after an insert. */
   textFocusKey?: string | null;
-  /** Permanent content writing direction (FA `rtl` / EN `ltr`) — not the UI locale dir. */
+  /** Permanent content writing direction (FA/AR `rtl` / EN `ltr`) — not the UI locale dir. */
   dir: LocaleDirection;
 };
-
-function autoResize(el: HTMLTextAreaElement) {
-  el.style.height = 'auto';
-  el.style.height = `${el.scrollHeight}px`;
-}
 
 function isValidEmbedUrl(value: string): boolean {
   if (!value.trim()) return false;
@@ -46,93 +47,52 @@ function isValidEmbedUrl(value: string): boolean {
   }
 }
 
-function CanvasCaption({
-  value,
-  placeholder,
-  onChange,
+function DragHandle({
+  blockKey,
+  dragReorderLabel,
+  onDragStart,
+  onDragEnd,
 }: {
-  value: string;
-  placeholder: string;
-  onChange: (value: string) => void;
+  blockKey: string;
+  dragReorderLabel: string;
+  onDragStart: (event: React.DragEvent<HTMLButtonElement>, key: string) => void;
+  onDragEnd: () => void;
 }) {
-  const ref = useRef<HTMLTextAreaElement>(null);
-
-  useEffect(() => {
-    if (ref.current) autoResize(ref.current);
-  });
-
   return (
-    <textarea
-      ref={ref}
-      value={value}
-      rows={1}
-      placeholder={placeholder}
-      onChange={(event) => onChange(event.target.value)}
+    <button
+      type="button"
+      draggable
+      aria-label={dragReorderLabel}
+      title={dragReorderLabel}
       onClick={(event) => event.stopPropagation()}
-      className="mt-2 w-full resize-none overflow-hidden border-0 bg-transparent p-0 text-center text-[14px] leading-relaxed text-brown-800 outline-none placeholder:text-brown-600/40"
-    />
-  );
-}
-
-function CanvasFileActions({
-  kind,
-  hasFile,
-  labels,
-  onPick,
-  onRemove,
-}: {
-  kind: 'image' | 'audio';
-  hasFile: boolean;
-  labels: { pick: string; change: string; remove: string };
-  onPick: (file: File) => void;
-  onRemove: () => void;
-}) {
-  const inputId = useId();
-  const inputRef = useRef<HTMLInputElement>(null);
-
-  return (
-    <div
-      className="mt-3 flex flex-wrap items-center justify-center gap-2"
-      onClick={(event) => event.stopPropagation()}
+      onDragStart={(event) => onDragStart(event, blockKey)}
+      onDragEnd={onDragEnd}
+      className="mb-1 flex cursor-grab items-center justify-center rounded-button border border-brown-800/15 bg-white px-1.5 py-0.5 text-brown-600 active:cursor-grabbing"
     >
-      <ActionButton type="button" variant="secondary" onClick={() => inputRef.current?.click()}>
-        {hasFile ? labels.change : labels.pick}
-      </ActionButton>
-      {hasFile ? (
-        <ActionButton
-          type="button"
-          variant="ghost"
-          onClick={() => {
-            onRemove();
-            if (inputRef.current) inputRef.current.value = '';
-          }}
-        >
-          {labels.remove}
-        </ActionButton>
-      ) : null}
-      <input
-        id={inputId}
-        ref={inputRef}
-        type="file"
-        accept={kind === 'image' ? 'image/*' : 'audio/*'}
-        className="sr-only"
-        onChange={(event) => {
-          const file = event.target.files?.[0];
-          if (file) onPick(file);
-        }}
-      />
-    </div>
+      <svg
+        aria-hidden="true"
+        viewBox="0 0 10 16"
+        className="h-4 w-2.5 fill-current"
+        focusable="false"
+      >
+        <circle cx="2" cy="3" r="1.25" />
+        <circle cx="8" cy="3" r="1.25" />
+        <circle cx="2" cy="8" r="1.25" />
+        <circle cx="8" cy="8" r="1.25" />
+        <circle cx="2" cy="13" r="1.25" />
+        <circle cx="8" cy="13" r="1.25" />
+      </svg>
+    </button>
   );
 }
 
 /**
  * Document canvas: a single white `rounded-card` surface that renders `EditorBlock[]` styled the
  * way the public article body renders them (`roleClasses`/`colorClasses`/`alignClasses` from
- * `TextBlock`; image/audio/video figures match public `ImageBlock`/`AudioBlock`/`VideoBlock`),
- * with in-place text/caption editing and "+" insert gaps between blocks. Fully controlled —
- * the caller (`BlockListEditor` shell) owns `selectedKey` and applies `onChangeBlock` /
- * `onInsertAt` to its flat `EditorBlock[]` state. Type/style/reorder/delete live in
- * `BlockInspector`; media pick/change/remove and captions are editable on the canvas.
+ * `TextBlock`), with in-place span editing and "+" insert gaps between blocks. Fully controlled —
+ * the caller (`BlockListEditor` shell, Task 5) owns `selectedKey` and applies `onChangeBlock` /
+ * `onInsertAt` to its flat `EditorBlock[]` state. Style/type/caption/media/reorder/delete controls
+ * live in `BlockInspector`, not here.
  */
 export function BlockCanvas({
   value,
@@ -140,163 +100,146 @@ export function BlockCanvas({
   onSelect,
   onChangeBlock,
   onInsertAt,
+  onReorder,
   onPickFile,
   labels,
   textFocusKey,
   dir,
 }: BlockCanvasProps) {
-  const textareaRefs = useRef<Map<string, HTMLTextAreaElement>>(new Map());
-
-  useEffect(() => {
-    textareaRefs.current.forEach((el) => autoResize(el));
-  });
+  const editorRef = useRef<SpanTextEditorHandle>(null);
+  const [draggingKey, setDraggingKey] = useState<string | null>(null);
+  const [dropTargetIndex, setDropTargetIndex] = useState<number | null>(null);
 
   useEffect(() => {
     if (!textFocusKey) return;
-    textareaRefs.current.get(textFocusKey)?.focus();
+    editorRef.current?.focus();
   }, [textFocusKey]);
 
+  function handleDragStart(event: React.DragEvent<HTMLButtonElement>, key: string) {
+    event.dataTransfer.effectAllowed = 'move';
+    event.dataTransfer.setData(BLOCK_DRAG_MIME, key);
+    setDraggingKey(key);
+  }
+
+  function handleDragEnd() {
+    setDraggingKey(null);
+    setDropTargetIndex(null);
+  }
+
+  function handleDragOver(event: React.DragEvent<HTMLDivElement>, index: number) {
+    event.preventDefault();
+    event.dataTransfer.dropEffect = 'move';
+    setDropTargetIndex(index);
+  }
+
+  function handleDrop(event: React.DragEvent<HTMLDivElement>, toIndex: number) {
+    event.preventDefault();
+    event.stopPropagation();
+
+    const key = event.dataTransfer.getData(BLOCK_DRAG_MIME);
+    const fromIndex = value.findIndex((block) => block.key === key);
+    if (fromIndex !== -1 && fromIndex !== toIndex) {
+      onReorder(fromIndex, toIndex);
+    }
+
+    setDraggingKey(null);
+    setDropTargetIndex(null);
+  }
+
   function renderTextBlock(block: EditorTextBlock) {
+    const selected = selectedKey === block.key;
+
     return (
-      <textarea
-        ref={(el) => {
-          if (el) textareaRefs.current.set(block.key, el);
-          else textareaRefs.current.delete(block.key);
-        }}
-        value={block.text}
-        onChange={(event) => onChangeBlock(block.key, { text: event.target.value })}
-        rows={1}
-        placeholder={block.type === 'HEADING' ? labels.headingTitle : labels.paragraphTitle}
-        className={`w-full resize-none overflow-hidden border-0 bg-transparent p-0 outline-none placeholder:text-brown-600/40 ${roleClasses[block.textRole]} ${colorClasses[block.colorToken]} ${alignClasses[block.align]}`}
-      />
+      <>
+        {selected ? (
+          <FormatToolbar
+            toolbarLabel={labels.formatToolbar}
+            labels={{
+              bold: labels.bold,
+              italic: labels.italic,
+              link: labels.link,
+              unlink: labels.unlink,
+            }}
+            onBold={() => editorRef.current?.toggleBold()}
+            onItalic={() => editorRef.current?.toggleItalic()}
+            onLink={() => editorRef.current?.promptLink()}
+            onUnlink={() => editorRef.current?.unlink()}
+          />
+        ) : null}
+        <SpanTextEditor
+          ref={selected ? editorRef : undefined}
+          value={block.spans}
+          onChange={(spans) => onChangeBlock(block.key, { spans })}
+          placeholder={block.type === 'HEADING' ? labels.headingTitle : labels.paragraphTitle}
+          labels={{ linkPrompt: labels.linkPrompt }}
+          className={`${roleClasses[block.textRole]} ${colorClasses[block.colorToken]} ${alignClasses[block.align]}`}
+        />
+      </>
     );
   }
 
   function renderImageBlock(block: EditorImageBlock) {
-    const hasFile = Boolean(block.mediaId || block.clientFileKey);
-    const pickLabels = {
-      pick: labels.pickImage,
-      change: labels.changeImage,
-      remove: labels.removeImage,
-    };
-
     return (
-      <figure className="mx-auto flex max-w-lg flex-col items-center text-center">
-        {block.previewUrl ? (
-          <div className="inline-block max-w-full overflow-hidden rounded-card bg-sand-100 p-2 ring-1 ring-brown-800/10">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src={block.previewUrl}
-              alt=""
-              className="mx-auto h-auto max-h-80 w-auto max-w-full object-contain"
-            />
-          </div>
-        ) : (
-          <div className="flex h-28 w-full max-w-sm items-center justify-center rounded-card border border-dashed border-brown-800/25 bg-sand-100">
-            <span className="text-[15px] font-medium text-brown-600">{labels.pickImage}</span>
-          </div>
-        )}
-        <CanvasCaption
-          value={block.caption}
-          placeholder={labels.caption}
-          onChange={(caption) => onChangeBlock(block.key, { caption })}
-        />
-        <CanvasFileActions
-          kind="image"
-          hasFile={hasFile}
-          labels={pickLabels}
-          onPick={(file) => onPickFile?.(block, file)}
-          onRemove={() => {
-            if (block.previewUrl?.startsWith('blob:')) URL.revokeObjectURL(block.previewUrl);
-            onChangeBlock(block.key, {
-              mediaId: undefined,
-              clientFileKey: undefined,
-              previewUrl: undefined,
-            });
-          }}
-        />
-      </figure>
+      <MediaFilePicker
+        kind="image"
+        previewUrl={block.previewUrl ?? null}
+        hasFile={Boolean(block.mediaId || block.clientFileKey)}
+        labels={{
+          pick: labels.pickImage,
+          change: labels.changeImage,
+          remove: labels.removeImage,
+          attached: labels.pickImage,
+        }}
+        onPick={(file) => onPickFile?.(block, file)}
+        onRemove={() =>
+          onChangeBlock(block.key, {
+            mediaId: undefined,
+            clientFileKey: undefined,
+            previewUrl: undefined,
+          })
+        }
+      />
     );
   }
 
   function renderAudioBlock(block: EditorAudioBlock) {
-    const hasFile = Boolean(block.mediaId || block.clientFileKey || block.previewUrl);
-    const pickLabels = {
-      pick: labels.pickAudio,
-      change: labels.changeAudio,
-      remove: labels.removeAudio,
-    };
-
     return (
-      <figure className="mx-auto w-full max-w-lg text-center">
-        {block.previewUrl ? (
-          <div className="overflow-hidden rounded-card bg-sand-100 p-4 ring-1 ring-brown-800/10">
-            <audio
-              controls
-              className="w-full"
-              src={block.previewUrl}
-              aria-label={block.caption || labels.audioTitle}
-              onClick={(event) => event.stopPropagation()}
-            >
-              <track kind="captions" />
-            </audio>
-          </div>
-        ) : (
-          <div className="flex h-24 items-center justify-center rounded-card border border-dashed border-brown-800/25 bg-sand-100">
-            <span className="text-[15px] font-medium text-brown-600">
-              {hasFile ? labels.audioAttached : labels.pickAudio}
-            </span>
-          </div>
-        )}
-        <CanvasCaption
-          value={block.caption}
-          placeholder={labels.caption}
-          onChange={(caption) => onChangeBlock(block.key, { caption })}
-        />
-        <CanvasFileActions
-          kind="audio"
-          hasFile={hasFile}
-          labels={pickLabels}
-          onPick={(file) => onPickFile?.(block, file)}
-          onRemove={() => {
-            if (block.previewUrl?.startsWith('blob:')) URL.revokeObjectURL(block.previewUrl);
-            onChangeBlock(block.key, {
-              mediaId: undefined,
-              clientFileKey: undefined,
-              previewUrl: undefined,
-            });
-          }}
-        />
-      </figure>
+      <MediaFilePicker
+        kind="audio"
+        previewUrl={null}
+        hasFile={Boolean(block.mediaId || block.clientFileKey)}
+        labels={{
+          pick: labels.pickAudio,
+          change: labels.changeAudio,
+          remove: labels.removeAudio,
+          attached: labels.audioAttached,
+        }}
+        onPick={(file) => onPickFile?.(block, file)}
+        onRemove={() => onChangeBlock(block.key, { mediaId: undefined, clientFileKey: undefined })}
+      />
     );
   }
 
   function renderVideoBlock(block: EditorVideoBlock) {
+    if (isValidEmbedUrl(block.embedUrl)) {
+      return (
+        <div className="overflow-hidden rounded-card ring-1 ring-brown-800/10">
+          <div className="relative aspect-video w-full bg-brown-950">
+            <iframe
+              src={block.embedUrl}
+              title={labels.videoTitle}
+              className="pointer-events-none absolute inset-0 h-full w-full border-0"
+            />
+          </div>
+        </div>
+      );
+    }
     return (
-      <figure className="mx-auto w-full max-w-2xl text-center">
-        {isValidEmbedUrl(block.embedUrl) ? (
-          <div className="overflow-hidden rounded-card ring-1 ring-brown-800/10">
-            <div className="relative aspect-video w-full bg-brown-950">
-              <iframe
-                src={block.embedUrl}
-                title={labels.videoTitle}
-                className="pointer-events-none absolute inset-0 h-full w-full border-0"
-              />
-            </div>
-          </div>
-        ) : (
-          <div className="overflow-hidden rounded-card border border-dashed border-brown-800/25 bg-white">
-            <div className="flex h-24 items-center justify-center bg-linear-to-br from-brown-800/10 to-teal-700/15">
-              <span className="text-[15px] font-medium text-brown-600">{labels.embedUrl}</span>
-            </div>
-          </div>
-        )}
-        <CanvasCaption
-          value={block.caption}
-          placeholder={labels.caption}
-          onChange={(caption) => onChangeBlock(block.key, { caption })}
-        />
-      </figure>
+      <div className="overflow-hidden rounded-card border border-dashed border-brown-800/25 bg-white">
+        <div className="flex h-24 items-center justify-center bg-linear-to-br from-brown-800/10 to-teal-700/15">
+          <span className="text-[15px] font-medium text-brown-600">{labels.embedUrl}</span>
+        </div>
+      </div>
     );
   }
 
@@ -329,12 +272,29 @@ export function BlockCanvas({
               <BlockInsertMenu variant="gap" labels={labels} onInsert={(type) => onInsertAt(index, type)} />
             </div>
             <div
-              className={`rounded-button -m-1 p-1 ${selectedKey === block.key ? 'ring-2 ring-teal-700/40' : ''}`}
+              className={`rounded-button -m-1 p-1 ${
+                selectedKey === block.key ? 'ring-2 ring-teal-700/40' : ''
+              } ${dropTargetIndex === index && draggingKey !== block.key ? 'ring-2 ring-teal-700/60' : ''} ${
+                draggingKey === block.key ? 'opacity-60' : ''
+              }`}
               onClick={(event) => {
                 event.stopPropagation();
                 onSelect(block.key);
               }}
+              onDragOver={(event) => handleDragOver(event, index)}
+              onDragLeave={() => {
+                if (dropTargetIndex === index) setDropTargetIndex(null);
+              }}
+              onDrop={(event) => handleDrop(event, index)}
             >
+              {selectedKey === block.key ? (
+                <DragHandle
+                  blockKey={block.key}
+                  dragReorderLabel={labels.dragReorder}
+                  onDragStart={handleDragStart}
+                  onDragEnd={handleDragEnd}
+                />
+              ) : null}
               {renderBlock(block)}
             </div>
           </Fragment>

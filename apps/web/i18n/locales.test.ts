@@ -1,13 +1,41 @@
 import { describe, expect, it } from 'vitest';
 import {
   CONTENT_LOCALE_DEFINITIONS,
+  LOCALE_DEFINITIONS,
   getDir,
   localePathPrefix,
   localizedPath,
   toContentLocale,
 } from './locales';
+import { routing } from './routing';
 
-describe('locales catalog', () => {
+describe('content locales', () => {
+  it('maps fa, en, and ar to themselves (no ar→fa collapse)', () => {
+    expect(toContentLocale('fa')).toBe('fa');
+    expect(toContentLocale('en')).toBe('en');
+    expect(toContentLocale('ar')).toBe('ar');
+  });
+
+  it('includes Arabic in content locale definitions', () => {
+    expect(CONTENT_LOCALE_DEFINITIONS.ar).toEqual({
+      code: 'ar',
+      nativeName: 'العربية',
+      dir: 'rtl',
+    });
+  });
+});
+
+describe('UI locale catalog', () => {
+  it('includes ar in routing and locale definitions', () => {
+    expect(routing.locales).toContain('ar');
+    expect(LOCALE_DEFINITIONS.ar).toEqual({
+      code: 'ar',
+      nativeName: 'العربية',
+      numberLocale: 'ar',
+      dir: 'rtl',
+    });
+  });
+
   it('marks fa and ar as rtl', () => {
     expect(getDir('fa')).toBe('rtl');
     expect(getDir('ar')).toBe('rtl');
@@ -19,24 +47,5 @@ describe('locales catalog', () => {
     expect(localePathPrefix('en')).toBe('/en');
     expect(localePathPrefix('ar')).toBe('/ar');
     expect(localizedPath('ar', '/admin/login')).toBe('/ar/admin/login');
-  });
-
-  it('maps arabic UI to persian content until ar translations exist', () => {
-    expect(toContentLocale('ar')).toBe('fa');
-    expect(toContentLocale('en')).toBe('en');
-    expect(toContentLocale('fa')).toBe('fa');
-  });
-
-  it('keeps permanent native names and dirs for content tabs', () => {
-    expect(CONTENT_LOCALE_DEFINITIONS.fa).toEqual({
-      code: 'fa',
-      nativeName: 'فارسی',
-      dir: 'rtl',
-    });
-    expect(CONTENT_LOCALE_DEFINITIONS.en).toEqual({
-      code: 'en',
-      nativeName: 'English',
-      dir: 'ltr',
-    });
   });
 });

@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { BlockCanvas } from '@/components/admin/block-canvas';
 import { BlockInspector } from '@/components/admin/block-inspector';
-import { convertBlockType, insertBlockAt, moveBlock } from '@/lib/block-editor-utils';
+import { convertBlockType, insertBlockAt, moveBlock, reorderBlock } from '@/lib/block-editor-utils';
 import type { LocaleDirection } from '@/i18n/locales';
 import type {
   EditorAudioBlock,
@@ -21,13 +21,15 @@ export type BlockListEditorLabels = {
   addBlock: string;
   moveUp: string;
   moveDown: string;
+  /** Canvas drag grip (`BlockCanvas` selected block). */
+  dragReorder: string;
   delete: string;
   empty: string;
-  /** `BlockInspector` empty-state copy when nothing is selected. */
+  /** `BlockInspector` empty-state copy: "Select a block or insert one." */
   inspectorEmpty: string;
   /** `BlockInspector` mobile bottom-sheet close control. */
   closeInspector: string;
-  /** `BlockInspector` block-type chip group label. */
+  /** `BlockInspector` block-type `Select` field label. */
   blockType: string;
   headingTitle: string;
   paragraphTitle: string;
@@ -52,6 +54,13 @@ export type BlockListEditorLabels = {
   colorSand50: string;
   alignStart: string;
   alignCenter: string;
+  alignEnd: string;
+  bold: string;
+  italic: string;
+  link: string;
+  unlink: string;
+  linkPrompt: string;
+  formatToolbar: string;
   pickImage: string;
   changeImage: string;
   removeImage: string;
@@ -66,7 +75,7 @@ type BlockListEditorProps = {
   onChange: (blocks: EditorBlock[]) => void;
   labels: BlockListEditorLabels;
   /**
-   * Permanent writing direction for the document canvas (FA → `rtl`, EN → `ltr`).
+   * Permanent writing direction for the document canvas (FA/AR → `rtl`, EN → `ltr`).
    * Independent of the admin UI locale / next-intl page `dir`.
    */
   contentDir: LocaleDirection;
@@ -141,6 +150,10 @@ export function BlockListEditor({
     onChange(moveBlock(value, selectedBlock.key, direction));
   }
 
+  function handleReorder(fromIndex: number, toIndex: number) {
+    onChange(reorderBlock(value, fromIndex, toIndex));
+  }
+
   function handleDelete() {
     if (!selectedBlock) return;
     onChange(value.filter((block) => block.key !== selectedBlock.key));
@@ -190,6 +203,7 @@ export function BlockListEditor({
           onSelect={setSelectedKey}
           onChangeBlock={updateBlock}
           onInsertAt={handleInsertAt}
+          onReorder={handleReorder}
           onPickFile={onPickFile}
           labels={labels}
           textFocusKey={textFocusKey}

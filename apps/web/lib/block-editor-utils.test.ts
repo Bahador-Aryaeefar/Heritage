@@ -5,6 +5,7 @@ import {
   createEmptyBlock,
   insertBlockAt,
   moveBlock,
+  reorderBlock,
 } from './block-editor-utils';
 
 describe('createEmptyBlock', () => {
@@ -14,7 +15,7 @@ describe('createEmptyBlock', () => {
     expect(block.key).toBeTruthy();
     if (block.type !== 'HEADING') throw new Error('expected HEADING');
     expect(block).toMatchObject({
-      text: '',
+      spans: [{ text: '' }],
       textRole: 'H2',
       colorToken: 'BROWN_950',
       align: 'START',
@@ -26,7 +27,7 @@ describe('createEmptyBlock', () => {
     expect(block.type).toBe('PARAGRAPH');
     if (block.type !== 'PARAGRAPH') throw new Error('expected PARAGRAPH');
     expect(block).toMatchObject({
-      text: '',
+      spans: [{ text: '' }],
       textRole: 'BODY',
       colorToken: 'BROWN_800',
       align: 'START',
@@ -55,11 +56,11 @@ describe('createEmptyBlock', () => {
 });
 
 describe('convertBlockType', () => {
-  it('keeps text when converting HEADING to PARAGRAPH and applies paragraph defaults', () => {
+  it('keeps spans when converting HEADING to PARAGRAPH and applies paragraph defaults', () => {
     const block: EditorBlock = {
       key: 'keep-me',
       type: 'HEADING',
-      text: 'Hello',
+      spans: [{ text: 'Hello', bold: true }],
       textRole: 'HERO',
       colorToken: 'TEAL_700',
       align: 'CENTER',
@@ -70,18 +71,18 @@ describe('convertBlockType', () => {
     expect(next.key).toBe('keep-me');
     expect(next).toMatchObject({
       type: 'PARAGRAPH',
-      text: 'Hello',
+      spans: [{ text: 'Hello', bold: true }],
       textRole: 'BODY',
       colorToken: 'BROWN_800',
       align: 'START',
     });
   });
 
-  it('drops text when converting PARAGRAPH to IMAGE', () => {
+  it('drops spans when converting PARAGRAPH to IMAGE', () => {
     const block: EditorBlock = {
       key: 'p1',
       type: 'PARAGRAPH',
-      text: 'Body copy',
+      spans: [{ text: 'Body copy' }],
       textRole: 'BODY',
       colorToken: 'BROWN_800',
       align: 'START',
@@ -91,16 +92,16 @@ describe('convertBlockType', () => {
 
     expect(next.key).toBe('p1');
     expect(next).toMatchObject({ type: 'IMAGE', caption: '' });
-    expect('text' in next).toBe(false);
+    expect('spans' in next).toBe(false);
     expect((next as { mediaId?: string }).mediaId).toBeUndefined();
   });
 });
 
 describe('moveBlock', () => {
   const blocks: EditorBlock[] = [
-    { key: 'a', type: 'HEADING', text: 'A', textRole: 'H2', colorToken: 'BROWN_950', align: 'START' },
-    { key: 'b', type: 'PARAGRAPH', text: 'B', textRole: 'BODY', colorToken: 'BROWN_800', align: 'START' },
-    { key: 'c', type: 'PARAGRAPH', text: 'C', textRole: 'BODY', colorToken: 'BROWN_800', align: 'START' },
+    { key: 'a', type: 'HEADING', spans: [{ text: 'A' }], textRole: 'H2', colorToken: 'BROWN_950', align: 'START' },
+    { key: 'b', type: 'PARAGRAPH', spans: [{ text: 'B' }], textRole: 'BODY', colorToken: 'BROWN_800', align: 'START' },
+    { key: 'c', type: 'PARAGRAPH', spans: [{ text: 'C' }], textRole: 'BODY', colorToken: 'BROWN_800', align: 'START' },
   ];
 
   it('swaps a block with the one above when moving up', () => {
@@ -130,9 +131,47 @@ describe('moveBlock', () => {
   });
 });
 
+describe('reorderBlock', () => {
+  const blocks: EditorBlock[] = [
+    { key: 'a', type: 'HEADING', spans: [{ text: 'A' }], textRole: 'H2', colorToken: 'BROWN_950', align: 'START' },
+    { key: 'b', type: 'PARAGRAPH', spans: [{ text: 'B' }], textRole: 'BODY', colorToken: 'BROWN_800', align: 'START' },
+    { key: 'c', type: 'PARAGRAPH', spans: [{ text: 'C' }], textRole: 'BODY', colorToken: 'BROWN_800', align: 'START' },
+  ];
+
+  it('moves a block from one index to another', () => {
+    const reordered = reorderBlock(blocks, 2, 0);
+    expect(reordered.map((b) => b.key)).toEqual(['c', 'a', 'b']);
+  });
+
+  it('moves a block forward in the list', () => {
+    const reordered = reorderBlock(blocks, 0, 2);
+    expect(reordered.map((b) => b.key)).toEqual(['b', 'c', 'a']);
+  });
+
+  it('is a no-op when fromIndex is out of bounds', () => {
+    expect(reorderBlock(blocks, -1, 0).map((b) => b.key)).toEqual(['a', 'b', 'c']);
+    expect(reorderBlock(blocks, 3, 0).map((b) => b.key)).toEqual(['a', 'b', 'c']);
+  });
+
+  it('is a no-op when toIndex is out of bounds', () => {
+    expect(reorderBlock(blocks, 0, -1).map((b) => b.key)).toEqual(['a', 'b', 'c']);
+    expect(reorderBlock(blocks, 0, 3).map((b) => b.key)).toEqual(['a', 'b', 'c']);
+  });
+
+  it('is a no-op when fromIndex equals toIndex', () => {
+    expect(reorderBlock(blocks, 1, 1).map((b) => b.key)).toEqual(['a', 'b', 'c']);
+  });
+
+  it('does not mutate the input array', () => {
+    const snapshot = JSON.parse(JSON.stringify(blocks));
+    reorderBlock(blocks, 1, 0);
+    expect(blocks).toEqual(snapshot);
+  });
+});
+
 describe('insertBlockAt', () => {
   const blocks: EditorBlock[] = [
-    { key: 'a', type: 'HEADING', text: 'A', textRole: 'H2', colorToken: 'BROWN_950', align: 'START' },
+    { key: 'a', type: 'HEADING', spans: [{ text: 'A' }], textRole: 'H2', colorToken: 'BROWN_950', align: 'START' },
   ];
 
   it('inserts a new block at the given index and returns its key', () => {
@@ -141,7 +180,7 @@ describe('insertBlockAt', () => {
     expect(next).toHaveLength(2);
     expect(next[0]!.key).toBe('a');
     expect(next[1]!.key).toBe(key);
-    expect(next[1]).toMatchObject({ type: 'PARAGRAPH', text: '' });
+    expect(next[1]).toMatchObject({ type: 'PARAGRAPH', spans: [{ text: '' }] });
   });
 
   it('inserts at the start when index is 0', () => {

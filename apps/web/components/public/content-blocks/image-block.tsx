@@ -1,17 +1,14 @@
 import Image from 'next/image';
 import type { MediaRef } from '@heritage/shared-types';
-import type { Locale } from '@heritage/shared-types';
 import { resolveMediaUrl } from '@/lib/media-url';
 
 type ImageBlockProps = {
   media: MediaRef;
   caption: string | null;
-  locale: Locale;
   siteSlug: string;
 };
 
-export function ImageBlock({ media, caption, locale, siteSlug }: ImageBlockProps) {
-  const alt = locale === 'fa' ? media.altFa ?? media.altEn ?? '' : media.altEn ?? media.altFa ?? '';
+export function ImageBlock({ media, caption, siteSlug }: ImageBlockProps) {
   const src = resolveMediaUrl(media.url, siteSlug);
 
   if (!src) return null;
@@ -21,7 +18,7 @@ export function ImageBlock({ media, caption, locale, siteSlug }: ImageBlockProps
       <div className="inline-block max-w-full overflow-hidden rounded-card bg-sand-100 p-2 ring-1 ring-brown-800/10">
         <Image
           src={src}
-          alt={alt}
+          alt={caption ?? ''}
           width={640}
           height={480}
           className="mx-auto h-auto max-h-80 w-auto max-w-full object-contain"

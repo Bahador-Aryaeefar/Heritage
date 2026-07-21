@@ -23,14 +23,14 @@
 
 | Field | Type | Notes |
 |---|---|---|
-| slug | string | Unique; **immutable** once printed on QR |
+| slug | string | Unique; **immutable** once printed on QR; also used as cover/site-card image `alt` on the public site |
 | category | enum | `ANCIENT` \| `ISLAMIC` \| `NATURAL` |
 | lat, lng | decimal(10,7) | Map / future nearby-sites |
 | cityId | FK → City | |
 | isActive | boolean | Soft offline; public API hides inactive |
 
 ### SiteTranslation
-One row per site per locale (`fa`, `en`).
+One row per site per locale (`fa`, `en`, `ar`). Admin create/update requires all three.
 
 | Field | Notes |
 |---|---|
@@ -48,9 +48,10 @@ Long-form content lives in **SiteContentBlock**, not here.
 | embedUrl | string? | External video (Aparat/YouTube); no local file |
 | mimeType | string? | e.g. `image/webp`, `audio/mpeg` |
 | durationSec | int? | Audio/video |
-| altFa, altEn | string? | Accessibility |
 | sortOrder | int | Gallery ordering |
 | isCover | boolean | **Images only**; at most one cover per site (enforced in service) |
+
+**Accessibility:** per-locale `altFa`/`altEn` columns were removed (2026-07-21). Block **caption** is the image `alt` / audio-video `aria-label`; cover uses site **slug**.
 
 ## SiteContentBlock (flexible page body)
 
@@ -67,14 +68,14 @@ Ordered per `(siteId, locale)`. Public site detail API returns blocks in `sortOr
 |---|---|
 | textRole | `HERO` \| `H2` \| `H3` \| `BODY` \| `CAPTION` — maps to design-system type scale |
 | colorToken | `BROWN_950` \| `BROWN_800` \| `BROWN_600` \| `TEAL_700` \| `SAND_50` |
-| align | `START` \| `CENTER` |
-| spans | JSON array: `{ text, bold?, italic? }[]` — inline emphasis within the block |
+| align | `START` \| `CENTER` \| `END` |
+| spans | JSON array: `{ text, bold?, italic?, href? }[]` — inline emphasis and links within the block |
 
 ### Media blocks (IMAGE / VIDEO / AUDIO)
 | Field | Notes |
 |---|---|
 | mediaId | Required; must belong to same site |
-| caption | Optional label under media |
+| caption | Optional label under media; also the accessibility text (`alt` / `aria-label`) for that block |
 
 ## QRCode
 
@@ -97,53 +98,13 @@ Ordered per `(siteId, locale)`. Public site detail API returns blocks in `sortOr
 
 No write API in the current phase.
 
-## Auth & admin users
-
-### User
-| Field | Type | Notes |
-|---|---|---|
-| phone | string | Unique login identifier |
-| passwordHash | string | bcrypt |
-| role | enum | `ADMIN` \| `SUPER_ADMIN` |
-| displayName | string? | Optional label in admin shell |
-| isActive | boolean | Inactive users cannot log in |
-
-### RefreshToken
-| Field | Notes |
-|---|---|
-| tokenHash | sha256 of opaque refresh token (unique) |
-| familyId | Rotation chain; reuse of revoked token kills family |
-| expiresAt | ~7d default |
-| revokedAt | Set on rotation, logout, password change, or reuse detection |
-
-Seed creates one `SUPER_ADMIN` (`09120086846`).
-
 ## Public API mapping
 
 | Endpoint | Data |
 |---|---|
-| `GET /api/v1/public/landing?page&limit` | Paginated active sites → cards (slug, category, cover, fa/en title + shortDescription, city/province) |
+| `GET /api/v1/public/landing` | Active sites → cards (slug, category, cover, fa/en/ar title + shortDescription, city/province) |
 | `GET /api/v1/public/sites/:slug` | Site meta + translations + ordered blocks per locale |
 
-## Admin API mapping (cookie auth)
+## Deferred (schema present, HTTP later)
 
-| Endpoint | Role | Purpose |
-|---|---|---|
-| `POST /api/v1/auth/login` | public | Set access + refresh cookies |
-| `POST /api/v1/auth/refresh` | refresh cookie | Rotate token pair |
-| `POST /api/v1/auth/logout` | any | Revoke refresh + clear cookies |
-| `GET /api/v1/auth/me` | access cookie | Current user |
-| `GET/POST/PATCH /api/v1/admin/users` | `SUPER_ADMIN` | Paginated user list + CRUD + password reset |
-| `GET/POST/PATCH /api/v1/admin/sites` | `ADMIN`, `SUPER_ADMIN` | Paginated site list + core CRUD |
-| `POST /api/v1/admin/sites/:id/cover` | `ADMIN`, `SUPER_ADMIN` | Cover image upload |
-| `GET /api/v1/admin/cities` | `ADMIN`, `SUPER_ADMIN` | Paginated city picker |
-
-Scalar docs: `/docs` (OpenAPI at `/openapi.json`).
-
-All list responses share `{ items, meta }`, where `meta` contains `page`, `limit`,
-`totalItems`, `totalPages`, `hasNextPage`, and `hasPreviousPage`.
-
-## Deferred (later phases)
-
-- Content-block / media gallery admin editor
 - VisitEvent insert on scan

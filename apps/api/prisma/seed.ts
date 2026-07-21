@@ -9,7 +9,7 @@ import bcrypt from 'bcryptjs';
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { join, resolve } from 'node:path';
 import sharp from 'sharp';
-import { buildEnBlocks, buildFaBlocks } from './taq-e-bostan-blocks';
+import { buildArBlocks, buildEnBlocks, buildFaBlocks } from './taq-e-bostan-blocks';
 
 loadRootEnv();
 
@@ -224,6 +224,22 @@ async function main() {
     },
   });
 
+  await prisma.siteTranslation.upsert({
+    where: { siteId_locale: { siteId: site.id, locale: 'ar' } },
+    create: {
+      siteId: site.id,
+      locale: 'ar',
+      title: 'طاق بستان',
+      shortDescription:
+        'مجموعة من النقوش الصخرية الساسانية المحفورة في جبال كرمانشاه، رمز التراث القديم في غرب إيران.',
+    },
+    update: {
+      title: 'طاق بستان',
+      shortDescription:
+        'مجموعة من النقوش الصخرية الساسانية المحفورة في جبال كرمانشاه، رمز التراث القديم في غرب إيران.',
+    },
+  });
+
   await resetSiteContent(site.id);
 
   const coverBuffer = await loadSeedImageFile('cover.jpg', SEED_PHOTO_URLS.cover, 'Taq-e Bostan');
@@ -251,8 +267,6 @@ async function main() {
       type: MediaType.IMAGE,
       url: coverStored.url,
       mimeType: coverStored.mimeType,
-      altFa: 'نمای بیرونی طاق بستان و ایوان ساسانی',
-      altEn: 'Exterior view of the Sasanian ivan at Taq-e Bostan',
       sortOrder: 0,
       isCover: true,
     },
@@ -264,8 +278,6 @@ async function main() {
       type: MediaType.IMAGE,
       url: treeStored.url,
       mimeType: treeStored.mimeType,
-      altFa: 'سنگ‌نگاره درخت زندگی',
-      altEn: 'Tree of life relief',
       sortOrder: 1,
       isCover: false,
     },
@@ -277,8 +289,6 @@ async function main() {
       type: MediaType.IMAGE,
       url: ivanStored.url,
       mimeType: ivanStored.mimeType,
-      altFa: 'ایوان بزرگ و حوض سنگی',
-      altEn: 'The large ivan and stone pool',
       sortOrder: 2,
       isCover: false,
     },
@@ -290,8 +300,6 @@ async function main() {
       type: MediaType.AUDIO,
       url: audioStored.url,
       mimeType: audioStored.mimeType,
-      altFa: 'روایت صوتی کوتاه',
-      altEn: 'Short audio narration',
       durationSec: 3,
       sortOrder: 3,
       isCover: false,
@@ -303,8 +311,6 @@ async function main() {
       siteId: site.id,
       type: MediaType.VIDEO,
       embedUrl: SEED_VIDEO_EMBED,
-      altFa: 'فیلم معرفی طاق بستان',
-      altEn: 'Taq-e Bostan introduction video',
       sortOrder: 4,
       isCover: false,
     },
@@ -319,6 +325,14 @@ async function main() {
   });
 
   const enBlocks = buildEnBlocks({
+    coverMediaId: coverMedia.id,
+    treeMediaId: treeMedia.id,
+    ivanMediaId: ivanMedia.id,
+    audioMediaId: audioMedia.id,
+    videoMediaId: videoMedia.id,
+  });
+
+  const arBlocks = buildArBlocks({
     coverMediaId: coverMedia.id,
     treeMediaId: treeMedia.id,
     ivanMediaId: ivanMedia.id,
@@ -348,6 +362,23 @@ async function main() {
       data: {
         siteId: site.id,
         locale: 'en',
+        sortOrder: block.sortOrder,
+        type: block.type,
+        textRole: 'textRole' in block ? block.textRole : null,
+        colorToken: 'colorToken' in block ? block.colorToken : null,
+        align: 'align' in block ? block.align : null,
+        spans: 'spans' in block ? block.spans : undefined,
+        mediaId: 'mediaId' in block ? block.mediaId : null,
+        caption: 'caption' in block ? block.caption : null,
+      },
+    });
+  }
+
+  for (const block of arBlocks) {
+    await prisma.siteContentBlock.create({
+      data: {
+        siteId: site.id,
+        locale: 'ar',
         sortOrder: block.sortOrder,
         type: block.type,
         textRole: 'textRole' in block ? block.textRole : null,

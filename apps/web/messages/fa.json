@@ -184,6 +184,7 @@
         "link": "پیوند",
         "unlink": "حذف پیوند",
         "linkPrompt": "نشانی پیوند را وارد کنید (خالی = حذف پیوند)",
+        "formatToolbar": "قالب‌بندی",
         "pickAudio": "انتخاب صدا",
         "changeAudio": "تغییر صدا",
         "removeAudio": "حذف صدا",

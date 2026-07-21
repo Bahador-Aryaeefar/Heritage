@@ -184,6 +184,7 @@
         "link": "Link",
         "unlink": "Unlink",
         "linkPrompt": "Enter link URL (empty = remove link)",
+        "formatToolbar": "Format",
         "pickAudio": "Choose audio",
         "changeAudio": "Change audio",
         "removeAudio": "Remove audio",

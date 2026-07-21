@@ -72,6 +72,7 @@ export function BlockCanvas({
       <>
         {selected ? (
           <FormatToolbar
+            toolbarLabel={labels.formatToolbar}
             labels={{
               bold: labels.bold,
               italic: labels.italic,

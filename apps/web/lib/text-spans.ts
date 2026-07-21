@@ -82,6 +82,11 @@ export function normalizeSpans(spans: TextSpan[]): TextSpan[] {
   return merged;
 }
 
+/** Stable JSON signature for comparing span arrays (including marks). */
+export function serializeSpans(spans: TextSpan[]): string {
+  return JSON.stringify(normalizeSpans(spans));
+}
+
 function clampSelection(selection: TextSelection): { start: number; end: number } {
   const start = Math.min(selection.start, selection.end);
   const end = Math.max(selection.start, selection.end);

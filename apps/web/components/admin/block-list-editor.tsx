@@ -57,6 +57,7 @@ export type BlockListEditorLabels = {
   link: string;
   unlink: string;
   linkPrompt: string;
+  formatToolbar: string;
   pickImage: string;
   changeImage: string;
   removeImage: string;

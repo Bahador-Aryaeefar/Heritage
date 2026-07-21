@@ -186,6 +186,7 @@ export function SiteForm({ site }: SiteFormProps) {
     link: tb('link'),
     unlink: tb('unlink'),
     linkPrompt: tb('linkPrompt'),
+    formatToolbar: tb('formatToolbar'),
     pickImage: t('pickImage'),
     changeImage: t('changeImage'),
     removeImage: t('removeImage'),

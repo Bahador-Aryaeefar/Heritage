@@ -4,8 +4,8 @@ import { forwardRef, useEffect, useImperativeHandle, useRef } from 'react';
 import type { TextSpan } from '@heritage/shared-types';
 import {
   normalizeSpans,
+  serializeSpans,
   setLink,
-  spansToPlainText,
   toggleMark,
   type TextSelection,
 } from '@/lib/text-spans';
@@ -134,19 +134,19 @@ function isEmptySpans(spans: TextSpan[]): boolean {
 export const SpanTextEditor = forwardRef<SpanTextEditorHandle, SpanTextEditorProps>(
   function SpanTextEditor({ value, onChange, className = '', dir, placeholder, labels }, ref) {
     const editorRef = useRef<HTMLDivElement>(null);
-    const lastPlainRef = useRef(spansToPlainText(value));
+    const lastSpansRef = useRef(serializeSpans(value));
     const syncingRef = useRef(false);
 
     useEffect(() => {
       const root = editorRef.current;
       if (!root || syncingRef.current) return;
 
-      const plain = spansToPlainText(value);
-      if (plain === lastPlainRef.current && root.innerText === plain) return;
+      const signature = serializeSpans(value);
+      if (signature === lastSpansRef.current) return;
 
       syncingRef.current = true;
-      root.innerHTML = isEmptySpans(value) ? '' : spansToHtml(value);
-      lastPlainRef.current = plain;
+      root.innerHTML = isEmptySpans(value) ? '' : spansToHtml(normalizeSpans(value));
+      lastSpansRef.current = signature;
       syncingRef.current = false;
     }, [value]);
 
@@ -155,7 +155,7 @@ export const SpanTextEditor = forwardRef<SpanTextEditorHandle, SpanTextEditorPro
       if (!root || syncingRef.current) return;
 
       const spans = domToSpans(root);
-      lastPlainRef.current = spansToPlainText(spans);
+      lastSpansRef.current = serializeSpans(spans);
       onChange(spans);
     }
 

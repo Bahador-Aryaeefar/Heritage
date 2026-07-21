@@ -184,6 +184,7 @@
         "link": "رابط",
         "unlink": "إزالة الرابط",
         "linkPrompt": "أدخل عنوان الرابط (فارغ = إزالة الرابط)",
+        "formatToolbar": "تنسيق",
         "pickAudio": "اختيار صوت",
         "changeAudio": "تغيير الصوت",
         "removeAudio": "إزالة الصوت",

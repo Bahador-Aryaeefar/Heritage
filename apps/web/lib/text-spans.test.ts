@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import type { TextSpan } from '@heritage/shared-types';
 import {
   normalizeSpans,
+  serializeSpans,
   setLink,
   spansToPlainText,
   toggleMark,
@@ -50,6 +51,17 @@ describe('normalizeSpans', () => {
 
   it('drops empty spans except when it is the only span', () => {
     expect(normalizeSpans([{ text: '' }, { text: 'hi' }])).toEqual([{ text: 'hi' }]);
+  });
+});
+
+describe('serializeSpans', () => {
+  it('distinguishes mark-only differences with the same plain text', () => {
+    expect(serializeSpans([{ text: 'hi' }])).not.toBe(serializeSpans([{ text: 'hi', bold: true }]));
+  });
+
+  it('matches normalized equivalent arrays', () => {
+    const a = [{ text: 'a', bold: true }, { text: 'b', bold: true }];
+    expect(serializeSpans(a)).toBe(serializeSpans(normalizeSpans(a)));
   });
 });
 

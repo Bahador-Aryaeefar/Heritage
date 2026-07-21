@@ -13,6 +13,7 @@ export type FormatToolbarProps = {
   onLink: () => void;
   onUnlink: () => void;
   labels: FormatToolbarLabels;
+  toolbarLabel?: string;
 };
 
 function ToolbarChip({
@@ -25,6 +26,7 @@ function ToolbarChip({
   return (
     <button
       type="button"
+      onMouseDown={(event) => event.preventDefault()}
       onClick={onClick}
       className="rounded-button border border-brown-800/15 bg-white px-2.5 py-1.5 text-xs font-bold text-brown-800 transition-colors outline-none hover:bg-sand-50 focus-visible:ring-2 focus-visible:ring-teal-700/15"
     >
@@ -33,11 +35,18 @@ function ToolbarChip({
   );
 }
 
-export function FormatToolbar({ onBold, onItalic, onLink, onUnlink, labels }: FormatToolbarProps) {
+export function FormatToolbar({
+  onBold,
+  onItalic,
+  onLink,
+  onUnlink,
+  labels,
+  toolbarLabel = 'Format',
+}: FormatToolbarProps) {
   return (
     <div
       role="toolbar"
-      aria-label={labels.bold}
+      aria-label={toolbarLabel}
       className="mb-2 flex flex-wrap gap-1.5"
       onClick={(event) => event.stopPropagation()}
     >

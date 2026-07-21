@@ -152,6 +152,7 @@ export function SiteForm({ site }: SiteFormProps) {
     addBlock: tb('addBlock'),
     moveUp: tb('moveUp'),
     moveDown: tb('moveDown'),
+    dragReorder: tb('dragReorder'),
     delete: tb('delete'),
     empty: tb('empty'),
     inspectorEmpty: tb('inspectorEmpty'),

@@ -150,6 +150,7 @@
         "addBlock": "Add block",
         "moveUp": "Move up",
         "moveDown": "Move down",
+        "dragReorder": "Drag to reorder",
         "delete": "Delete",
         "empty": "No content blocks yet. Add one above.",
         "inspectorEmpty": "Select a block or insert one.",

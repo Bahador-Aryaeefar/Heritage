@@ -20,6 +20,8 @@ export type BlockListEditorLabels = {
   addBlock: string;
   moveUp: string;
   moveDown: string;
+  /** Canvas drag grip (`BlockCanvas` selected block). */
+  dragReorder: string;
   delete: string;
   empty: string;
   /** `BlockInspector` empty-state copy: "Select a block or insert one." */

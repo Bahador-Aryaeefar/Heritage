@@ -46,10 +46,12 @@ function isValidEmbedUrl(value: string): boolean {
 
 function DragHandle({
   blockKey,
+  dragReorderLabel,
   onDragStart,
   onDragEnd,
 }: {
   blockKey: string;
+  dragReorderLabel: string;
   onDragStart: (event: React.DragEvent<HTMLButtonElement>, key: string) => void;
   onDragEnd: () => void;
 }) {
@@ -57,8 +59,8 @@ function DragHandle({
     <button
       type="button"
       draggable
-      aria-label="Drag to reorder"
-      title="Drag to reorder"
+      aria-label={dragReorderLabel}
+      title={dragReorderLabel}
       onClick={(event) => event.stopPropagation()}
       onDragStart={(event) => onDragStart(event, blockKey)}
       onDragEnd={onDragEnd}
@@ -283,6 +285,7 @@ export function BlockCanvas({
               {selectedKey === block.key ? (
                 <DragHandle
                   blockKey={block.key}
+                  dragReorderLabel={labels.dragReorder}
                   onDragStart={handleDragStart}
                   onDragEnd={handleDragEnd}
                 />

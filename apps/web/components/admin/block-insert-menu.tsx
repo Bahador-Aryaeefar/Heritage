@@ -6,11 +6,10 @@ import { ActionButton } from '@/components/ui/action-button';
 import type { BlockListEditorLabels } from '@/components/admin/block-list-editor';
 import type { EditorBlock } from '@/lib/copy-blocks-from-fa';
 
-/** `addBlock` lands on `BlockListEditorLabels` in Task 3; until then extend locally. */
 export type BlockInsertMenuLabels = Pick<
   BlockListEditorLabels,
-  'addHeading' | 'addParagraph' | 'addImage' | 'addAudio' | 'addVideo'
-> & { addBlock: string };
+  'addHeading' | 'addParagraph' | 'addImage' | 'addAudio' | 'addVideo' | 'addBlock'
+>;
 
 type BlockInsertMenuProps = {
   labels: BlockInsertMenuLabels;

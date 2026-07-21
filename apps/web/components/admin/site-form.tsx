@@ -17,7 +17,6 @@ import {
   type SiteCategory,
 } from '@heritage/shared-types';
 import { ActionButton } from '@/components/ui/action-button';
-import { Checkbox } from '@/components/ui/checkbox';
 import { ImagePicker } from '@/components/ui/image-picker';
 import { Select } from '@/components/ui/select';
 import { Tabs } from '@/components/ui/tabs';
@@ -120,7 +119,6 @@ export function SiteForm({ site }: SiteFormProps) {
   const [lat, setLat] = useState(site?.lat ?? '');
   const [lng, setLng] = useState(site?.lng ?? '');
   const [cityId, setCityId] = useState(site?.city.id ?? '');
-  const [isActive, setIsActive] = useState(site?.isActive ?? true);
 
   const [activeTab, setActiveTab] = useState<ContentLocale>('fa');
   const [titleFa, setTitleFa] = useState(
@@ -151,10 +149,14 @@ export function SiteForm({ site }: SiteFormProps) {
     addImage: tb('addImage'),
     addAudio: tb('addAudio'),
     addVideo: tb('addVideo'),
+    addBlock: tb('addBlock'),
     moveUp: tb('moveUp'),
     moveDown: tb('moveDown'),
     delete: tb('delete'),
     empty: tb('empty'),
+    inspectorEmpty: tb('inspectorEmpty'),
+    closeInspector: tb('closeInspector'),
+    blockType: tb('blockType'),
     headingTitle: tb('headingTitle'),
     paragraphTitle: tb('paragraphTitle'),
     imageTitle: tb('imageTitle'),
@@ -328,7 +330,7 @@ export function SiteForm({ site }: SiteFormProps) {
           lat,
           lng,
           cityId,
-          isActive,
+          isActive: site.isActive,
           cover,
           translations,
         });
@@ -345,7 +347,7 @@ export function SiteForm({ site }: SiteFormProps) {
         lat,
         lng,
         cityId,
-        isActive,
+        isActive: true,
         cover,
         translations,
       });
@@ -414,8 +416,6 @@ export function SiteForm({ site }: SiteFormProps) {
           <TextInput value={lng} onChange={(event) => setLng(event.target.value)} dir="ltr" />
         </Field>
       </div>
-
-      <Checkbox checked={isActive} onChange={setIsActive} label={t('active')} />
 
       <ImagePicker
         label={t('cover')}

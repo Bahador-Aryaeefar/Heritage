@@ -277,7 +277,7 @@ Implemented under `/admin` (fa default) and `/en/admin/...`. Shares public page 
 
 Ordered editor for a site's `SiteContentBlock` rows (one instance per locale tab, §10). **Document canvas + side inspector** — not a stack of per-block form cards. Spec: [`docs/superpowers/specs/2026-07-21-document-canvas-editor-design.md`](docs/superpowers/specs/2026-07-21-document-canvas-editor-design.md).
 
-**Shell** (`components/admin/block-list-editor.tsx`): owns `selectedKey` / `textFocusKey`; composes `BlockCanvas` + `BlockInspector`. Same controlled API as before: `value: EditorBlock[]` / `onChange` / `labels` / optional `onPickFile`. Structural edits use `lib/block-editor-utils.ts` (`insertBlockAt`, `moveBlock`, `convertBlockType`). See `lib/copy-blocks-from-fa.ts` for the `EditorBlock` union and `copyBlocksFromFa()` (EN "copy from FA").
+**Shell** (`components/admin/block-list-editor.tsx`): owns `selectedKey` / `textFocusKey`; composes `BlockCanvas` + `BlockInspector`. Same controlled API as before: `value: EditorBlock[]` / `onChange` / `labels` / optional `onPickFile`. Structural edits use `lib/block-editor-utils.ts` (`insertBlockAt`, `moveBlock`, `reorderBlock`, `convertBlockType`). See `lib/copy-blocks-from-fa.ts` for the `EditorBlock` union and `copyBlocksFromFa()` (EN "copy from FA").
 
 | Element | Spec |
 |---|---|
@@ -297,7 +297,8 @@ Single **white** document surface: `rounded-card`, `border-brown-800/15`, `px-6 
 | Format toolbar | `FormatToolbar` — `rounded-button` chips matching inspector `ChipGroup` (white + `border-brown-800/15`, **12px** bold); actions: Bold / Italic / Link (prompt) / Unlink; i18n under `admin.siteForm.block.*` |
 | Image / Audio | `MediaFilePicker` on canvas (pick/change/remove); **caption not on canvas** |
 | Video | Valid `http(s)` embed → `aspect-video` iframe preview; else dashed placeholder labeled with embed URL copy |
-| Selected block | Wrapper `ring-2 ring-teal-700/40`, `rounded-button`, `-m-1 p-1` |
+| Selected block | Wrapper `ring-2 ring-teal-700/40`, `rounded-button`, `-m-1 p-1`; **drag handle** (6-dot grip, white chip, `cursor-grab`) above content — only when selected; HTML5 DnD reorders via `reorderBlock` (handle is `draggable`, not the text editor) |
+| Drop target | While dragging, target block gets stronger `ring-teal-700/60`; dragged block `opacity-60` |
 | Insert gaps | Before each block: centered **+** via `BlockInsertMenu` (`variant="gap"`) — white 36×36, `border-2 border-brown-800/20`, bold **+** |
 | End insert | `BlockInsertMenu` (`variant="end"`) — `secondary` `ActionButton` with `labels.addBlock` |
 | Empty list | **15px** `brown-600` hint (`labels.empty`) above end insert |

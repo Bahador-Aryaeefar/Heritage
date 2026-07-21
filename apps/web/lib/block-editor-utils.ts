@@ -43,22 +43,33 @@ export function createEmptyBlock(type: EditorBlockType): EditorBlock {
 
 export function convertBlockType(block: EditorBlock, next: EditorBlockType): EditorBlock {
   const { key } = block;
+  const fromText = block.type === 'HEADING' || block.type === 'PARAGRAPH';
+  const toText = next === 'HEADING' || next === 'PARAGRAPH';
 
-  if (isTextBlockType(block.type) && isTextBlockType(next)) {
-    const text = block.text;
-    return { key, type: next, text, ...textDefaults(next) };
+  if (fromText && toText) {
+    return {
+      key,
+      type: next,
+      text: block.text,
+      ...textDefaults(next),
+    };
   }
 
-  if (isTextBlockType(block.type) && !isTextBlockType(next)) {
-    return emptyMediaBlock(key, next);
+  if (fromText && !toText) {
+    return emptyMediaBlock(key, next as 'IMAGE' | 'AUDIO' | 'VIDEO');
   }
 
-  if (!isTextBlockType(block.type) && isTextBlockType(next)) {
-    return { key, type: next, text: '', ...textDefaults(next) };
+  if (!fromText && toText) {
+    return {
+      key,
+      type: next,
+      text: '',
+      ...textDefaults(next),
+    };
   }
 
   const caption = 'caption' in block ? block.caption : '';
-  return emptyMediaBlock(key, next, caption);
+  return emptyMediaBlock(key, next as 'IMAGE' | 'AUDIO' | 'VIDEO', caption);
 }
 
 function emptyMediaBlock(key: string, type: Exclude<EditorBlockType, 'HEADING' | 'PARAGRAPH'>, caption = ''): EditorBlock {

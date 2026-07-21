@@ -232,7 +232,8 @@ export function SiteForm({ site }: SiteFormProps) {
   function updateBlocks(locale: ContentLocaleCode, blocks: EditorBlock[]) {
     const next = { ...getSnapshot(locale), blocks };
     applySnapshot(locale, next);
-    histories[locale].push(next);
+    // Coalesce rapid canvas typing; structural edits still become separate steps after ~300ms idle.
+    histories[locale].pushCoalesced(next, 'blocks');
   }
 
   function handleUndo() {

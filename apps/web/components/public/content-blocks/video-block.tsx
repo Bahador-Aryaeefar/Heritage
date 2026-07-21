@@ -15,7 +15,7 @@ export function VideoBlock({ media, caption }: VideoBlockProps) {
           <div className="relative aspect-video w-full bg-brown-950">
             <iframe
               src={media.embedUrl}
-              title={label || 'Video'}
+              title={label}
               className="absolute inset-0 h-full w-full border-0"
               allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
               allowFullScreen
@@ -36,7 +36,7 @@ export function VideoBlock({ media, caption }: VideoBlockProps) {
           controls
           className="mx-auto w-full rounded-card bg-brown-950"
           src={media.url}
-          aria-label={label || undefined}
+          aria-label={label}
         />
       </div>
       {caption ? <figcaption className="mt-2 text-[14px] text-brown-800">{caption}</figcaption> : null}

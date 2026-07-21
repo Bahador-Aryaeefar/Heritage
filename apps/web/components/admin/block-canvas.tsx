@@ -7,6 +7,7 @@ import { MediaFilePicker } from '@/components/admin/media-file-picker';
 import { SpanTextEditor, type SpanTextEditorHandle } from '@/components/admin/span-text-editor';
 import { alignClasses, colorClasses, roleClasses } from '@/components/public/content-blocks/text-block';
 import type { BlockListEditorLabels } from '@/components/admin/block-list-editor';
+import type { LocaleDirection } from '@/i18n/locales';
 import type {
   EditorAudioBlock,
   EditorBlock,
@@ -32,6 +33,8 @@ type BlockCanvasProps = {
   labels: BlockCanvasLabels;
   /** When set, focus that block's in-canvas editor (text blocks only) once after an insert. */
   textFocusKey?: string | null;
+  /** Permanent content writing direction (FA/AR `rtl` / EN `ltr`) — not the UI locale dir. */
+  dir: LocaleDirection;
 };
 
 function isValidEmbedUrl(value: string): boolean {
@@ -101,6 +104,7 @@ export function BlockCanvas({
   onPickFile,
   labels,
   textFocusKey,
+  dir,
 }: BlockCanvasProps) {
   const editorRef = useRef<SpanTextEditorHandle>(null);
   const [draggingKey, setDraggingKey] = useState<string | null>(null);
@@ -255,6 +259,7 @@ export function BlockCanvas({
 
   return (
     <div
+      dir={dir}
       className="rounded-card border border-brown-800/15 bg-white px-6 py-8 md:px-10 md:py-10"
       onClick={() => onSelect(null)}
     >

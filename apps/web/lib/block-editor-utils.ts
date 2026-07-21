@@ -85,6 +85,27 @@ function emptyMediaBlock(key: string, type: Exclude<EditorBlockType, 'HEADING' |
   }
 }
 
+export function reorderBlock(
+  blocks: EditorBlock[],
+  fromIndex: number,
+  toIndex: number,
+): EditorBlock[] {
+  if (
+    fromIndex < 0 ||
+    fromIndex >= blocks.length ||
+    toIndex < 0 ||
+    toIndex >= blocks.length ||
+    fromIndex === toIndex
+  ) {
+    return blocks;
+  }
+
+  const next = blocks.slice();
+  const [item] = next.splice(fromIndex, 1);
+  next.splice(toIndex, 0, item!);
+  return next;
+}
+
 export function moveBlock(
   blocks: EditorBlock[],
   key: string,

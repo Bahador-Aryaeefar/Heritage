@@ -5,6 +5,7 @@ import {
   createEmptyBlock,
   insertBlockAt,
   moveBlock,
+  reorderBlock,
 } from './block-editor-utils';
 
 describe('createEmptyBlock', () => {
@@ -126,6 +127,44 @@ describe('moveBlock', () => {
   it('does not mutate the input array', () => {
     const snapshot = JSON.parse(JSON.stringify(blocks));
     moveBlock(blocks, 'b', 'up');
+    expect(blocks).toEqual(snapshot);
+  });
+});
+
+describe('reorderBlock', () => {
+  const blocks: EditorBlock[] = [
+    { key: 'a', type: 'HEADING', spans: [{ text: 'A' }], textRole: 'H2', colorToken: 'BROWN_950', align: 'START' },
+    { key: 'b', type: 'PARAGRAPH', spans: [{ text: 'B' }], textRole: 'BODY', colorToken: 'BROWN_800', align: 'START' },
+    { key: 'c', type: 'PARAGRAPH', spans: [{ text: 'C' }], textRole: 'BODY', colorToken: 'BROWN_800', align: 'START' },
+  ];
+
+  it('moves a block from one index to another', () => {
+    const reordered = reorderBlock(blocks, 2, 0);
+    expect(reordered.map((b) => b.key)).toEqual(['c', 'a', 'b']);
+  });
+
+  it('moves a block forward in the list', () => {
+    const reordered = reorderBlock(blocks, 0, 2);
+    expect(reordered.map((b) => b.key)).toEqual(['b', 'c', 'a']);
+  });
+
+  it('is a no-op when fromIndex is out of bounds', () => {
+    expect(reorderBlock(blocks, -1, 0).map((b) => b.key)).toEqual(['a', 'b', 'c']);
+    expect(reorderBlock(blocks, 3, 0).map((b) => b.key)).toEqual(['a', 'b', 'c']);
+  });
+
+  it('is a no-op when toIndex is out of bounds', () => {
+    expect(reorderBlock(blocks, 0, -1).map((b) => b.key)).toEqual(['a', 'b', 'c']);
+    expect(reorderBlock(blocks, 0, 3).map((b) => b.key)).toEqual(['a', 'b', 'c']);
+  });
+
+  it('is a no-op when fromIndex equals toIndex', () => {
+    expect(reorderBlock(blocks, 1, 1).map((b) => b.key)).toEqual(['a', 'b', 'c']);
+  });
+
+  it('does not mutate the input array', () => {
+    const snapshot = JSON.parse(JSON.stringify(blocks));
+    reorderBlock(blocks, 1, 0);
     expect(blocks).toEqual(snapshot);
   });
 });

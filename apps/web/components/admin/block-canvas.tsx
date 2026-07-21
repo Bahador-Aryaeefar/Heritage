@@ -1,6 +1,6 @@
 'use client';
 
-import { Fragment, useEffect, useRef } from 'react';
+import { Fragment, useEffect, useRef, useState } from 'react';
 import { BlockInsertMenu } from '@/components/admin/block-insert-menu';
 import { FormatToolbar } from '@/components/admin/format-toolbar';
 import { MediaFilePicker } from '@/components/admin/media-file-picker';
@@ -18,12 +18,16 @@ import type {
 /** Same label bag as `BlockListEditor`/`BlockInspector` — no canvas-only copy needed. */
 export type BlockCanvasLabels = BlockListEditorLabels;
 
+/** MIME type for block-key drag payloads — avoids collisions with plain-text drags. */
+const BLOCK_DRAG_MIME = 'application/x-heritage-block-key';
+
 type BlockCanvasProps = {
   value: EditorBlock[];
   selectedKey: string | null;
   onSelect: (key: string | null) => void;
   onChangeBlock: (key: string, patch: Partial<EditorBlock>) => void;
   onInsertAt: (index: number, type: EditorBlock['type']) => void;
+  onReorder: (fromIndex: number, toIndex: number) => void;
   onPickFile?: (block: EditorImageBlock | EditorAudioBlock, file: File) => void;
   labels: BlockCanvasLabels;
   /** When set, focus that block's in-canvas editor (text blocks only) once after an insert. */
@@ -40,6 +44,43 @@ function isValidEmbedUrl(value: string): boolean {
   }
 }
 
+function DragHandle({
+  blockKey,
+  onDragStart,
+  onDragEnd,
+}: {
+  blockKey: string;
+  onDragStart: (event: React.DragEvent<HTMLButtonElement>, key: string) => void;
+  onDragEnd: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      draggable
+      aria-label="Drag to reorder"
+      title="Drag to reorder"
+      onClick={(event) => event.stopPropagation()}
+      onDragStart={(event) => onDragStart(event, blockKey)}
+      onDragEnd={onDragEnd}
+      className="mb-1 flex cursor-grab items-center justify-center rounded-button border border-brown-800/15 bg-white px-1.5 py-0.5 text-brown-600 active:cursor-grabbing"
+    >
+      <svg
+        aria-hidden="true"
+        viewBox="0 0 10 16"
+        className="h-4 w-2.5 fill-current"
+        focusable="false"
+      >
+        <circle cx="2" cy="3" r="1.25" />
+        <circle cx="8" cy="3" r="1.25" />
+        <circle cx="2" cy="8" r="1.25" />
+        <circle cx="8" cy="8" r="1.25" />
+        <circle cx="2" cy="13" r="1.25" />
+        <circle cx="8" cy="13" r="1.25" />
+      </svg>
+    </button>
+  );
+}
+
 /**
  * Document canvas: a single white `rounded-card` surface that renders `EditorBlock[]` styled the
  * way the public article body renders them (`roleClasses`/`colorClasses`/`alignClasses` from
@@ -54,16 +95,50 @@ export function BlockCanvas({
   onSelect,
   onChangeBlock,
   onInsertAt,
+  onReorder,
   onPickFile,
   labels,
   textFocusKey,
 }: BlockCanvasProps) {
   const editorRef = useRef<SpanTextEditorHandle>(null);
+  const [draggingKey, setDraggingKey] = useState<string | null>(null);
+  const [dropTargetIndex, setDropTargetIndex] = useState<number | null>(null);
 
   useEffect(() => {
     if (!textFocusKey) return;
     editorRef.current?.focus();
   }, [textFocusKey]);
+
+  function handleDragStart(event: React.DragEvent<HTMLButtonElement>, key: string) {
+    event.dataTransfer.effectAllowed = 'move';
+    event.dataTransfer.setData(BLOCK_DRAG_MIME, key);
+    setDraggingKey(key);
+  }
+
+  function handleDragEnd() {
+    setDraggingKey(null);
+    setDropTargetIndex(null);
+  }
+
+  function handleDragOver(event: React.DragEvent<HTMLDivElement>, index: number) {
+    event.preventDefault();
+    event.dataTransfer.dropEffect = 'move';
+    setDropTargetIndex(index);
+  }
+
+  function handleDrop(event: React.DragEvent<HTMLDivElement>, toIndex: number) {
+    event.preventDefault();
+    event.stopPropagation();
+
+    const key = event.dataTransfer.getData(BLOCK_DRAG_MIME);
+    const fromIndex = value.findIndex((block) => block.key === key);
+    if (fromIndex !== -1 && fromIndex !== toIndex) {
+      onReorder(fromIndex, toIndex);
+    }
+
+    setDraggingKey(null);
+    setDropTargetIndex(null);
+  }
 
   function renderTextBlock(block: EditorTextBlock) {
     const selected = selectedKey === block.key;
@@ -190,12 +265,28 @@ export function BlockCanvas({
               <BlockInsertMenu variant="gap" labels={labels} onInsert={(type) => onInsertAt(index, type)} />
             </div>
             <div
-              className={`rounded-button -m-1 p-1 ${selectedKey === block.key ? 'ring-2 ring-teal-700/40' : ''}`}
+              className={`rounded-button -m-1 p-1 ${
+                selectedKey === block.key ? 'ring-2 ring-teal-700/40' : ''
+              } ${dropTargetIndex === index && draggingKey !== block.key ? 'ring-2 ring-teal-700/60' : ''} ${
+                draggingKey === block.key ? 'opacity-60' : ''
+              }`}
               onClick={(event) => {
                 event.stopPropagation();
                 onSelect(block.key);
               }}
+              onDragOver={(event) => handleDragOver(event, index)}
+              onDragLeave={() => {
+                if (dropTargetIndex === index) setDropTargetIndex(null);
+              }}
+              onDrop={(event) => handleDrop(event, index)}
             >
+              {selectedKey === block.key ? (
+                <DragHandle
+                  blockKey={block.key}
+                  onDragStart={handleDragStart}
+                  onDragEnd={handleDragEnd}
+                />
+              ) : null}
               {renderBlock(block)}
             </div>
           </Fragment>

@@ -79,6 +79,7 @@ function alignOptions(labels: BlockInspectorLabels): SelectOption[] {
   return [
     { value: 'START', label: labels.alignStart },
     { value: 'CENTER', label: labels.alignCenter },
+    { value: 'END', label: labels.alignEnd },
   ];
 }
 

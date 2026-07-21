@@ -360,6 +360,7 @@ export const CREATE_SITE_FULL_EXAMPLE = {
 };
 
 export const UPDATE_SITE_FULL_EXAMPLE = {
+  slug: 'new-heritage-site',
   category: 'ANCIENT',
   lat: '34.3872000',
   lng: '47.1332000',

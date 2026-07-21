@@ -25,6 +25,7 @@ import {
   BlockListEditor,
   type BlockListEditorLabels,
 } from '@/components/admin/block-list-editor';
+import { AdminSiteQrPanel } from '@/components/admin/admin-site-qr-panel';
 import {
   copyBlocksFromFa,
   createBlockKey,
@@ -32,7 +33,7 @@ import {
   type EditorBlock,
   type EditorImageBlock,
 } from '@/lib/copy-blocks-from-fa';
-import { adminFetch } from '@/lib/admin-api';
+import { adminFetch, adminFetchVoid } from '@/lib/admin-api';
 import { sha256HexOfFile } from '@/lib/file-hash';
 import { optimizeImage } from '@/lib/optimize-image';
 import { createTabHistory, type TabHistory } from '@/lib/tab-history';
@@ -469,6 +470,7 @@ export function SiteForm({ site }: SiteFormProps) {
 
       if (isEdit && site) {
         const payload = updateSiteFullSchema.parse({
+          slug,
           category,
           lat,
           lng,
@@ -508,6 +510,19 @@ export function SiteForm({ site }: SiteFormProps) {
     onError: () => setError(t('saveFailed')),
   });
 
+  const deleteMutation = useMutation({
+    mutationFn: async () => {
+      if (!site) throw new Error('missing site');
+      await adminFetchVoid(`/admin/sites/${site.id}`, { method: 'DELETE' });
+    },
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ['admin', 'sites'] });
+      router.replace('/admin/sites');
+      router.refresh();
+    },
+    onError: () => setError(t('deleteFailed')),
+  });
+
   const activeContent = CONTENT_LOCALE_DEFINITIONS[activeTab];
   const activeSnapshot = getSnapshot(activeTab);
 
@@ -522,11 +537,9 @@ export function SiteForm({ site }: SiteFormProps) {
         saveMutation.mutate();
       }}
     >
-      {!isEdit ? (
-        <Field label={t('slug')}>
-          <TextInput value={slug} onChange={(event) => setSlug(event.target.value)} dir="ltr" />
-        </Field>
-      ) : null}
+      <Field label={t('slug')} hint={t('slugHint')}>
+        <TextInput value={slug} onChange={(event) => setSlug(event.target.value)} dir="ltr" />
+      </Field>
 
       <div className="grid gap-4 md:grid-cols-2">
         <Field label={t('category')}>
@@ -574,6 +587,18 @@ export function SiteForm({ site }: SiteFormProps) {
         changeLabel={t('changeImage')}
         removeLabel={t('removeImage')}
       />
+
+      {isEdit && slug.trim() ? (
+        <AdminSiteQrPanel
+          slug={slug.trim()}
+          labels={{
+            title: t('qrTitle'),
+            scan: t('qrScan'),
+            download: t('qrDownload'),
+            targetUrl: t('qrTargetUrl'),
+          }}
+        />
+      ) : null}
 
       <div className="space-y-4">
         <Tabs
@@ -627,9 +652,24 @@ export function SiteForm({ site }: SiteFormProps) {
 
       {error ? <p className="text-[15px] text-[#B44B3D]">{error}</p> : null}
 
-      <ActionButton type="submit" disabled={saveMutation.isPending}>
-        {saveMutation.isPending ? t('saving') : isEdit ? t('save') : t('create')}
-      </ActionButton>
+      <div className="flex flex-wrap gap-3">
+        <ActionButton type="submit" disabled={saveMutation.isPending}>
+          {saveMutation.isPending ? t('saving') : isEdit ? t('save') : t('create')}
+        </ActionButton>
+        {isEdit && site ? (
+          <ActionButton
+            type="button"
+            variant="ghost"
+            disabled={deleteMutation.isPending}
+            onClick={() => {
+              if (!window.confirm(t('deleteConfirm'))) return;
+              deleteMutation.mutate();
+            }}
+          >
+            {t('delete')}
+          </ActionButton>
+        ) : null}
+      </div>
     </form>
   );
 }

@@ -25,6 +25,7 @@ const USERS_TABLE_COLS =
 const USERS_ROW = 'col-span-5 grid grid-cols-subgrid items-center';
 
 type UsersPanelProps = {
+  currentUserId: string;
   labels: {
     phone: string;
     password: string;
@@ -38,6 +39,9 @@ type UsersPanelProps = {
     admin: string;
     superAdmin: string;
     edit: string;
+    delete: string;
+    deleteConfirm: string;
+    deleteFailed: string;
     cancel: string;
     editUser: string;
     usersList: string;
@@ -46,12 +50,15 @@ type UsersPanelProps = {
     createFailed: string;
     saveFailed: string;
     passwordFailed: string;
+    actions: string;
   };
 };
 
 type RoleOption = { value: string; label: string };
 
-export function UsersPanel({ labels }: UsersPanelProps) {
+export function UsersPanel({ currentUserId, labels }: UsersPanelProps) {
+  const queryClient = useQueryClient();
+  const [listError, setListError] = useState<string | null>(null);
   const { data, isLoading } = useQuery({
     queryKey: ['admin', 'users'],
     queryFn: () => adminFetch('/admin/users?page=1&limit=100', usersSchema),
@@ -59,6 +66,18 @@ export function UsersPanel({ labels }: UsersPanelProps) {
 
   const [creating, setCreating] = useState(false);
   const [editingUser, setEditingUser] = useState<AdminUser | null>(null);
+
+  const deleteMutation = useMutation({
+    mutationFn: (id: string) =>
+      adminFetchVoid(`/admin/users/${id}`, {
+        method: 'DELETE',
+      }),
+    onSuccess: async () => {
+      setListError(null);
+      await queryClient.invalidateQueries({ queryKey: ['admin', 'users'] });
+    },
+    onError: () => setListError(labels.deleteFailed),
+  });
 
   const roleOptions: RoleOption[] = [
     { value: 'ADMIN', label: labels.admin },
@@ -77,6 +96,8 @@ export function UsersPanel({ labels }: UsersPanelProps) {
           {labels.create}
         </ActionButton>
       </section>
+
+      {listError ? <p className="text-[15px] text-[#B44B3D]">{listError}</p> : null}
 
       <section className="overflow-hidden rounded-card border border-brown-800/15 bg-white">
         {isLoading ? (
@@ -107,43 +128,58 @@ export function UsersPanel({ labels }: UsersPanelProps) {
                 <div role="columnheader">{labels.role}</div>
                 <div role="columnheader">{labels.active}</div>
                 <div role="columnheader" className="justify-self-end">
-                  <span className="sr-only">{labels.edit}</span>
+                  <span className="sr-only">{labels.actions}</span>
                 </div>
               </div>
 
-              {users.map((user) => (
-                <div
-                  key={user.id}
-                  role="row"
-                  className={`${USERS_ROW} border-b border-brown-800/10 py-3.5 last:border-b-0`}
-                >
-                  <div role="cell" className="min-w-0 truncate text-[15px] font-bold text-brown-950">
-                    {user.displayName?.trim() || '—'}
+              {users.map((user) => {
+                const isSelf = user.id === currentUserId;
+                return (
+                  <div
+                    key={user.id}
+                    role="row"
+                    className={`${USERS_ROW} border-b border-brown-800/10 py-3.5 last:border-b-0`}
+                  >
+                    <div role="cell" className="min-w-0 truncate text-[15px] font-bold text-brown-950">
+                      {user.displayName?.trim() || '—'}
+                    </div>
+                    <div role="cell" className="min-w-0 truncate text-[13px] text-brown-600">
+                      <span dir="ltr">{user.phone}</span>
+                    </div>
+                    <div role="cell">
+                      <Badge>
+                        {user.role === 'SUPER_ADMIN' ? labels.superAdmin : labels.admin}
+                      </Badge>
+                    </div>
+                    <div role="cell">
+                      <Badge tone={user.isActive ? 'default' : 'muted'}>
+                        {user.isActive ? labels.active : labels.inactive}
+                      </Badge>
+                    </div>
+                    <div role="cell" className="flex flex-wrap justify-end gap-2">
+                      <ActionButton
+                        type="button"
+                        variant="secondary"
+                        onClick={() => setEditingUser(user)}
+                      >
+                        {labels.edit}
+                      </ActionButton>
+                      <ActionButton
+                        type="button"
+                        variant="ghost"
+                        disabled={isSelf || deleteMutation.isPending}
+                        onClick={() => {
+                          if (isSelf) return;
+                          if (!window.confirm(labels.deleteConfirm)) return;
+                          deleteMutation.mutate(user.id);
+                        }}
+                      >
+                        {labels.delete}
+                      </ActionButton>
+                    </div>
                   </div>
-                  <div role="cell" className="min-w-0 truncate text-[13px] text-brown-600">
-                    <span dir="ltr">{user.phone}</span>
-                  </div>
-                  <div role="cell">
-                    <Badge>
-                      {user.role === 'SUPER_ADMIN' ? labels.superAdmin : labels.admin}
-                    </Badge>
-                  </div>
-                  <div role="cell">
-                    <Badge tone={user.isActive ? 'default' : 'muted'}>
-                      {user.isActive ? labels.active : labels.inactive}
-                    </Badge>
-                  </div>
-                  <div role="cell" className="justify-self-end">
-                    <ActionButton
-                      type="button"
-                      variant="secondary"
-                      onClick={() => setEditingUser(user)}
-                    >
-                      {labels.edit}
-                    </ActionButton>
-                  </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </div>
         ) : null}

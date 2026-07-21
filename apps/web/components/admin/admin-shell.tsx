@@ -6,6 +6,7 @@ import type { AuthUser } from '@heritage/shared-types';
 import { HeritagePageBackground } from '@/components/public/heritage-page-background';
 import { LanguageSwitcher } from '@/components/public/language-switcher';
 import { LogoMark } from '@/components/public/logo-mark';
+import { SiteFooter } from '@/components/public/site-footer';
 import { ActionButton } from '@/components/ui/action-button';
 import { Badge } from '@/components/ui/badge';
 import { adminFetchVoid } from '@/lib/admin-api';
@@ -23,6 +24,7 @@ type AdminShellProps = {
     brandTagline: string;
     roleAdmin: string;
     roleSuperAdmin: string;
+    footerTagline: string;
   };
 };
 
@@ -45,9 +47,9 @@ export function AdminShell({ user, children, labels }: AdminShellProps) {
   ];
 
   return (
-    <div className="relative min-h-screen text-brown-950">
+    <div className="relative flex min-h-screen flex-col text-brown-950">
       <HeritagePageBackground />
-      <div className="relative mx-auto flex min-h-screen w-full max-w-[1400px] gap-5 px-[4vw] py-5 md:py-6">
+      <div className="relative mx-auto flex w-full max-w-[1400px] flex-1 gap-5 px-[4vw] py-5 md:py-6">
         <aside className="hidden w-60 shrink-0 md:block">
           <div className="sticky top-6 overflow-hidden rounded-container border border-brown-800/15 bg-sand-100 p-5 shadow-[0_8px_28px_rgba(42,29,20,0.08)]">
             <div className="flex items-center gap-3 border-b border-brown-800/15 pb-4">
@@ -130,6 +132,7 @@ export function AdminShell({ user, children, labels }: AdminShellProps) {
           </main>
         </div>
       </div>
+      <SiteFooter tagline={labels.footerTagline} />
     </div>
   );
 }

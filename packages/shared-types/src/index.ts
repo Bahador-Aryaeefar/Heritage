@@ -296,12 +296,14 @@ function requireFaEnArTranslations<T extends { locale: string }>(translations: T
   return locales.has('fa') && locales.has('en') && locales.has('ar');
 }
 
+export const siteSlugSchema = z
+  .string()
+  .min(1)
+  .regex(/^[a-z0-9-]+$/, 'Slug must be lowercase letters, numbers, and hyphens only');
+
 export const createSiteFullSchema = z
   .object({
-    slug: z
-      .string()
-      .min(1)
-      .regex(/^[a-z0-9-]+$/, 'Slug must be lowercase letters, numbers, and hyphens only'),
+    slug: siteSlugSchema,
     category: siteCategorySchema,
     lat: z.string().min(1),
     lng: z.string().min(1),
@@ -316,6 +318,7 @@ export const createSiteFullSchema = z
 
 export const updateSiteFullSchema = z
   .object({
+    slug: siteSlugSchema,
     category: siteCategorySchema,
     lat: z.string().min(1),
     lng: z.string().min(1),

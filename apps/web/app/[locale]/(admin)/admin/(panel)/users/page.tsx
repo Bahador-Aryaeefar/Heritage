@@ -20,6 +20,7 @@ export default async function AdminUsersPage({ params }: UsersPageProps) {
 
   return (
     <UsersPanel
+      currentUserId={user.id}
       labels={{
         phone: t('phone'),
         password: t('password'),
@@ -33,6 +34,9 @@ export default async function AdminUsersPage({ params }: UsersPageProps) {
         admin: t('admin'),
         superAdmin: t('superAdmin'),
         edit: t('edit'),
+        delete: t('delete'),
+        deleteConfirm: t('deleteConfirm'),
+        deleteFailed: t('deleteFailed'),
         cancel: t('cancel'),
         editUser: t('editUser'),
         usersList: t('usersList'),
@@ -41,6 +45,7 @@ export default async function AdminUsersPage({ params }: UsersPageProps) {
         createFailed: t('createFailed'),
         saveFailed: t('saveFailed'),
         passwordFailed: t('passwordFailed'),
+        actions: t('actions'),
       }}
     />
   );

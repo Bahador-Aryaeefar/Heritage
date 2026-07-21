@@ -20,6 +20,7 @@ export default async function AdminPanelLayout({ children, params }: AdminPanelL
 
   const user = await getServerSessionUser();
   const t = await getTranslations('admin.shell');
+  const tFooter = await getTranslations('footer');
   const labels = {
     sites: t('sites'),
     users: t('users'),
@@ -28,6 +29,7 @@ export default async function AdminPanelLayout({ children, params }: AdminPanelL
     brandTagline: t('brandTagline'),
     roleAdmin: t('roleAdmin'),
     roleSuperAdmin: t('roleSuperAdmin'),
+    footerTagline: tFooter('tagline'),
     loading: t('loading'),
   };
 

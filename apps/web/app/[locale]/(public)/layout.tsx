@@ -14,10 +14,10 @@ export default async function PublicLayout({ children, params }: PublicLayoutPro
   const t = await getTranslations('footer');
 
   return (
-    <div className="relative min-h-screen">
+    <div className="relative flex min-h-screen flex-col">
       <HeritagePageBackground />
       <SiteHeader />
-      <main className="relative">{children}</main>
+      <main className="relative flex-1">{children}</main>
       <SiteFooter tagline={t('tagline')} />
     </div>
   );

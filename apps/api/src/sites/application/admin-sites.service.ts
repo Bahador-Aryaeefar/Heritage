@@ -262,6 +262,13 @@ export class AdminSitesService {
           },
         });
         const createdMediaIds = await this.persistMediaAndBlocks(tx, site.id, payload, plan);
+        await tx.qRCode.create({
+          data: {
+            siteId: site.id,
+            // Physical install id — distinct from the slug-derived scan URL on the plaque.
+            code: `${payload.slug}-${site.id.slice(-8)}`,
+          },
+        });
         return { siteId: site.id, createdMediaIds };
       });
 
@@ -299,6 +306,7 @@ export class AdminSitesService {
         await tx.site.update({
           where: { id },
           data: {
+            slug: payload.slug,
             category: payload.category,
             lat: payload.lat,
             lng: payload.lng,

@@ -7,34 +7,11 @@ import { usePathname, useRouter } from '@/i18n/navigation';
 import { ChevronIcon } from '@/components/ui/chevron-icon';
 import { LOCALE_DEFINITIONS } from '@/i18n/locales';
 import { routing, type Locale } from '@/i18n/routing';
-
-type MenuBox = {
-  top: number;
-  left: number;
-  minWidth: number;
-  maxHeight: number;
-};
-
-function measureMenu(trigger: HTMLElement): MenuBox {
-  const rect = trigger.getBoundingClientRect();
-  const gap = 8;
-  const preferredMax = 256;
-  const spaceBelow = window.innerHeight - rect.bottom - gap - 12;
-  const spaceAbove = rect.top - gap - 12;
-  const openUp = spaceBelow < 140 && spaceAbove > spaceBelow;
-  const maxHeight = Math.min(preferredMax, Math.max(120, openUp ? spaceAbove : spaceBelow));
-  const top = openUp ? rect.top - gap - maxHeight : rect.bottom + gap;
-  const minWidth = Math.max(rect.width, 208);
-  const isRtl = getComputedStyle(trigger).direction === 'rtl';
-  const left = isRtl ? rect.right - minWidth : rect.left;
-
-  return {
-    top: Math.max(8, top),
-    left: Math.min(Math.max(8, left), window.innerWidth - minWidth - 8),
-    minWidth,
-    maxHeight,
-  };
-}
+import {
+  measurePortalMenu,
+  subscribePortalMenuPosition,
+  type PortalMenuBox,
+} from '@/lib/measure-portal-menu';
 
 /**
  * Compact dropdown language switcher — scales to many locales without
@@ -46,7 +23,7 @@ export function LanguageSwitcher() {
   const router = useRouter();
   const t = useTranslations('lang');
   const [open, setOpen] = useState(false);
-  const [menuBox, setMenuBox] = useState<MenuBox | null>(null);
+  const [menuBox, setMenuBox] = useState<PortalMenuBox | null>(null);
   const rootRef = useRef<HTMLDivElement>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
   const menuRef = useRef<HTMLUListElement>(null);
@@ -61,16 +38,18 @@ export function LanguageSwitcher() {
 
     function update() {
       if (!triggerRef.current) return;
-      setMenuBox(measureMenu(triggerRef.current));
+      const rect = triggerRef.current.getBoundingClientRect();
+      setMenuBox(
+        measurePortalMenu(triggerRef.current, {
+          preferredMaxHeight: 256,
+          minWidth: Math.max(rect.width, 208),
+          align: 'auto',
+        }),
+      );
     }
 
     update();
-    window.addEventListener('resize', update);
-    window.addEventListener('scroll', update, true);
-    return () => {
-      window.removeEventListener('resize', update);
-      window.removeEventListener('scroll', update, true);
-    };
+    return subscribePortalMenuPosition(update);
   }, [open]);
 
   useEffect(() => {

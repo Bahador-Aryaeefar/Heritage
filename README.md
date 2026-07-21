@@ -131,7 +131,7 @@ Set `PUBLIC_WEB_BASE_URL` (API) and `NEXT_PUBLIC_SITE_URL` (web) in the **repo r
 |---|---|
 | `http://localhost:3000/` | Landing (Persian default: hero, banners, site grid) |
 | `http://localhost:3000/sites/taq-e-bostan` | Site detail with content blocks, coordinates, Google/Neshan map links, and embedded Google map |
-| `http://localhost:3000/admin` | Admin panel (sites CRUD with FA/EN/AR document-canvas editor — permanent `فارسی`/`English`/`العربية` content tabs with fixed rtl/ltr; users for SuperAdmin; UI language via switcher) |
+| `http://localhost:3000/admin` | Admin panel (sites CRUD + delete with media cleanup; FA/EN/AR document-canvas editor; QR preview + plaque download on site edit; users for SuperAdmin including delete) |
 | `http://localhost:3000/admin/login` | Admin sign-in (localized) |
 | `http://localhost:3000/docs` | Scalar API docs (rewritten to API) |
 | `http://localhost:3000/en/admin` | English admin panel |
@@ -143,7 +143,7 @@ Requires API running on port 4000 with migrate + seed.
 
 ## Phase status
 
-**Phase 4 admin:** JWT cookie auth with rotating refresh tokens, SuperAdmin user management, Admin/SuperAdmin site CRUD at `/admin` with a full **FA/EN/AR** document-canvas editor (locale tabs with native endonyms + permanent `dir`, copy-from-FA for EN and AR, rich text spans with bold/italic/links, drag-reorder, per-tab undo/redo, WYSIWYG image/audio with captions + playable audio, cover/media picker) that saves atomically via one multipart request to `POST`/`PUT /admin/sites`, and Scalar docs at `/docs`. Block media accessibility uses the per-locale **caption** as image `alt` / audio-video `aria-label`; cover and card images use the site **slug** as `alt` (no separate media alt fields). Visit analytics remain deferred.
+**Phase 4 admin:** JWT cookie auth with rotating refresh tokens, SuperAdmin user management (create/edit/password/delete — cannot delete self or the last SuperAdmin), Admin/SuperAdmin site CRUD + delete at `/admin` (delete removes media files then QR/visit rows). Site edit shows a live QR preview and plaque PNG download; slug is editable on create and update (warning: reprint plaques after a slug change). Full **FA/EN/AR** document-canvas editor (locale tabs with native endonyms + permanent `dir`, copy-from-FA for EN and AR, rich text spans with bold/italic/links, drag-reorder, per-tab undo/redo, WYSIWYG image/audio with captions + playable audio, cover/media picker) that saves atomically via one multipart request to `POST`/`PUT /admin/sites`, and Scalar docs at `/docs`. Creating a site also inserts a default `QRCode` row for visit tracking. Block media accessibility uses the per-locale **caption** as image `alt` / audio-video `aria-label`; cover and card images use the site **slug** as `alt` (no separate media alt fields). Visit analytics remain deferred.
 
 ## Deploy on VPS (Docker + Caddy)
 

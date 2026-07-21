@@ -102,6 +102,7 @@ function createTx() {
     siteTranslation: { upsert: jest.fn() },
     media: { create: jest.fn(), updateMany: jest.fn(), update: jest.fn() },
     siteContentBlock: { deleteMany: jest.fn(), createMany: jest.fn() },
+    qRCode: { create: jest.fn() },
   };
 }
 type TxMock = ReturnType<typeof createTx>;
@@ -169,6 +170,7 @@ describe('AdminSitesService full write', () => {
       .mockResolvedValueOnce(buildAdminRow('site-1'));
 
     const payload: UpdateSiteFullInput = {
+      slug: 'taq-e-bostan',
       category: 'ANCIENT',
       lat: '34.3872000',
       lng: '47.1332000',
@@ -190,6 +192,7 @@ describe('AdminSitesService full write', () => {
     prisma.$transaction.mockRejectedValueOnce(new Error('db down'));
 
     const payload: UpdateSiteFullInput = {
+      slug: 'taq-e-bostan',
       category: 'ANCIENT',
       lat: '1',
       lng: '2',
@@ -235,6 +238,9 @@ describe('AdminSitesService full write', () => {
 
     expect(staging.stageImage).toHaveBeenCalledTimes(2);
     expect(tx.media.create).toHaveBeenCalledTimes(2);
+    expect(tx.qRCode.create).toHaveBeenCalledWith({
+      data: { siteId: 'site-new', code: 'taq-e-bostan-site-new' },
+    });
     expect(tx.siteContentBlock.createMany).toHaveBeenCalled();
     expect(staging.promoteImage).toHaveBeenCalled();
     expect(prisma.media.update).toHaveBeenCalled();

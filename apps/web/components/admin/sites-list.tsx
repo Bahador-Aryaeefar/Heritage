@@ -1,13 +1,15 @@
 'use client';
 
+import { useState } from 'react';
 import { useLocale } from 'next-intl';
-import { useQuery } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Link } from '@/i18n/navigation';
 import { adminSiteSchema, paginatedResponseSchema } from '@heritage/shared-types';
 import type { Locale } from '@/i18n/routing';
 import { toContentLocale } from '@/i18n/locales';
+import { ActionButton } from '@/components/ui/action-button';
 import { Badge } from '@/components/ui/badge';
-import { adminFetch } from '@/lib/admin-api';
+import { adminFetch, adminFetchVoid } from '@/lib/admin-api';
 
 const sitesSchema = paginatedResponseSchema(adminSiteSchema);
 
@@ -18,6 +20,9 @@ type SitesListProps = {
     active: string;
     inactive: string;
     edit: string;
+    delete: string;
+    deleteConfirm: string;
+    deleteFailed: string;
     loading: string;
     empty: string;
     ancient: string;
@@ -28,9 +33,23 @@ type SitesListProps = {
 
 export function SitesList({ labels }: SitesListProps) {
   const locale = useLocale() as Locale;
+  const queryClient = useQueryClient();
+  const [error, setError] = useState<string | null>(null);
   const { data, isLoading } = useQuery({
     queryKey: ['admin', 'sites'],
     queryFn: () => adminFetch('/admin/sites?page=1&limit=100', sitesSchema),
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: (id: string) =>
+      adminFetchVoid(`/admin/sites/${id}`, {
+        method: 'DELETE',
+      }),
+    onSuccess: async () => {
+      setError(null);
+      await queryClient.invalidateQueries({ queryKey: ['admin', 'sites'] });
+    },
+    onError: () => setError(labels.deleteFailed),
   });
 
   const categoryLabel = {
@@ -57,6 +76,7 @@ export function SitesList({ labels }: SitesListProps) {
       {!isLoading && sites.length === 0 ? (
         <p className="text-[15px] text-brown-600">{labels.empty}</p>
       ) : null}
+      {error ? <p className="text-[15px] text-[#B44B3D]">{error}</p> : null}
 
       <div className="grid gap-3">
         {sites.map((site) => {
@@ -88,12 +108,25 @@ export function SitesList({ labels }: SitesListProps) {
                   </Badge>
                 </div>
               </div>
-              <Link
-                href={`/admin/sites/${site.id}`}
-                className="inline-flex cursor-pointer items-center justify-center rounded-button border-2 border-brown-800 bg-transparent px-5 py-2.5 text-[15px] font-bold text-brown-800 transition-transform hover:-translate-y-0.5"
-              >
-                {labels.edit}
-              </Link>
+              <div className="flex flex-wrap gap-2">
+                <Link
+                  href={`/admin/sites/${site.id}`}
+                  className="inline-flex cursor-pointer items-center justify-center rounded-button border-2 border-brown-800 bg-transparent px-5 py-2.5 text-[15px] font-bold text-brown-800 transition-transform hover:-translate-y-0.5"
+                >
+                  {labels.edit}
+                </Link>
+                <ActionButton
+                  type="button"
+                  variant="ghost"
+                  disabled={deleteMutation.isPending}
+                  onClick={() => {
+                    if (!window.confirm(labels.deleteConfirm)) return;
+                    deleteMutation.mutate(site.id);
+                  }}
+                >
+                  {labels.delete}
+                </ActionButton>
+              </div>
             </div>
           );
         })}

@@ -172,6 +172,7 @@ export function BlockCanvas({
           onChange={(spans) => onChangeBlock(block.key, { spans })}
           placeholder={block.type === 'HEADING' ? labels.headingTitle : labels.paragraphTitle}
           labels={{ linkPrompt: labels.linkPrompt }}
+          dir={dir}
           className={`${roleClasses[block.textRole]} ${colorClasses[block.colorToken]} ${alignClasses[block.align]}`}
         />
       </>

@@ -2,9 +2,13 @@
 
 import { useEffect, useId, useLayoutEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { ActionButton } from '@/components/ui/action-button';
 import type { BlockListEditorLabels } from '@/components/admin/block-list-editor';
 import type { EditorBlock } from '@/lib/copy-blocks-from-fa';
+import {
+  measurePortalMenu,
+  subscribePortalMenuPosition,
+  type PortalMenuBox,
+} from '@/lib/measure-portal-menu';
 
 export type BlockInsertMenuLabels = Pick<
   BlockListEditorLabels,
@@ -14,13 +18,8 @@ export type BlockInsertMenuLabels = Pick<
 type BlockInsertMenuProps = {
   labels: BlockInsertMenuLabels;
   onInsert: (type: EditorBlock['type']) => void;
+  /** `gap` sits between blocks; `end` is the trailing insert — both use the same + trigger. */
   variant: 'gap' | 'end';
-};
-
-type MenuBox = {
-  top: number;
-  left: number;
-  minWidth: number;
 };
 
 const INSERT_ITEMS: {
@@ -34,22 +33,9 @@ const INSERT_ITEMS: {
   { type: 'VIDEO', labelKey: 'addVideo' },
 ];
 
-function measureMenu(trigger: HTMLElement): MenuBox {
-  const rect = trigger.getBoundingClientRect();
-  const gap = 8;
-  const minWidth = Math.max(220, rect.width);
-  const left = Math.min(rect.left, window.innerWidth - minWidth - 8);
-
-  return {
-    top: rect.bottom + gap,
-    left: Math.max(8, left),
-    minWidth,
-  };
-}
-
 export function BlockInsertMenu({ labels, onInsert, variant }: BlockInsertMenuProps) {
   const [open, setOpen] = useState(false);
-  const [menuBox, setMenuBox] = useState<MenuBox | null>(null);
+  const [menuBox, setMenuBox] = useState<PortalMenuBox | null>(null);
   const rootRef = useRef<HTMLDivElement>(null);
   const triggerRef = useRef<HTMLSpanElement>(null);
   const menuRef = useRef<HTMLUListElement>(null);
@@ -63,16 +49,17 @@ export function BlockInsertMenu({ labels, onInsert, variant }: BlockInsertMenuPr
 
     function update() {
       if (!triggerRef.current) return;
-      setMenuBox(measureMenu(triggerRef.current));
+      const rect = triggerRef.current.getBoundingClientRect();
+      setMenuBox(
+        measurePortalMenu(triggerRef.current, {
+          preferredMaxHeight: 280,
+          minWidth: Math.max(220, rect.width),
+        }),
+      );
     }
 
     update();
-    window.addEventListener('resize', update);
-    window.addEventListener('scroll', update, true);
-    return () => {
-      window.removeEventListener('resize', update);
-      window.removeEventListener('scroll', update, true);
-    };
+    return subscribePortalMenuPosition(update);
   }, [open]);
 
   useEffect(() => {
@@ -115,9 +102,10 @@ export function BlockInsertMenu({ labels, onInsert, variant }: BlockInsertMenuPr
               top: menuBox.top,
               left: menuBox.left,
               minWidth: menuBox.minWidth,
+              maxHeight: menuBox.maxHeight,
               zIndex: 1100,
             }}
-            className="overflow-hidden rounded-card border border-brown-800/15 bg-white py-1 shadow-[0_12px_32px_rgba(42,29,20,0.16)]"
+            className="overflow-auto rounded-card border border-brown-800/15 bg-white py-1 shadow-[0_12px_32px_rgba(42,29,20,0.16)]"
           >
             {INSERT_ITEMS.map(({ type, labelKey }) => (
               <li key={type} role="none">
@@ -139,30 +127,17 @@ export function BlockInsertMenu({ labels, onInsert, variant }: BlockInsertMenuPr
   return (
     <div ref={rootRef} className={variant === 'end' ? 'flex justify-center py-2' : 'relative'}>
       <span ref={triggerRef} className="inline-flex">
-        {variant === 'gap' ? (
-          <button
-            type="button"
-            aria-haspopup="menu"
-            aria-expanded={open}
-            aria-controls={menuId}
-            aria-label={labels.addBlock}
-            onClick={() => setOpen((current) => !current)}
-            className="inline-flex h-9 w-9 cursor-pointer items-center justify-center rounded-button border-2 border-brown-800/20 bg-white text-[15px] font-bold text-brown-800 transition-transform hover:-translate-y-0.5"
-          >
-            +
-          </button>
-        ) : (
-          <ActionButton
-            type="button"
-            variant="secondary"
-            aria-haspopup="menu"
-            aria-expanded={open}
-            aria-controls={menuId}
-            onClick={() => setOpen((current) => !current)}
-          >
-            {labels.addBlock}
-          </ActionButton>
-        )}
+        <button
+          type="button"
+          aria-haspopup="menu"
+          aria-expanded={open}
+          aria-controls={menuId}
+          aria-label={labels.addBlock}
+          onClick={() => setOpen((current) => !current)}
+          className="inline-flex h-9 w-9 cursor-pointer items-center justify-center rounded-button border-2 border-brown-800/20 bg-white text-[15px] font-bold text-brown-800 transition-transform hover:-translate-y-0.5"
+        >
+          +
+        </button>
       </span>
       {menu}
     </div>

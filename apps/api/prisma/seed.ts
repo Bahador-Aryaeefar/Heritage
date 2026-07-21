@@ -4,14 +4,14 @@ import {
   SiteCategory,
   UserRole,
 } from '@prisma/client';
-import { loadRootEnv } from '@heritage/env-loader';
 import bcrypt from 'bcryptjs';
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { join, resolve } from 'node:path';
 import sharp from 'sharp';
 import { buildArBlocks, buildEnBlocks, buildFaBlocks } from './taq-e-bostan-blocks';
 
-loadRootEnv();
+// Env is loaded by `dotenv -e ../../.env` in the `prisma:seed` script (do not import
+// `@heritage/env-loader` here — ts-node CommonJS cannot require that ESM package).
 
 const prisma = new PrismaClient();
 

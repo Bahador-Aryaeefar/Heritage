@@ -1,7 +1,9 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
+  HttpCode,
   Param,
   Patch,
   Post,
@@ -40,6 +42,7 @@ import {
   ApiJsonBody,
   ApiJsonCreated,
   ApiJsonOk,
+  ApiNoContent,
   ApiPaginatedResponse,
   ApiProtectedErrors,
   ApiValidationError,
@@ -145,5 +148,16 @@ export class AdminUsersController {
   @ApiProtectedErrors()
   updatePassword(@Param('id') id: string, @Body() body: unknown) {
     return this.usersService.updatePassword(id, updateUserPasswordSchema.parse(body)).then(() => ({ ok: true }));
+  }
+
+  @Delete(':id')
+  @HttpCode(204)
+  @ApiNoContent('Delete an admin user (revokes sessions; cannot delete self or last super admin)')
+  @ApiProtectedErrors()
+  async remove(
+    @Param('id') id: string,
+    @Req() req: Request & { user: AuthenticatedUser },
+  ): Promise<void> {
+    await this.usersService.deleteUser(id, req.user.id);
   }
 }

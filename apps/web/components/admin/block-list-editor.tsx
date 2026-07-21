@@ -17,7 +17,7 @@ export type BlockListEditorLabels = {
   addImage: string;
   addAudio: string;
   addVideo: string;
-  /** "+ Add block" trigger (`BlockInsertMenu` end variant / inspector empty-state entry point). */
+  /** Accessible name for the canvas **+** insert triggers (`BlockInsertMenu`). */
   addBlock: string;
   moveUp: string;
   moveDown: string;

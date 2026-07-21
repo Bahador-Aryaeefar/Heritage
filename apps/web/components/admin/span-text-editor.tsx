@@ -1,6 +1,6 @@
 'use client';
 
-import { forwardRef, useEffect, useImperativeHandle, useRef } from 'react';
+import { forwardRef, useImperativeHandle, useLayoutEffect, useRef } from 'react';
 import type { TextSpan } from '@heritage/shared-types';
 import {
   normalizeSpans,
@@ -134,10 +134,12 @@ function isEmptySpans(spans: TextSpan[]): boolean {
 export const SpanTextEditor = forwardRef<SpanTextEditorHandle, SpanTextEditorProps>(
   function SpanTextEditor({ value, onChange, className = '', dir, placeholder, labels }, ref) {
     const editorRef = useRef<HTMLDivElement>(null);
-    const lastSpansRef = useRef(serializeSpans(value));
+    // Start as null so the first layout effect always paints `value` into the empty
+    // contentEditable (initializing to serializeSpans(value) skipped that sync and hid text).
+    const lastSpansRef = useRef<string | null>(null);
     const syncingRef = useRef(false);
 
-    useEffect(() => {
+    useLayoutEffect(() => {
       const root = editorRef.current;
       if (!root || syncingRef.current) return;
 
@@ -199,7 +201,6 @@ export const SpanTextEditor = forwardRef<SpanTextEditorHandle, SpanTextEditorPro
         data-placeholder={placeholder}
         onInput={() => emitFromDom()}
         onBlur={() => emitFromDom()}
-        onClick={(event) => event.stopPropagation()}
         className={`min-h-[1.5em] w-full whitespace-pre-wrap break-words outline-none empty:before:pointer-events-none empty:before:text-brown-600/40 empty:before:content-[attr(data-placeholder)] ${className}`}
       />
     );

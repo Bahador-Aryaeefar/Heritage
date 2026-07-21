@@ -105,6 +105,9 @@
       "active": "Active",
       "inactive": "Inactive",
       "edit": "Edit",
+      "delete": "Delete",
+      "deleteConfirm": "Delete this site and all of its media files? This cannot be undone.",
+      "deleteFailed": "Could not delete the site.",
       "loading": "Loading…",
       "empty": "No sites yet.",
       "ancient": "Ancient",
@@ -113,6 +116,7 @@
     },
     "siteForm": {
       "slug": "Slug",
+      "slugHint": "The slug sets the public URL and QR target. Changing it after plaques are printed breaks old links and QR codes — reprint plaques.",
       "category": "Category",
       "lat": "Latitude",
       "lng": "Longitude",
@@ -128,6 +132,13 @@
       "save": "Save",
       "create": "Create",
       "saving": "Saving…",
+      "delete": "Delete site",
+      "deleteConfirm": "Delete this site and all of its media files? This cannot be undone.",
+      "deleteFailed": "Could not delete the site.",
+      "qrTitle": "QR code & plaque",
+      "qrScan": "Preview of the QR code printed on the plaque. Scanning it opens this site’s public page.",
+      "qrDownload": "Download plaque PNG for printing",
+      "qrTargetUrl": "Target URL",
       "pickImage": "Choose image",
       "changeImage": "Change image",
       "removeImage": "Clear selection",
@@ -207,13 +218,17 @@
       "superAdmin": "Super Admin",
       "edit": "Edit",
       "cancel": "Close",
+      "delete": "Delete",
+      "deleteConfirm": "Delete this user? This cannot be undone.",
+      "deleteFailed": "Could not delete the user.",
       "editUser": "Edit user",
       "usersList": "Users",
       "loading": "Loading…",
       "empty": "No users yet.",
       "createFailed": "Could not create user.",
       "saveFailed": "Could not save changes.",
-      "passwordFailed": "Could not reset password."
+      "passwordFailed": "Could not reset password.",
+      "actions": "Actions"
     }
   }
 }

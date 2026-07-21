@@ -3,6 +3,11 @@
 import { useEffect, useId, useLayoutEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { ChevronIcon } from '@/components/ui/chevron-icon';
+import {
+  measurePortalMenu,
+  subscribePortalMenuPosition,
+  type PortalMenuBox,
+} from '@/lib/measure-portal-menu';
 
 export type SelectOption = {
   value: string;
@@ -18,31 +23,6 @@ type SelectProps = {
   dir?: 'ltr' | 'rtl';
 };
 
-type MenuBox = {
-  top: number;
-  left: number;
-  width: number;
-  maxHeight: number;
-};
-
-function measureMenu(trigger: HTMLElement): MenuBox {
-  const rect = trigger.getBoundingClientRect();
-  const gap = 8;
-  const preferredMax = 224; // ~max-h-56
-  const spaceBelow = window.innerHeight - rect.bottom - gap - 12;
-  const spaceAbove = rect.top - gap - 12;
-  const openUp = spaceBelow < 140 && spaceAbove > spaceBelow;
-  const maxHeight = Math.min(preferredMax, Math.max(120, openUp ? spaceAbove : spaceBelow));
-  const top = openUp ? rect.top - gap - maxHeight : rect.bottom + gap;
-
-  return {
-    top: Math.max(8, top),
-    left: rect.left,
-    width: rect.width,
-    maxHeight,
-  };
-}
-
 export function Select({
   value,
   onChange,
@@ -52,7 +32,7 @@ export function Select({
   dir,
 }: SelectProps) {
   const [open, setOpen] = useState(false);
-  const [menuBox, setMenuBox] = useState<MenuBox | null>(null);
+  const [menuBox, setMenuBox] = useState<PortalMenuBox | null>(null);
   const rootRef = useRef<HTMLDivElement>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
   const menuRef = useRef<HTMLUListElement>(null);
@@ -67,16 +47,11 @@ export function Select({
 
     function update() {
       if (!triggerRef.current) return;
-      setMenuBox(measureMenu(triggerRef.current));
+      setMenuBox(measurePortalMenu(triggerRef.current, { matchTriggerWidth: true }));
     }
 
     update();
-    window.addEventListener('resize', update);
-    window.addEventListener('scroll', update, true);
-    return () => {
-      window.removeEventListener('resize', update);
-      window.removeEventListener('scroll', update, true);
-    };
+    return subscribePortalMenuPosition(update);
   }, [open]);
 
   useEffect(() => {

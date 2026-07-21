@@ -212,6 +212,7 @@ describe('Admin sites — atomic multipart write + cleanup (e2e)', () => {
 
   it('PUT replacing the site without the IMAGE block deletes the now-unused image (DB row + disk file)', async () => {
     const payload: UpdateSiteFullInput = {
+      slug,
       category: 'ANCIENT',
       lat: '34.100000',
       lng: '47.200000',

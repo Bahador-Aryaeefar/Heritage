@@ -107,6 +107,24 @@ export class UsersService {
     await this.authService.revokeAllUserTokens(id);
   }
 
+  async deleteUser(id: string, actorId: string): Promise<void> {
+    if (id === actorId) {
+      throw new ForbiddenException('You cannot delete yourself');
+    }
+
+    const existing = await this.requireUser(id);
+    if (existing.role === UserRole.SUPER_ADMIN) {
+      await this.assertNotLastSuperAdmin(existing.id);
+    }
+
+    await this.authService.revokeAllUserTokens(id);
+    try {
+      await this.prisma.user.delete({ where: { id } });
+    } catch (error) {
+      handlePrismaError(error, 'User');
+    }
+  }
+
   private async requireUser(id: string) {
     const user = await this.prisma.user.findUnique({ where: { id } });
     if (!user) {

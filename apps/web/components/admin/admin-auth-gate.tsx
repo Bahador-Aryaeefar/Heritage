@@ -17,6 +17,7 @@ type AdminAuthGateProps = {
     brandTagline: string;
     roleAdmin: string;
     roleSuperAdmin: string;
+    footerTagline: string;
     loading: string;
   };
 };

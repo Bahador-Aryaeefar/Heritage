@@ -151,7 +151,7 @@ Reference mock: [`heritage.html`](./heritage.html). Implemented in `apps/web/com
 4. **How it works** — section head + 3 step cards
 5. **Promo banner (mid)** — second full-width strip
 6. **Sites grid** — API-driven cards, 3 columns → 1 on mobile
-7. **Site footer** — brown-950 band, centered caption
+7. **Site footer** — brown-950 band, centered caption; shared `SiteFooter` on public pages and admin (panel + login); `flex-1` main keeps footer at bottom on short pages; bottom padding includes `env(safe-area-inset-bottom)` on mobile
 
 Section vertical padding: 70px desktop / 40px mobile (§3).
 
@@ -265,13 +265,14 @@ Implemented under `/admin` (fa default) and `/en/admin/...`. Shares public page 
 
 | Element | Spec |
 |---|---|
-| Shell | Floating `rounded-container` sidebar + top bar on opaque `sand-100`; logo on white pad; active nav `teal-700` pill; header includes language dropdown + localized role badge; host chrome `z-30` so menus clear the body |
+| Shell | Floating `rounded-container` sidebar + top bar on opaque `sand-100`; logo on white pad; active nav `teal-700` pill; header includes language dropdown + localized role badge; host chrome `z-30` so menus clear the body; **shared `SiteFooter`** below the shell (same brown-950 band as public) |
 | Main panel | Opaque sand-100; padding `p-5` / `md:p-6`; nested lists/cards use **white** + `border-brown-800/15` |
 | Forms | **Full width of main** — do not center with `max-w-3xl` / `mx-auto` (login card may stay `max-w-md`) |
-| Login | Opaque sand-100 card; language switcher above |
-| Lists | White nested rows on sand panels; cover thumb for sites; `Badge` for role/status |
+| Site edit QR | On edit only: white `rounded-card` `AdminSiteQrPanel` — live `HeritageQrCode` from slug URL + plaque PNG download (`/downloads/sites/{slug}/plaque.png`); target URL label follows page `dir`, URL value in nested `dir="ltr"` span |
+| Login | Opaque sand-100 card; language switcher above; **shared `SiteFooter`** below centered card |
+| Lists | White nested rows on sand panels; cover thumb for sites; `Badge` for role/status; row **Edit** + confirm **Delete** |
 | Form controls | Inputs/selects/image picker sit on **white** with `border-brown-800/25`. Select + language switcher use 20×20 `ChevronIcon` |
-| Users | Parent CSS grid + `subgrid` rows; phone uses inner `dir="ltr"` span; **Add user** / **Edit** modals |
+| Users | Parent CSS grid + `subgrid` rows; phone uses inner `dir="ltr"` span; **Add user** / **Edit** modals; **Delete** (disabled for self) with confirm |
 | i18n | All admin chrome + forms + errors via `messages/{fa,en,ar}.json` under `admin.*` |
 
 ### Admin form controls (`components/ui/`)
@@ -279,7 +280,7 @@ Implemented under `/admin` (fa default) and `/en/admin/...`. Shares public page 
 | Control | Spec |
 |---|---|
 | `TextInput` / `TextArea` / `Field` | `rounded-button`, **white** fill, `border-brown-800/25`; focus ring `teal-700/15` |
-| `Select` | Custom button + **portaled** dropdown (`fixed` on `document.body`, inline `zIndex: 1100`) so menus clear Leaflet panes/controls (400–1000) and fields below; white fill; 20×20 `ChevronIcon` |
+| `Select` | Custom button + **portaled** dropdown (`fixed` on `document.body`, inline `zIndex: 1100`) so menus clear Leaflet panes/controls (400–1000) and fields below; positioning via `lib/measure-portal-menu.ts` (flip-up, `maxHeight`, `visualViewport` clamp); white fill; 20×20 `ChevronIcon` |
 | `Checkbox` | Custom 20px square; off = white + brown border; on = teal fill + check |
 | `ImagePicker` | Dashed white `rounded-card` preview; pick/change/clear via `ActionButton` (not ad-hoc `text-xs` pills) |
 | `ChevronIcon` | Shared 20×20 stroke chevron for Select + LanguageSwitcher |
@@ -322,13 +323,12 @@ Single **white** document surface: `rounded-card`, `border-brown-800/15`, `px-6 
 | Video | Valid `http(s)` embed → `aspect-video` iframe preview; else dashed placeholder labeled with embed URL copy |
 | Selected block | Wrapper `ring-2 ring-teal-700/40`, `rounded-button`, `-m-1 p-1`; **drag handle** (6-dot grip, white chip, `cursor-grab`) above content — only when selected; HTML5 DnD reorders via `reorderBlock` (handle is `draggable`, not the text editor) |
 | Drop target | While dragging, target block gets stronger `ring-teal-700/60`; dragged block `opacity-60` |
-| Insert gaps | Before each block: centered **+** via `BlockInsertMenu` (`variant="gap"`) — white 36×36, `border-2 border-brown-800/20`, bold **+** |
-| End insert | `BlockInsertMenu` (`variant="end"`) — `secondary` `ActionButton` with `labels.addBlock` |
+| Insert gaps | Before each block and at the end: centered **+** via `BlockInsertMenu` (`variant="gap"` / `"end"`) — white 36×36, `border-2 border-brown-800/20`, bold **+** (`aria-label` = `labels.addBlock`) |
 | Empty list | **15px** `brown-600` hint (`labels.empty`) above end insert |
 
 #### `BlockInsertMenu` (`components/admin/block-insert-menu.tsx`)
 
-Portaled menu (`fixed`, `zIndex: 1100`) — Heading / Paragraph / Image / Audio / Video. Gap trigger is icon-only **+**; end trigger is secondary **Add block**.
+Portaled menu (`fixed`, `zIndex: 1100`) — Heading / Paragraph / Image / Audio / Video. Gap and end triggers are the same icon-only **+** button. Uses shared `measurePortalMenu` (flip-up + scrollable `maxHeight`) so end-of-canvas inserts stay on screen.
 
 #### `BlockInspector` (`components/admin/block-inspector.tsx`)
 
@@ -350,7 +350,7 @@ Full-width admin editor for creating/replacing a site. Reads all copy from `useT
 
 | Element | Spec |
 |---|---|
-| Shared meta | `slug` (create only, `dir="ltr"`), `category`/`city` `Select`s, `LocationMapPicker` + `lat`/`lng` `TextInput`s, cover via `ImagePicker` (`isActive` not edited here — create defaults `true`, edit preserves existing) |
+| Shared meta | `slug` (`dir="ltr"`, editable on create and update with reprint warning), `category`/`city` `Select`s, `LocationMapPicker` + `lat`/`lng` `TextInput`s, cover via `ImagePicker` (`isActive` not edited here — create defaults `true`, edit preserves existing) |
 | Locale content | Three `Tabs` from `CONTENT_LOCALE_DEFINITIONS` (فارسی / English / العربية — native endonyms, not next-intl labels); each tab = title + short-description `Field`s with permanent `contentDir` (`rtl` for FA+AR, `ltr` for EN) + document-canvas `BlockListEditor` |
 | Copy from FA | EN and AR tabs each show a `secondary` `ActionButton` "Copy from Persian" (right-aligned above the editor); `window.confirm` when the target tab already has blocks |
 | Undo / redo | Per active content tab only (`lib/tab-history.ts`): Ctrl/Cmd+Z undo, Ctrl/Cmd+Shift+Z or Ctrl+Y redo; coalesces typing bursts (~300ms) |
@@ -359,7 +359,7 @@ Full-width admin editor for creating/replacing a site. Reads all copy from `useT
 ### Language switcher
 
 - Compact **dropdown**: white trigger, `border-brown-800/25`, teal code chip + native name + 20px `ChevronIcon`; menu white with stronger shadow
-- Menu: **portaled** to `document.body` (`fixed`, `zIndex: 1100`, same stacking rule as `Select`); scrollable; each row = code chip + native name
+- Menu: **portaled** to `document.body` (`fixed`, `zIndex: 1100`, same stacking rule as `Select`); scrollable; flip-up + viewport clamp via `lib/measure-portal-menu.ts`; each row = code chip + native name
 - Active row: teal-700 fill / sand-50 text (same pattern as `Select`)
 - Locale catalog: `i18n/locales.ts` (`LOCALE_DEFINITIONS`) — add code + nativeName + dir + messages JSON when shipping a language
 - Current UI locales: `fa` (default, no prefix), `en`, `ar` (RTL)
@@ -370,7 +370,7 @@ Full-width admin editor for creating/replacing a site. Reads all copy from `useT
 
 Components: `language-switcher.tsx` (public + admin header + login).
 
-Admin composed components: `admin-shell.tsx`, `login-form.tsx`, `sites-list.tsx`, `site-form.tsx`, `block-list-editor.tsx`, `block-canvas.tsx`, `block-inspector.tsx`, `block-insert-menu.tsx`, `span-text-editor.tsx`, `format-toolbar.tsx`, `media-file-picker.tsx`, `users-panel.tsx`, `location-map-picker.tsx`.
+Admin composed components: `admin-shell.tsx`, `login-form.tsx`, `sites-list.tsx`, `site-form.tsx`, `admin-site-qr-panel.tsx`, `block-list-editor.tsx`, `block-canvas.tsx`, `block-inspector.tsx`, `block-insert-menu.tsx`, `span-text-editor.tsx`, `format-toolbar.tsx`, `media-file-picker.tsx`, `users-panel.tsx`, `location-map-picker.tsx`.
 
 
 ## Open questions

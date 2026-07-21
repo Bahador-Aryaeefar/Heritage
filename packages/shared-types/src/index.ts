@@ -207,43 +207,6 @@ export const updateUserPasswordSchema = z.object({
 });
 export type UpdateUserPasswordInput = z.infer<typeof updateUserPasswordSchema>;
 
-// Deprecated: superseded by createSiteFullSchema / updateSiteFullSchema (full
-// multipart site write with media + content blocks). Kept only so the current
-// JSON-only admin endpoints (PATCH /admin/sites/:id, POST .../cover) keep
-// compiling until the atomic multipart create/replace endpoints land.
-export const siteAdminTranslationSchema = z.object({
-  locale: localeSchema,
-  title: z.string().min(1),
-  shortDescription: z.string().min(1),
-});
-export type SiteAdminTranslation = z.infer<typeof siteAdminTranslationSchema>;
-
-/** @deprecated use {@link createSiteFullSchema} */
-export const createSiteAdminSchema = z.object({
-  slug: z
-    .string()
-    .min(1)
-    .regex(/^[a-z0-9-]+$/, 'Slug must be lowercase letters, numbers, and hyphens only'),
-  category: siteCategorySchema,
-  lat: z.string(),
-  lng: z.string(),
-  cityId: z.string(),
-  isActive: z.boolean().optional(),
-  translations: z.array(siteAdminTranslationSchema).min(1),
-});
-export type CreateSiteAdminInput = z.infer<typeof createSiteAdminSchema>;
-
-/** @deprecated use {@link updateSiteFullSchema} */
-export const updateSiteAdminSchema = z.object({
-  category: siteCategorySchema.optional(),
-  lat: z.string().optional(),
-  lng: z.string().optional(),
-  cityId: z.string().optional(),
-  isActive: z.boolean().optional(),
-  translations: z.array(siteAdminTranslationSchema).optional(),
-});
-export type UpdateSiteAdminInput = z.infer<typeof updateSiteAdminSchema>;
-
 // --- Admin media ---
 
 export const adminMediaSchema = z.object({

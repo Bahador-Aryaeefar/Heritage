@@ -23,11 +23,11 @@ export default async function HomePage({ params }: PageProps) {
   const landing = await getLanding();
   const steps = t.raw('how.steps') as Array<{ title: string; body: string }>;
   const heroImageSrc = heritageImages.hero.src;
-  const heroAlt = locale === 'fa' ? heritageImages.hero.altFa : heritageImages.hero.altEn;
+  const heroAlt = locale === 'en' ? heritageImages.hero.altEn : heritageImages.hero.altFa;
   const bannerTopAlt =
-    locale === 'fa' ? heritageImages.bannerTop.altFa : heritageImages.bannerTop.altEn;
+    locale === 'en' ? heritageImages.bannerTop.altEn : heritageImages.bannerTop.altFa;
   const bannerMidAlt =
-    locale === 'fa' ? heritageImages.bannerMid.altFa : heritageImages.bannerMid.altEn;
+    locale === 'en' ? heritageImages.bannerMid.altEn : heritageImages.bannerMid.altFa;
   const qrUrl = buildPlaqueQrUrl('taq-e-bostan');
   const plaqueDownloadUrl = buildSiteQrPngUrl('taq-e-bostan');
   const tQr = await getTranslations('site.qr');

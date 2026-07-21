@@ -22,7 +22,7 @@ export async function generateStaticParams() {
   try {
     const landing = await getLanding();
     return landing.sites.flatMap((site) =>
-      ['fa', 'en'].map((locale) => ({ locale, slug: site.slug })),
+      ['fa', 'en', 'ar'].map((locale) => ({ locale, slug: site.slug })),
     );
   } catch {
     return [];

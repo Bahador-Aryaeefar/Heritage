@@ -1,21 +1,17 @@
 import type { MediaRef } from '@heritage/shared-types';
-import type { Locale } from '@heritage/shared-types';
 
 type AudioBlockProps = {
   media: MediaRef;
   caption: string | null;
-  locale: Locale;
 };
 
-export function AudioBlock({ media, caption, locale }: AudioBlockProps) {
-  const label = locale === 'fa' ? media.altFa ?? caption : media.altEn ?? caption;
-
+export function AudioBlock({ media, caption }: AudioBlockProps) {
   if (!media.url) return null;
 
   return (
     <figure className="mx-auto w-full max-w-lg text-center">
       <div className="overflow-hidden rounded-card bg-sand-100 p-4 ring-1 ring-brown-800/10">
-        <audio controls className="w-full" src={media.url} aria-label={label ?? undefined}>
+        <audio controls className="w-full" src={media.url} aria-label={caption ?? undefined}>
           <track kind="captions" />
         </audio>
       </div>

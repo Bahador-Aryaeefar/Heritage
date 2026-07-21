@@ -26,13 +26,13 @@ export function BlockRenderer({ blocks, locale, siteSlug }: BlockRendererProps) 
             />
           ) : null}
           {block.type === 'IMAGE' ? (
-            <ImageBlock media={block.media} caption={block.caption} locale={locale} siteSlug={siteSlug} />
+            <ImageBlock media={block.media} caption={block.caption} siteSlug={siteSlug} />
           ) : null}
           {block.type === 'AUDIO' ? (
-            <AudioBlock media={block.media} caption={block.caption} locale={locale} />
+            <AudioBlock media={block.media} caption={block.caption} />
           ) : null}
           {block.type === 'VIDEO' ? (
-            <VideoBlock media={block.media} caption={block.caption} locale={locale} />
+            <VideoBlock media={block.media} caption={block.caption} />
           ) : null}
         </RevealOnScroll>
       ))}

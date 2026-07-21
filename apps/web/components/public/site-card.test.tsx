@@ -38,4 +38,28 @@ describe('SiteCard', () => {
     expect(link).toHaveAttribute('href', '/sites/taq-e-bostan');
     expect(screen.getByText('توضیح کوتاه')).toBeInTheDocument();
   });
+
+  it('uses site slug as cover image alt text', () => {
+    render(
+      <SiteCard
+        locale="en"
+        site={{
+          slug: 'taq-e-bostan',
+          category: 'ANCIENT',
+          coverUrl: '/media/taq-e-bostan/cover.webp',
+          city: { slug: 'kermanshah-city', nameFa: 'کرمانشاه', nameEn: 'Kermanshah' },
+          province: { slug: 'kermanshah', nameFa: 'کرمانشاه', nameEn: 'Kermanshah' },
+          translations: [
+            {
+              locale: 'en',
+              title: 'Taq-e Bostan',
+              shortDescription: 'Short description',
+            },
+          ],
+        }}
+      />,
+    );
+
+    expect(screen.getByRole('img', { name: 'taq-e-bostan' })).toBeInTheDocument();
+  });
 });

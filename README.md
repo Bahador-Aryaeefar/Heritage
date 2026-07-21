@@ -245,6 +245,7 @@ Expected health: `{ "status": "ok", "database": "up" }`.
 6. **Production migrations** use `prisma migrate deploy` (not `migrate dev`). Set `RUN_MIGRATIONS=false` after first deploy if you prefer manual control.
 7. **Back up** the `heritage_pgdata` and `api_uploads` Docker volumes.
 8. **Iran mirror**  -  if `docker.io` is unreachable, pull Postgres via ArvanCloud mirror (see `architecture-decisions.md` §13) before `compose up`.
+9. **`Cannot find module '@heritage/env-loader'`** during `docker compose ... --build` means an old image Dockerfile; pull latest (both Dockerfiles must `COPY packages/env-loader`) and rebuild with `--no-cache` if the layer is stale.
 
 ### Updating a release
 

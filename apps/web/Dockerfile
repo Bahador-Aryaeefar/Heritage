@@ -9,6 +9,7 @@ FROM base AS deps
 WORKDIR /app
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 COPY apps/web/package.json apps/web/
+COPY packages/env-loader/package.json packages/env-loader/
 COPY packages/shared-types/package.json packages/shared-types/
 RUN pnpm install --frozen-lockfile --filter web...
 
@@ -21,6 +22,7 @@ ENV NEXT_PUBLIC_SITE_URL=${NEXT_PUBLIC_SITE_URL}
 # falls back to an empty list and ISR fills it in at runtime.
 ARG API_BASE_URL=http://api:4000/api/v1
 ENV API_BASE_URL=${API_BASE_URL}
+COPY packages/env-loader packages/env-loader
 COPY packages/shared-types packages/shared-types
 COPY apps/web apps/web
 RUN pnpm --filter web build

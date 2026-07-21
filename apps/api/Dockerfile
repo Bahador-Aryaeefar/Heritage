@@ -12,10 +12,12 @@ RUN apt-get update \
   && rm -rf /var/lib/apt/lists/*
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 COPY apps/api/package.json apps/api/
+COPY packages/env-loader/package.json packages/env-loader/
 COPY packages/shared-types/package.json packages/shared-types/
 RUN pnpm install --frozen-lockfile --filter api...
 
 FROM deps AS build
+COPY packages/env-loader packages/env-loader
 COPY packages/shared-types packages/shared-types
 COPY apps/api apps/api
 RUN pnpm --filter api prisma:generate

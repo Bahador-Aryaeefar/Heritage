@@ -300,7 +300,7 @@ Routes: `/` (landing, fa default), `/en` (landing English), `/sites/[slug]` and 
 | Decision | Detail | Reason |
 |---|---|---|
 | Production compose | `docker-compose.prod.yml` (db + api + web); root `docker-compose.yml` stays dev Postgres-only | Keeps local dev simple; prod adds app containers |
-| Dockerfiles | Multi-stage builds in `apps/api/Dockerfile` and `apps/web/Dockerfile` | Reproducible deploy on any VPS with Docker |
+| Dockerfiles | Multi-stage builds in `apps/api/Dockerfile` and `apps/web/Dockerfile`; both copy `packages/env-loader` and `packages/shared-types` (package.json in deps stage, full source in build) | Workspace packages are not hoisted into the image unless copied; omitting `@heritage/env-loader` breaks `next build` (`next.config.ts`) and Nest `AppModule` |
 | TLS / reverse proxy | Caddy on the **host** → `127.0.0.1:3000` (web); optional `/api/*` → `127.0.0.1:4000` | User already runs Caddy; containers bind localhost only |
 | Internal API URL | Web container `API_BASE_URL=http://api:4000/api/v1` | Server Components fetch over Docker network, not public HTTPS |
 | Public asset URLs | API `PUBLIC_ASSET_BASE_URL` + `PUBLIC_WEB_BASE_URL` = `PUBLIC_SITE_URL` (`https://heritage.nobatix.ir`) | QR codes and `/uploads/` JSON URLs must match the public origin |

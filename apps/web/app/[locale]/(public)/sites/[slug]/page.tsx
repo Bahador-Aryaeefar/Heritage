@@ -38,7 +38,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     const translation = pickSiteDetailTranslation(site, locale as Locale);
     if (!translation) return { title: 'Site not found' };
     return {
-      title: `${translation.title} | Kermanshah Heritage`,
+      title: `${translation.title} | Shahrnama`,
       description: translation.shortDescription,
     };
   } catch {

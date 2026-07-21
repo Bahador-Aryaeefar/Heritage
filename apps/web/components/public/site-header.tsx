@@ -23,9 +23,9 @@ export function SiteHeader() {
           <LogoMark />
           <div>
             <span className="block text-[19px] font-black tracking-wide text-brown-800">
-              میراث کرمانشاه
+              شهرنما
             </span>
-            <span className="block text-[11px] tracking-widest text-teal-700">KERMANSHAH HERITAGE</span>
+            <span className="block text-[11px] tracking-widest text-teal-700">SHAHRNAMA</span>
           </div>
         </Link>
 

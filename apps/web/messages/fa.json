@@ -6,7 +6,7 @@
     "menu": "منو"
   },
   "footer": {
-    "tagline": "میراث کرمانشاه، پروژه‌ی گردشگری هوشمند مبتنی بر QR کد"
+    "tagline": "شهرنما، پروژه‌ی گردشگری هوشمند مبتنی بر QR کد"
   },
   "home": {
     "eyebrow": "راهنمای گردشگری هوشمند کرمانشاه",
@@ -17,8 +17,8 @@
     "ctaSecondary": "مشاهده‌ی آثار",
     "plaqueSite": "طاق‌بستان",
     "plaqueLocation": "کرمانشاه، ایران",
-    "plaqueBrandName": "میراث کرمانشاه",
-    "plaqueBrandTagline": "KERMANSHAH HERITAGE",
+    "plaqueBrandName": "شهرنما",
+    "plaqueBrandTagline": "SHAHRNAMA",
     "banners": {
       "top": {
         "title": "گردشگری بدون نصب اپلیکیشن",
@@ -27,7 +27,7 @@
         "href": "#how"
       },
       "mid": {
-        "title": "میراث کرمانشاه را کشف کنید",
+        "title": "شهرنما را کشف کنید",
         "body": "از سنگ‌نگاره‌های ساسانی تا آثار طبیعی، همه در یک پلتفرم.",
         "cta": "دیدن آثار",
         "href": "#sites"
@@ -91,7 +91,7 @@
     },
     "shell": {
       "title": "پنل مدیریت",
-      "brandTagline": "میراث کرمانشاه",
+      "brandTagline": "شهرنما",
       "sites": "آثار",
       "users": "کاربران",
       "logout": "خروج",

@@ -4,8 +4,8 @@ import { Badge } from './badge';
 
 describe('Badge', () => {
   it('renders its children', () => {
-    render(<Badge>میراث کرمانشاه</Badge>);
-    expect(screen.getByText('میراث کرمانشاه')).toBeInTheDocument();
+    render(<Badge>شهرنما</Badge>);
+    expect(screen.getByText('شهرنما')).toBeInTheDocument();
   });
 
   it('keeps the same size classes for muted tone', () => {

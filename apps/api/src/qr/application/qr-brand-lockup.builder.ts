@@ -2,8 +2,8 @@ import { createCanvas, GlobalFonts, loadImage } from '@napi-rs/canvas';
 import { join } from 'node:path';
 import sharp from 'sharp';
 
-const BRAND_NAME_FA = 'میراث کرمانشاه';
-const BRAND_TAGLINE_EN = 'KERMANSHAH HERITAGE';
+const BRAND_NAME_FA = 'شهرنما';
+const BRAND_TAGLINE_EN = 'SHAHRNAMA';
 const BROWN_800 = '#4A3728';
 const TEAL_700 = '#1D6F8C';
 

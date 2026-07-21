@@ -14,8 +14,8 @@ const vazirmatn = Vazirmatn({
 });
 
 export const metadata: Metadata = {
-  title: 'میراث کرمانشاه | Kermanshah Heritage',
-  description: 'میراث فرهنگی کرمانشاه، یک اسکن تا تاریخ',
+  title: 'شهرنما | Shahrnama',
+  description: 'شهرنما — یک اسکن تا تاریخ کرمانشاه',
 };
 
 export function generateStaticParams() {

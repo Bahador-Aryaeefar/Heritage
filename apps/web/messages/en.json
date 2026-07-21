@@ -6,7 +6,7 @@
     "menu": "Menu"
   },
   "footer": {
-    "tagline": "Kermanshah Heritage, smart QR-based cultural tourism"
+    "tagline": "Shahrnama, smart QR-based cultural tourism for Kermanshah"
   },
   "home": {
     "eyebrow": "Smart heritage guide for Kermanshah",
@@ -17,8 +17,8 @@
     "ctaSecondary": "Browse sites",
     "plaqueSite": "Taq-e Bostan",
     "plaqueLocation": "Kermanshah, Iran",
-    "plaqueBrandName": "میراث کرمانشاه",
-    "plaqueBrandTagline": "KERMANSHAH HERITAGE",
+    "plaqueBrandName": "شهرنما",
+    "plaqueBrandTagline": "SHAHRNAMA",
     "banners": {
       "top": {
         "title": "Tourism without installing an app",
@@ -91,7 +91,7 @@
     },
     "shell": {
       "title": "Admin panel",
-      "brandTagline": "KERMANSHAH HERITAGE",
+      "brandTagline": "SHAHRNAMA",
       "sites": "Sites",
       "users": "Users",
       "logout": "Sign out",

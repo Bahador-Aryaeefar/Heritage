@@ -1,4 +1,4 @@
-# Agent Instructions - Kermanshah Heritage
+# Agent Instructions - Shahrnama (شهرنما)
 
 This file is read automatically by Claude Code (and most agent harnesses that support `CLAUDE.md`/`AGENTS.md`) at the start of a session in this repo. It applies to every task, not just large ones.
 

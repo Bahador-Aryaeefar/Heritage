@@ -6,7 +6,7 @@
     "menu": "القائمة"
   },
   "footer": {
-    "tagline": "تراث كرمانشاه، سياحة ثقافية ذكية عبر رمز QR"
+    "tagline": "شهرنما، سياحة ثقافية ذكية عبر رمز QR"
   },
   "home": {
     "eyebrow": "دليل سياحي ذكي لكرمانشاه",
@@ -17,8 +17,8 @@
     "ctaSecondary": "تصفح المواقع",
     "plaqueSite": "طاق بستان",
     "plaqueLocation": "كرمانشاه، إيران",
-    "plaqueBrandName": "میراث کرمانشاه",
-    "plaqueBrandTagline": "KERMANSHAH HERITAGE",
+    "plaqueBrandName": "شهرنما",
+    "plaqueBrandTagline": "SHAHRNAMA",
     "banners": {
       "top": {
         "title": "سياحة بلا تطبيق",
@@ -27,7 +27,7 @@
         "href": "#how"
       },
       "mid": {
-        "title": "اكتشف تراث كرمانشاه",
+        "title": "اكتشف مع شهرنما",
         "body": "من النقوش الساسانية إلى المعالم الطبيعية، في منصة واحدة.",
         "cta": "عرض المواقع",
         "href": "#sites"
@@ -91,7 +91,7 @@
     },
     "shell": {
       "title": "لوحة الإدارة",
-      "brandTagline": "تراث كرمانشاه",
+      "brandTagline": "شهرنما",
       "sites": "المواقع",
       "users": "المستخدمون",
       "logout": "خروج",

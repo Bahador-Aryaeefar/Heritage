@@ -1,4 +1,4 @@
-# Design System - Kermanshah Heritage
+# Design System - Shahrnama (شهرنما)
 
 > This is the visual reference for the project. Any new UI element should first be checked against these tokens before inventing a new one.
 
@@ -243,7 +243,7 @@ Full content width up to **1400px** (same as landing). Article blocks sit in a s
 ### QR display
 
 - On-screen: `HeritageQrCode` (canvas + centered logo)
-- Print/download: `GET /api/v1/public/sites/:slug/qr.png` returns a **plaque PNG** (dark brown diagonal frame, cream card with site title, location, QR with centered logo, and brand lockup inside the card: logo + «میراث کرمانشاه»). The web app proxies this at `/downloads/sites/:slug/plaque.png` (same-origin) so browser download works reliably via `PlaqueDownloadButton`.
+- Print/download: `GET /api/v1/public/sites/:slug/qr.png` returns a **plaque PNG** (dark brown diagonal frame, cream card with site title, location, QR with centered logo, and brand lockup inside the card: logo + «شهرنما»). The web app proxies this at `/downloads/sites/:slug/plaque.png` (same-origin) so browser download works reliably via `PlaqueDownloadButton`.
 - Target URL: `https://heritage.nobatix.ir/sites/{slug}?src=qr` (via `PUBLIC_WEB_BASE_URL` / `NEXT_PUBLIC_SITE_URL`)
 - Download on landing hero overlay and site detail QR panel
 

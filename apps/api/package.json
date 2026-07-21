@@ -1,7 +1,7 @@
 {
   "name": "api",
   "version": "0.0.1",
-  "description": "Kermanshah Heritage - admin API + public content API",
+  "description": "Shahrnama - admin API + public content API",
   "private": true,
   "license": "UNLICENSED",
   "scripts": {

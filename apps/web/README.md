@@ -1,6 +1,6 @@
 # Heritage Web (`apps/web`)
 
-Next.js (App Router) public site and future admin UI for Kermanshah Heritage.
+Next.js (App Router) public site and admin UI for Shahrnama (شهرنما).
 
 - Locales: `fa` (default), `en` via **next-intl**
 - Design tokens: Tailwind v4 `@theme` in `app/globals.css` (see `design-system.md` §9–11)

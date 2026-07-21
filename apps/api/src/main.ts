@@ -29,7 +29,7 @@ async function bootstrap(): Promise<void> {
   });
 
   const openApiConfig = new DocumentBuilder()
-    .setTitle('Kermanshah Heritage API')
+    .setTitle('Shahrnama API')
     .setDescription('Public content API and admin endpoints')
     .setVersion('1.0')
     // Paths already include `/api/v1/...` (global prefix + URI versioning).

@@ -1,6 +1,6 @@
 # Heritage API (`apps/api`)
 
-NestJS backend for the Kermanshah Heritage project — admin API and public content API.
+NestJS backend for Shahrnama (شهرنما) — admin API and public content API.
 
 - Global prefix: `/api`
 - URI versioning: `/api/v1/...`

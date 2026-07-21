@@ -1,6 +1,6 @@
-# Kermanshah Heritage
+# Shahrnama (شهرنما)
 
-Monorepo for the Kermanshah cultural-heritage QR/public site and admin API.
+Monorepo for the Shahrnama QR/public site and admin API for Kermanshah cultural sites.
 
 | Package | Path | Role |
 |---|---|---|
@@ -121,7 +121,7 @@ https://heritage.nobatix.ir/sites/{slug}?src=qr
 |---|---|
 | On-screen preview | `HeritageQrCode` on landing hero and site detail |
 | Download plaque PNG | Button on hero / site page (`/downloads/sites/{slug}/plaque.png` → API), or direct `GET /api/v1/public/sites/{slug}/qr.png` |
-| Plaque design | Dark brown diagonal frame, cream card, Persian title + location, QR with logo center, footer brand lockup (logo + «میراث کرمانشاه») |
+| Plaque design | Dark brown diagonal frame, cream card, Persian title + location, QR with logo center, footer brand lockup (logo + «شهرنما») |
 
 Set `PUBLIC_WEB_BASE_URL` (API) and `NEXT_PUBLIC_SITE_URL` (web) in the **repo root** `.env` to `https://heritage.nobatix.ir` in production. For admin coordinate picking, set `NEXT_PUBLIC_MAP_IR_API_KEY` there as well (get a key from [Map.ir](https://map.ir); restrict by domain). Defaults in code already point there; override in `.env` for local-only testing.
 

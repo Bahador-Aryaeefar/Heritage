@@ -3,6 +3,7 @@ import { notFound } from 'next/navigation';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
 import { Badge } from '@/components/ui/badge';
 import { BlockRenderer } from '@/components/public/content-blocks/block-renderer';
+import { SiteLocation } from '@/components/public/site-location';
 import { SiteQrPanel } from '@/components/public/site-qr-panel';
 import {
   getLanding,
@@ -10,7 +11,8 @@ import {
   localizedPlaceName,
   pickSiteDetailTranslation,
 } from '@/lib/sites';
-import type { Locale } from '@heritage/shared-types';
+import { routing } from '@/i18n/routing';
+import type { Locale } from '@/i18n/routing';
 
 export const revalidate = 60;
 
@@ -21,8 +23,8 @@ type PageProps = {
 export async function generateStaticParams() {
   try {
     const landing = await getLanding();
-    return landing.sites.flatMap((site) =>
-      ['fa', 'en'].map((locale) => ({ locale, slug: site.slug })),
+    return landing.items.flatMap((site) =>
+      routing.locales.map((locale) => ({ locale, slug: site.slug })),
     );
   } catch {
     return [];
@@ -60,6 +62,7 @@ export default async function SiteDetailPage({ params }: PageProps) {
 
   const t = await getTranslations('site.category');
   const tQr = await getTranslations('site.qr');
+  const tLocation = await getTranslations('site.location');
   const cityName = localizedPlaceName(locale as Locale, site.city.nameFa, site.city.nameEn);
   const provinceName = localizedPlaceName(
     locale as Locale,
@@ -77,9 +80,17 @@ export default async function SiteDetailPage({ params }: PageProps) {
         <p className="mt-4 max-w-3xl text-[17px] leading-relaxed text-brown-800">
           {translation.shortDescription}
         </p>
-        <p className="mt-3 text-sm text-teal-700">
-          {cityName} · {provinceName}
-        </p>
+        <SiteLocation
+          lat={site.lat}
+          lng={site.lng}
+          cityName={cityName}
+          provinceName={provinceName}
+          locale={locale as Locale}
+          openGoogleLabel={tLocation('openGoogle')}
+          openNeshanLabel={tLocation('openNeshan')}
+          mapTitle={tLocation('mapTitle')}
+          coordinatesLabel={tLocation('coordinatesLabel')}
+        />
         <div className="mt-8 max-w-xl">
           <SiteQrPanel
             slug={slug}

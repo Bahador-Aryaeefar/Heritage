@@ -2,9 +2,9 @@
  * Editor-side shape for `SiteContentBlock` rows (see `heritage-schema-map.md` §"SiteContentBlock").
  * Mirrors the admin write schemas in `@heritage/shared-types`
  * (`adminTextBlockWriteSchema` / `adminImageBlockWriteSchema` / `adminAudioBlockWriteSchema` /
- * `adminVideoBlockWriteSchema`) plus a client-only `key` for React list identity and, for images,
- * a `previewUrl` to render a thumbnail before upload. Text blocks use a single `text` string here
- * (no inline bold/italic spans) — the editor does not expose span-level formatting yet.
+ * `adminVideoBlockWriteSchema`) plus a client-only `key` for React list identity and, for images
+ * and audio, a `previewUrl` to render / play media before upload. Text blocks use a single `text`
+ * string here (no inline bold/italic spans) — the editor does not expose span-level formatting yet.
  */
 
 export type EditorTextRole = 'HERO' | 'H2' | 'H3' | 'BODY' | 'CAPTION';
@@ -35,6 +35,8 @@ export type EditorAudioBlock = {
   caption: string;
   mediaId?: string;
   clientFileKey?: string;
+  /** Object URL or persisted media URL — used for in-canvas / inspector playback. */
+  previewUrl?: string;
 };
 
 export type EditorVideoBlock = {

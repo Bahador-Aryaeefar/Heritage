@@ -45,6 +45,83 @@ export const PAGINATION_META_SCHEMA: SchemaObject = {
   },
 };
 
+export const AUTH_USER_EXAMPLE = {
+  id: 'cm123user',
+  phone: '09120086846',
+  role: 'SUPER_ADMIN',
+  displayName: 'Super Admin',
+};
+
+export const AUTH_USER_SCHEMA: SchemaObject = {
+  type: 'object',
+  required: ['id', 'phone', 'role', 'displayName'],
+  properties: {
+    id: { type: 'string', example: AUTH_USER_EXAMPLE.id },
+    phone: { type: 'string', example: AUTH_USER_EXAMPLE.phone },
+    role: { type: 'string', enum: ['ADMIN', 'SUPER_ADMIN'], example: 'SUPER_ADMIN' },
+    displayName: { type: 'string', nullable: true, example: 'Super Admin' },
+  },
+};
+
+export const LOGIN_BODY_SCHEMA: SchemaObject = {
+  type: 'object',
+  required: ['phone', 'password'],
+  properties: {
+    phone: { type: 'string', example: '09120086846' },
+    password: { type: 'string', format: 'password', example: 'StrongPassword123!' },
+  },
+};
+
+export const ADMIN_USER_EXAMPLE = {
+  ...AUTH_USER_EXAMPLE,
+  isActive: true,
+  createdAt: '2026-07-19T12:00:00.000Z',
+};
+
+export const ADMIN_USER_SCHEMA: SchemaObject = {
+  type: 'object',
+  required: ['id', 'phone', 'role', 'displayName', 'isActive', 'createdAt'],
+  properties: {
+    ...AUTH_USER_SCHEMA.properties,
+    isActive: { type: 'boolean', example: true },
+    createdAt: { type: 'string', format: 'date-time', example: ADMIN_USER_EXAMPLE.createdAt },
+  },
+};
+
+export const CREATE_USER_BODY_SCHEMA: SchemaObject = {
+  type: 'object',
+  required: ['phone', 'password', 'role'],
+  properties: {
+    phone: { type: 'string', example: '09121234567' },
+    password: { type: 'string', format: 'password', minLength: 8, example: 'StrongPassword123!' },
+    role: { type: 'string', enum: ['ADMIN', 'SUPER_ADMIN'], example: 'ADMIN' },
+    displayName: { type: 'string', example: 'Site editor' },
+  },
+};
+
+export const UPDATE_USER_BODY_SCHEMA: SchemaObject = {
+  type: 'object',
+  properties: {
+    role: { type: 'string', enum: ['ADMIN', 'SUPER_ADMIN'], example: 'ADMIN' },
+    displayName: { type: 'string', nullable: true, example: 'Senior editor' },
+    isActive: { type: 'boolean', example: true },
+  },
+};
+
+export const UPDATE_PASSWORD_BODY_SCHEMA: SchemaObject = {
+  type: 'object',
+  required: ['password'],
+  properties: {
+    password: { type: 'string', format: 'password', minLength: 8, example: 'NewStrongPassword123!' },
+  },
+};
+
+export const OK_SCHEMA: SchemaObject = {
+  type: 'object',
+  required: ['ok'],
+  properties: { ok: { type: 'boolean', example: true } },
+};
+
 export const CITY_EXAMPLE = {
   id: 'cm123city',
   slug: 'kermanshah-city',

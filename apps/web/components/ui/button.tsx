@@ -14,7 +14,7 @@ type ButtonProps = ComponentPropsWithoutRef<'a'> & {
 export function Button({ variant = 'primary', className = '', children, ...props }: ButtonProps) {
   return (
     <a
-      className={`inline-block rounded-button px-7 py-3.5 text-[15px] font-bold transition-transform hover:-translate-y-0.5 ${variantClasses[variant]} ${className}`}
+      className={`inline-block cursor-pointer rounded-button px-7 py-3.5 text-[15px] font-bold transition-transform hover:-translate-y-0.5 ${variantClasses[variant]} ${className}`}
       {...props}
     >
       {children}

@@ -1,5 +1,8 @@
 import type { NextConfig } from 'next';
 import createNextIntlPlugin from 'next-intl/plugin';
+import { loadRootEnv } from '@heritage/env-loader';
+
+loadRootEnv();
 
 const withNextIntl = createNextIntlPlugin('./i18n/request.ts');
 
@@ -41,11 +44,30 @@ function uploadRemotePatterns(): NonNullable<NextConfig['images']>['remotePatter
 
 const nextConfig: NextConfig = {
   output: 'standalone',
+  transpilePackages: ['@heritage/env-loader'],
+  // Next only auto-loads apps/web/.env*; root .env is loaded above via loadRootEnv.
+  // Explicit `env` ensures NEXT_PUBLIC_* reach the client bundle.
+  env: {
+    NEXT_PUBLIC_SITE_URL: process.env.NEXT_PUBLIC_SITE_URL ?? '',
+    NEXT_PUBLIC_MAP_IR_API_KEY: process.env.NEXT_PUBLIC_MAP_IR_API_KEY ?? '',
+  },
   images: {
     remotePatterns: uploadRemotePatterns(),
   },
   async rewrites() {
     return [
+      {
+        source: '/api/v1/:path*',
+        destination: `${apiOrigin}/api/v1/:path*`,
+      },
+      {
+        source: '/docs',
+        destination: `${apiOrigin}/docs`,
+      },
+      {
+        source: '/openapi.json',
+        destination: `${apiOrigin}/openapi.json`,
+      },
       {
         source: '/uploads/:path*',
         destination: `${apiOrigin}/uploads/:path*`,

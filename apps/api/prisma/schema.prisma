@@ -56,6 +56,11 @@ enum VisitSource {
   WEB
 }
 
+enum UserRole {
+  ADMIN
+  SUPER_ADMIN
+}
+
 model Province {
   id        String   @id @default(cuid())
   nameFa    String
@@ -187,4 +192,30 @@ model VisitEvent {
   @@index([siteId])
   @@index([qrCodeId])
   @@index([createdAt])
+}
+
+model User {
+  id            String         @id @default(cuid())
+  phone         String         @unique
+  passwordHash  String
+  displayName   String?
+  role          UserRole
+  isActive      Boolean        @default(true)
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+  refreshTokens RefreshToken[]
+}
+
+model RefreshToken {
+  id        String    @id @default(cuid())
+  userId    String
+  tokenHash String    @unique
+  familyId  String
+  expiresAt DateTime
+  revokedAt DateTime?
+  createdAt DateTime  @default(now())
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([familyId])
 }

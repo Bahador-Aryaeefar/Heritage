@@ -17,7 +17,7 @@ export function SiteHeader() {
   ];
 
   return (
-    <header className="sticky top-0 z-20 border-b border-brown-800/10 bg-sand-100/92 backdrop-blur-md">
+    <header className="sticky top-0 z-30 border-b border-brown-800/10 bg-sand-100/92 backdrop-blur-md">
       <div className="relative mx-auto flex w-full max-w-[1400px] items-center justify-between px-[6vw] py-5">
         <Link href="/" className="flex items-center gap-3">
           <LogoMark />

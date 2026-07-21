@@ -2,7 +2,7 @@ import Image from 'next/image';
 import { Link } from '@/i18n/navigation';
 import { HeritageCard } from '@/components/ui/heritage-card';
 import type { SiteCard } from '@heritage/shared-types';
-import type { Locale } from '@heritage/shared-types';
+import type { Locale } from '@/i18n/routing';
 import { resolveCoverUrl } from '@/lib/media-url';
 import { pickSiteCardTranslation } from '@/lib/sites';
 

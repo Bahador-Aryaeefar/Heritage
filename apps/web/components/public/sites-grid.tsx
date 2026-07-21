@@ -1,6 +1,7 @@
 import { Badge } from '@/components/ui/badge';
 import { SiteCard } from '@/components/public/site-card';
-import type { SiteCard as SiteCardType, Locale } from '@heritage/shared-types';
+import type { SiteCard as SiteCardType } from '@heritage/shared-types';
+import type { Locale } from '@/i18n/routing';
 
 type SitesGridProps = {
   sites: SiteCardType[];

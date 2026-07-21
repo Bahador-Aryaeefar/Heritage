@@ -37,8 +37,8 @@ describe('Health (e2e)', () => {
       .expect(200)
       .expect((res) => {
         const body = res.body as LandingResponse;
-        expect(Array.isArray(body.sites)).toBe(true);
-        expect(body.sites.some((s) => s.slug === 'taq-e-bostan')).toBe(true);
+        expect(Array.isArray(body.items)).toBe(true);
+        expect(body.items.some((s) => s.slug === 'taq-e-bostan')).toBe(true);
       });
   });
 

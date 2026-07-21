@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { BlockCanvas } from '@/components/admin/block-canvas';
 import { BlockInspector } from '@/components/admin/block-inspector';
 import { convertBlockType, insertBlockAt, moveBlock } from '@/lib/block-editor-utils';
+import type { LocaleDirection } from '@/i18n/locales';
 import type {
   EditorAudioBlock,
   EditorBlock,
@@ -22,11 +23,11 @@ export type BlockListEditorLabels = {
   moveDown: string;
   delete: string;
   empty: string;
-  /** `BlockInspector` empty-state copy: "Select a block or insert one." */
+  /** `BlockInspector` empty-state copy when nothing is selected. */
   inspectorEmpty: string;
   /** `BlockInspector` mobile bottom-sheet close control. */
   closeInspector: string;
-  /** `BlockInspector` block-type `Select` field label. */
+  /** `BlockInspector` block-type chip group label. */
   blockType: string;
   headingTitle: string;
   paragraphTitle: string;
@@ -65,6 +66,11 @@ type BlockListEditorProps = {
   onChange: (blocks: EditorBlock[]) => void;
   labels: BlockListEditorLabels;
   /**
+   * Permanent writing direction for the document canvas (FA → `rtl`, EN → `ltr`).
+   * Independent of the admin UI locale / next-intl page `dir`.
+   */
+  contentDir: LocaleDirection;
+  /**
    * Called when the user picks a raw file for an IMAGE/AUDIO block. This component stays
    * decoupled from hashing/optimizing (see `lib/file-hash.ts`, `lib/optimize-image.ts`) — the
    * caller is expected to process the file and then call `onChange` with the block's
@@ -85,7 +91,13 @@ function isTextType(type: EditorBlock['type']): boolean {
  * source of truth; the payload/save contract in `SiteForm` is unchanged. Replaces the former
  * card-stack UI (per-block forms with inline Selects and action rows).
  */
-export function BlockListEditor({ value, onChange, labels, onPickFile }: BlockListEditorProps) {
+export function BlockListEditor({
+  value,
+  onChange,
+  labels,
+  contentDir,
+  onPickFile,
+}: BlockListEditorProps) {
   const [selectedKey, setSelectedKey] = useState<string | null>(null);
   const [textFocusKey, setTextFocusKey] = useState<string | null>(null);
 
@@ -181,6 +193,7 @@ export function BlockListEditor({ value, onChange, labels, onPickFile }: BlockLi
           onPickFile={onPickFile}
           labels={labels}
           textFocusKey={textFocusKey}
+          dir={contentDir}
         />
       </div>
 

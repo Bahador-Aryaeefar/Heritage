@@ -1,9 +1,12 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { ServeStaticModule } from '@nestjs/serve-static';
+import { existsSync } from 'node:fs';
 import { resolve } from 'node:path';
+import { rootEnvFilePath } from '@heritage/env-loader';
 import type { Env } from './config/env';
 import { validateEnv } from './config/env';
+import { AuthModule } from './auth/auth.module';
 import { HealthModule } from './health/health.module';
 import { MediaModule } from './media/media.module';
 import { PrismaModule } from './prisma/prisma.module';
@@ -12,7 +15,11 @@ import { StorageModule } from './storage/storage.module';
 
 @Module({
   imports: [
-    ConfigModule.forRoot({ isGlobal: true, validate: validateEnv }),
+    ConfigModule.forRoot({
+      isGlobal: true,
+      validate: validateEnv,
+      envFilePath: existsSync(rootEnvFilePath()) ? rootEnvFilePath() : undefined,
+    }),
     ServeStaticModule.forRootAsync({
       imports: [ConfigModule],
       inject: [ConfigService],
@@ -31,6 +38,7 @@ import { StorageModule } from './storage/storage.module';
     StorageModule,
     MediaModule,
     HealthModule,
+    AuthModule,
     SitesModule,
   ],
 })

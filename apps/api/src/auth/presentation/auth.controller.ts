@@ -1,0 +1,149 @@
+import {
+  Body,
+  Controller,
+  Get,
+  Param,
+  Patch,
+  Post,
+  Query,
+  Req,
+  Res,
+  UseGuards,
+} from '@nestjs/common';
+import { ApiCookieAuth, ApiTags } from '@nestjs/swagger';
+import type { Request, Response } from 'express';
+import {
+  authUserSchema,
+  createUserSchema,
+  loginSchema,
+  updateUserPasswordSchema,
+  updateUserSchema,
+} from '@heritage/shared-types';
+import { REFRESH_COOKIE } from '../auth.constants';
+import { JwtAuthGuard } from '../jwt-auth.guard';
+import { Roles } from '../roles.decorator';
+import { RolesGuard } from '../roles.guard';
+import type { AuthenticatedUser } from '../roles.decorator';
+import { AuthService } from '../application/auth.service';
+import { UsersService } from '../application/users.service';
+import { PaginationQueryDto } from '../../common/pagination/pagination';
+import {
+  ADMIN_USER_EXAMPLE,
+  ADMIN_USER_SCHEMA,
+  AUTH_USER_EXAMPLE,
+  AUTH_USER_SCHEMA,
+  CREATE_USER_BODY_SCHEMA,
+  LOGIN_BODY_SCHEMA,
+  OK_SCHEMA,
+  UPDATE_PASSWORD_BODY_SCHEMA,
+  UPDATE_USER_BODY_SCHEMA,
+  ApiJsonBody,
+  ApiJsonCreated,
+  ApiJsonOk,
+  ApiPaginatedResponse,
+  ApiProtectedErrors,
+  ApiValidationError,
+} from '../../common/openapi/openapi';
+
+@ApiTags('auth')
+@Controller('auth')
+export class AuthController {
+  constructor(private readonly authService: AuthService) {}
+
+  @Post('login')
+  @ApiJsonOk('Sign in with a phone number and password', AUTH_USER_SCHEMA, AUTH_USER_EXAMPLE)
+  @ApiJsonBody(LOGIN_BODY_SCHEMA, {
+    phone: '09120086846',
+    password: 'StrongPassword123!',
+  })
+  @ApiValidationError()
+  async login(@Body() body: unknown, @Res({ passthrough: true }) res: Response) {
+    const input = loginSchema.parse(body);
+    const user = await this.authService.login(input.phone, input.password, res);
+    return authUserSchema.parse(user);
+  }
+
+  @Post('refresh')
+  @ApiCookieAuth('heritage_refresh')
+  @ApiJsonOk('Rotate the refresh token and issue a new token pair', AUTH_USER_SCHEMA, AUTH_USER_EXAMPLE)
+  async refresh(@Req() req: Request, @Res({ passthrough: true }) res: Response) {
+    const refreshToken = req.cookies?.[REFRESH_COOKIE] as string | undefined;
+    const user = await this.authService.refresh(refreshToken, res);
+    return authUserSchema.parse(user);
+  }
+
+  @Post('logout')
+  @ApiCookieAuth('heritage_refresh')
+  @ApiJsonOk('Revoke the current refresh token and clear auth cookies', OK_SCHEMA, { ok: true })
+  async logout(@Req() req: Request, @Res({ passthrough: true }) res: Response) {
+    const refreshToken = req.cookies?.[REFRESH_COOKIE] as string | undefined;
+    await this.authService.logout(refreshToken, res);
+    return { ok: true };
+  }
+
+  @Get('me')
+  @UseGuards(JwtAuthGuard)
+  @ApiCookieAuth('heritage_access')
+  @ApiJsonOk('Get the current authenticated user', AUTH_USER_SCHEMA, AUTH_USER_EXAMPLE)
+  @ApiProtectedErrors()
+  async me(@Req() req: Request & { user: AuthenticatedUser }) {
+    const user = await this.authService.getMe(req.user.id);
+    return authUserSchema.parse(user);
+  }
+}
+
+@ApiTags('admin-users')
+@ApiCookieAuth('heritage_access')
+@Controller('admin/users')
+@UseGuards(JwtAuthGuard, RolesGuard)
+@Roles('SUPER_ADMIN')
+export class AdminUsersController {
+  constructor(private readonly usersService: UsersService) {}
+
+  @Get()
+  @ApiPaginatedResponse('List users', ADMIN_USER_SCHEMA, ADMIN_USER_EXAMPLE)
+  @ApiProtectedErrors()
+  list(@Query() query: PaginationQueryDto) {
+    return this.usersService.listUsers(query);
+  }
+
+  @Post()
+  @ApiJsonCreated('Create an admin user', ADMIN_USER_SCHEMA, ADMIN_USER_EXAMPLE)
+  @ApiJsonBody(CREATE_USER_BODY_SCHEMA, {
+    phone: '09121234567',
+    password: 'StrongPassword123!',
+    role: 'ADMIN',
+    displayName: 'Site editor',
+  })
+  @ApiValidationError()
+  @ApiProtectedErrors()
+  create(@Body() body: unknown) {
+    return this.usersService.createUser(createUserSchema.parse(body));
+  }
+
+  @Patch(':id')
+  @ApiJsonOk('Update an admin user', ADMIN_USER_SCHEMA, ADMIN_USER_EXAMPLE)
+  @ApiJsonBody(UPDATE_USER_BODY_SCHEMA, {
+    role: 'ADMIN',
+    displayName: 'Senior editor',
+    isActive: true,
+  })
+  @ApiValidationError()
+  @ApiProtectedErrors()
+  update(
+    @Param('id') id: string,
+    @Body() body: unknown,
+    @Req() req: Request & { user: AuthenticatedUser },
+  ) {
+    return this.usersService.updateUser(id, updateUserSchema.parse(body), req.user.id);
+  }
+
+  @Patch(':id/password')
+  @ApiJsonOk('Change a user password and revoke their sessions', OK_SCHEMA, { ok: true })
+  @ApiJsonBody(UPDATE_PASSWORD_BODY_SCHEMA, { password: 'NewStrongPassword123!' })
+  @ApiValidationError()
+  @ApiProtectedErrors()
+  updatePassword(@Param('id') id: string, @Body() body: unknown) {
+    return this.usersService.updatePassword(id, updateUserPasswordSchema.parse(body)).then(() => ({ ok: true }));
+  }
+}

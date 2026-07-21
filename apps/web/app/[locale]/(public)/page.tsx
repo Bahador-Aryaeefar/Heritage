@@ -7,7 +7,8 @@ import { RevealOnScroll } from '@/components/public/reveal-on-scroll';
 import { getLanding } from '@/lib/sites';
 import { heritageImages } from '@/lib/heritage-images';
 import { buildPlaqueQrUrl, buildSiteQrPngUrl } from '@/lib/qr-url';
-import type { Locale } from '@heritage/shared-types';
+import { toContentLocale } from '@/i18n/locales';
+import type { Locale } from '@/i18n/routing';
 
 export const revalidate = 60;
 
@@ -23,11 +24,13 @@ export default async function HomePage({ params }: PageProps) {
   const landing = await getLanding();
   const steps = t.raw('how.steps') as Array<{ title: string; body: string }>;
   const heroImageSrc = heritageImages.hero.src;
-  const heroAlt = locale === 'fa' ? heritageImages.hero.altFa : heritageImages.hero.altEn;
+  const contentLocale = toContentLocale(locale);
+  const heroAlt =
+    contentLocale === 'fa' ? heritageImages.hero.altFa : heritageImages.hero.altEn;
   const bannerTopAlt =
-    locale === 'fa' ? heritageImages.bannerTop.altFa : heritageImages.bannerTop.altEn;
+    contentLocale === 'fa' ? heritageImages.bannerTop.altFa : heritageImages.bannerTop.altEn;
   const bannerMidAlt =
-    locale === 'fa' ? heritageImages.bannerMid.altFa : heritageImages.bannerMid.altEn;
+    contentLocale === 'fa' ? heritageImages.bannerMid.altFa : heritageImages.bannerMid.altEn;
   const qrUrl = buildPlaqueQrUrl('taq-e-bostan');
   const plaqueDownloadUrl = buildSiteQrPngUrl('taq-e-bostan');
   const tQr = await getTranslations('site.qr');
@@ -83,7 +86,7 @@ export default async function HomePage({ params }: PageProps) {
       </RevealOnScroll>
       <RevealOnScroll>
         <SitesGrid
-          sites={landing.sites}
+          sites={landing.items}
           locale={locale as Locale}
           eyebrow={t('sites.eyebrow')}
           title={t('sites.title')}

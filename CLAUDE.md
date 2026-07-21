@@ -10,6 +10,8 @@ Before writing, editing, or generating any code, config, or content in this repo
 
 Do this even for a task that looks small or unrelated to architecture (e.g. "add a button"). The button still has a color, a border-radius, and a place in the folder structure - all defined in those files. If a task conflicts with something already decided there, say so explicitly before proceeding, rather than silently picking a different approach.
 
+**UI primitives (non-negotiable):** Reuse `components/ui/*` for badges, buttons, fields, etc. Do not invent one-off pill sizes, type scales, or color classes that duplicate a primitive. Status pills use `Badge` + `tone` only. Cursor rule: `.cursor/rules/design-system.mdc`.
+
 ## Rule 2 - Update the guide files after any update
 
 After making a change that establishes, changes, or rules out a decision (a new library, a folder-structure change, a new data field, a reversed earlier choice), update the relevant guide file in the same session, not as a follow-up task:

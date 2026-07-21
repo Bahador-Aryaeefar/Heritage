@@ -36,7 +36,11 @@ import { adminFetch } from '@/lib/admin-api';
 import { sha256HexOfFile } from '@/lib/file-hash';
 import { optimizeImage } from '@/lib/optimize-image';
 import { env } from '@/env';
-import { toContentLocale } from '@/i18n/locales';
+import {
+  CONTENT_LOCALE_DEFINITIONS,
+  toContentLocale,
+  type ContentLocaleCode,
+} from '@/i18n/locales';
 import type { Locale } from '@/i18n/routing';
 
 const LocationMapPicker = dynamic(
@@ -47,7 +51,7 @@ const LocationMapPicker = dynamic(
 
 const citiesSchema = paginatedResponseSchema(cityOptionSchema);
 
-type ContentLocale = 'fa' | 'en';
+type ContentLocale = ContentLocaleCode;
 
 type MediaRef = { mediaId?: string; clientFileKey?: string; contentHash?: string };
 
@@ -83,6 +87,7 @@ function toEditorBlocks(blocks: AdminSite['translations'][number]['blocks']): Ed
           type: 'AUDIO',
           caption: block.caption ?? '',
           mediaId: block.media.id,
+          ...(block.media.url ? { previewUrl: block.media.url } : {}),
         };
       case 'VIDEO':
         return {
@@ -208,7 +213,16 @@ export function SiteForm({ site }: SiteFormProps) {
     file: File,
   ) {
     filesByKey.current.set(block.key, file);
-    const previewUrl = block.type === 'IMAGE' ? URL.createObjectURL(file) : undefined;
+    const list = locale === 'fa' ? blocksFa : blocksEn;
+    const existing = list.find((candidate) => candidate.key === block.key);
+    if (
+      existing &&
+      (existing.type === 'IMAGE' || existing.type === 'AUDIO') &&
+      existing.previewUrl?.startsWith('blob:')
+    ) {
+      URL.revokeObjectURL(existing.previewUrl);
+    }
+    const previewUrl = URL.createObjectURL(file);
     const setBlocks = locale === 'fa' ? setBlocksFa : setBlocksEn;
     setBlocks((prev) =>
       prev.map((candidate) =>
@@ -217,7 +231,7 @@ export function SiteForm({ site }: SiteFormProps) {
               ...candidate,
               mediaId: undefined,
               clientFileKey: block.key,
-              ...(previewUrl ? { previewUrl } : {}),
+              previewUrl,
             } as EditorBlock)
           : candidate,
       ),
@@ -432,18 +446,33 @@ export function SiteForm({ site }: SiteFormProps) {
           value={activeTab}
           onChange={(value) => setActiveTab(value as ContentLocale)}
           items={[
-            { value: 'fa', label: t('tabFa') },
-            { value: 'en', label: t('tabEn') },
+            {
+              value: CONTENT_LOCALE_DEFINITIONS.fa.code,
+              label: CONTENT_LOCALE_DEFINITIONS.fa.nativeName,
+            },
+            {
+              value: CONTENT_LOCALE_DEFINITIONS.en.code,
+              label: CONTENT_LOCALE_DEFINITIONS.en.nativeName,
+            },
           ]}
         />
 
         {activeTab === 'fa' ? (
           <div className="space-y-4">
             <Field label={t('titleFa')}>
-              <TextInput value={titleFa} onChange={(event) => setTitleFa(event.target.value)} dir="rtl" />
+              <TextInput
+                value={titleFa}
+                onChange={(event) => setTitleFa(event.target.value)}
+                dir={CONTENT_LOCALE_DEFINITIONS.fa.dir}
+              />
             </Field>
             <Field label={t('shortFa')}>
-              <TextArea value={shortFa} onChange={(event) => setShortFa(event.target.value)} rows={3} dir="rtl" />
+              <TextArea
+                value={shortFa}
+                onChange={(event) => setShortFa(event.target.value)}
+                rows={3}
+                dir={CONTENT_LOCALE_DEFINITIONS.fa.dir}
+              />
             </Field>
             <span className="block text-xs font-bold tracking-wide text-brown-800">
               {t('contentBlocks')}
@@ -452,16 +481,26 @@ export function SiteForm({ site }: SiteFormProps) {
               value={blocksFa}
               onChange={setBlocksFa}
               labels={blockLabels}
+              contentDir={CONTENT_LOCALE_DEFINITIONS.fa.dir}
               onPickFile={(block, file) => handlePickFile('fa', block, file)}
             />
           </div>
         ) : (
           <div className="space-y-4">
             <Field label={t('titleEn')}>
-              <TextInput value={titleEn} onChange={(event) => setTitleEn(event.target.value)} dir="ltr" />
+              <TextInput
+                value={titleEn}
+                onChange={(event) => setTitleEn(event.target.value)}
+                dir={CONTENT_LOCALE_DEFINITIONS.en.dir}
+              />
             </Field>
             <Field label={t('shortEn')}>
-              <TextArea value={shortEn} onChange={(event) => setShortEn(event.target.value)} rows={3} dir="ltr" />
+              <TextArea
+                value={shortEn}
+                onChange={(event) => setShortEn(event.target.value)}
+                rows={3}
+                dir={CONTENT_LOCALE_DEFINITIONS.en.dir}
+              />
             </Field>
             <div className="flex flex-wrap items-center justify-between gap-3">
               <span className="text-xs font-bold tracking-wide text-brown-800">
@@ -475,6 +514,7 @@ export function SiteForm({ site }: SiteFormProps) {
               value={blocksEn}
               onChange={setBlocksEn}
               labels={blockLabels}
+              contentDir={CONTENT_LOCALE_DEFINITIONS.en.dir}
               onPickFile={(block, file) => handlePickFile('en', block, file)}
             />
           </div>

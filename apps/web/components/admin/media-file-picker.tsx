@@ -12,9 +12,11 @@ export type MediaFilePickerProps = {
   onRemove: () => void;
 };
 
-/** Same dashed white `rounded-card` shell as `components/ui/image-picker.tsx`, adapted to a
- * block field that is fully controlled by the parent (no local File state). Shared by
- * `BlockListEditor` and `BlockInspector`. */
+/**
+ * Controlled media pick control shared by canvas/inspector. Image previews use public-page
+ * sizing (`object-contain`, `max-h-80`, centered) — never stretch with `object-cover`.
+ * Audio previews render a playable `<audio controls>` when `previewUrl` is set.
+ */
 export function MediaFilePicker({
   kind,
   previewUrl,
@@ -29,8 +31,25 @@ export function MediaFilePicker({
   return (
     <div className="overflow-hidden rounded-card border border-dashed border-brown-800/25 bg-white">
       {kind === 'image' && previewUrl ? (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img src={previewUrl} alt="" className="max-h-52 w-full object-cover" />
+        <div className="flex justify-center bg-sand-100 p-3">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={previewUrl}
+            alt=""
+            className="mx-auto h-auto max-h-80 w-auto max-w-full object-contain"
+          />
+        </div>
+      ) : kind === 'audio' && previewUrl ? (
+        <div className="bg-sand-100 p-4">
+          <audio
+            controls
+            className="w-full"
+            src={previewUrl}
+            onClick={(event) => event.stopPropagation()}
+          >
+            <track kind="captions" />
+          </audio>
+        </div>
       ) : (
         <div className="flex h-24 items-center justify-center bg-linear-to-br from-brown-800/10 to-teal-700/15">
           <span className="text-[15px] font-medium text-brown-600">

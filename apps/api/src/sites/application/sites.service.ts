@@ -1,5 +1,10 @@
 import { Inject, Injectable, NotFoundException } from '@nestjs/common';
 import type { LandingResponse, SiteDetail } from '@heritage/shared-types';
+import {
+  normalizePagination,
+  paginatedResponse,
+  type PaginationQueryDto,
+} from '../../common/pagination/pagination';
 import { PrismaService } from '../../prisma/prisma.service';
 import { STORAGE_SERVICE, type StorageService } from '../../storage/storage.interface';
 import {
@@ -18,16 +23,24 @@ export class SitesService {
     @Inject(STORAGE_SERVICE) private readonly storage: StorageService,
   ) {}
 
-  async getLanding(): Promise<LandingResponse> {
-    const sites = await this.prisma.site.findMany({
-      where: { isActive: true },
-      select: siteCardSelect,
-      orderBy: { createdAt: 'asc' },
-    });
+  async getLanding(query: PaginationQueryDto): Promise<LandingResponse> {
+    const pagination = normalizePagination(query);
+    const [sites, totalItems] = await this.prisma.$transaction([
+      this.prisma.site.findMany({
+        where: { isActive: true },
+        select: siteCardSelect,
+        orderBy: { createdAt: 'asc' },
+        skip: pagination.skip,
+        take: pagination.limit,
+      }),
+      this.prisma.site.count({ where: { isActive: true } }),
+    ]);
 
-    const mapped = {
-      sites: sites.map((site) => mapSiteCard(site, (url) => this.storage.toAbsoluteUrl(url))),
-    };
+    const mapped = paginatedResponse(
+      sites.map((site) => mapSiteCard(site, (url) => this.storage.toAbsoluteUrl(url))),
+      totalItems,
+      pagination,
+    );
     return parseLandingResponse(mapped);
   }
 

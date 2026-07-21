@@ -27,6 +27,17 @@ body {
   font-family: var(--font-sans);
 }
 
+/* Design system: all pressable controls use the pointer cursor */
+button:not(:disabled),
+[role='button']:not([aria-disabled='true']) {
+  cursor: pointer;
+}
+
+button:disabled,
+button[disabled] {
+  cursor: not-allowed;
+}
+
 .reveal-on-scroll {
   opacity: 0;
   transform: translateY(12px);

@@ -2,7 +2,6 @@
 
 import { ActionButton } from '@/components/ui/action-button';
 import { Field, TextInput } from '@/components/ui/text-field';
-import { Select, type SelectOption } from '@/components/ui/select';
 import { MediaFilePicker } from '@/components/admin/media-file-picker';
 import type { BlockListEditorLabels } from '@/components/admin/block-list-editor';
 import type {
@@ -30,6 +29,91 @@ type BlockInspectorProps = {
   onClose?: () => void;
 };
 
+const COLOR_SWATCH: Record<EditorColorToken, string> = {
+  BROWN_950: 'bg-brown-950',
+  BROWN_800: 'bg-brown-800',
+  BROWN_600: 'bg-brown-600',
+  TEAL_700: 'bg-teal-700',
+  SAND_50: 'bg-sand-50',
+};
+
+type ChipOption<T extends string> = {
+  value: T;
+  label: string;
+  title?: string;
+};
+
+function ChipGroup<T extends string>({
+  value,
+  options,
+  onChange,
+  ariaLabel,
+}: {
+  value: T;
+  options: ChipOption<T>[];
+  onChange: (value: T) => void;
+  ariaLabel: string;
+}) {
+  return (
+    <div role="group" aria-label={ariaLabel} className="flex flex-wrap gap-1.5">
+      {options.map((option) => {
+        const active = option.value === value;
+        return (
+          <button
+            key={option.value}
+            type="button"
+            aria-pressed={active}
+            title={option.title ?? option.label}
+            onClick={() => onChange(option.value)}
+            className={`rounded-button px-2.5 py-1.5 text-xs font-bold transition-colors outline-none focus-visible:ring-2 focus-visible:ring-teal-700/15 ${
+              active
+                ? 'bg-teal-700 text-sand-50 shadow-[0_4px_12px_rgba(29,111,140,0.28)]'
+                : 'border border-brown-800/15 bg-white text-brown-800 hover:bg-sand-50'
+            }`}
+          >
+            {option.label}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+function ColorSwatchGroup({
+  value,
+  options,
+  onChange,
+  ariaLabel,
+}: {
+  value: EditorColorToken;
+  options: { value: EditorColorToken; label: string }[];
+  onChange: (value: EditorColorToken) => void;
+  ariaLabel: string;
+}) {
+  return (
+    <div role="group" aria-label={ariaLabel} className="flex flex-wrap gap-2">
+      {options.map((option) => {
+        const active = option.value === value;
+        return (
+          <button
+            key={option.value}
+            type="button"
+            aria-pressed={active}
+            aria-label={option.label}
+            title={option.label}
+            onClick={() => onChange(option.value)}
+            className={`size-8 rounded-button border outline-none transition-shadow focus-visible:ring-2 focus-visible:ring-teal-700/15 ${COLOR_SWATCH[option.value]} ${
+              active
+                ? 'border-teal-700 ring-2 ring-teal-700/40'
+                : 'border-brown-800/25 hover:border-brown-800/50'
+            }`}
+          />
+        );
+      })}
+    </div>
+  );
+}
+
 function typeTitle(block: EditorBlock, labels: BlockInspectorLabels): string {
   switch (block.type) {
     case 'HEADING':
@@ -45,7 +129,7 @@ function typeTitle(block: EditorBlock, labels: BlockInspectorLabels): string {
   }
 }
 
-function typeOptions(labels: BlockInspectorLabels): SelectOption[] {
+function typeOptions(labels: BlockInspectorLabels): ChipOption<EditorBlock['type']>[] {
   return [
     { value: 'HEADING', label: labels.headingTitle },
     { value: 'PARAGRAPH', label: labels.paragraphTitle },
@@ -55,7 +139,7 @@ function typeOptions(labels: BlockInspectorLabels): SelectOption[] {
   ];
 }
 
-function textRoleOptions(labels: BlockInspectorLabels): SelectOption[] {
+function textRoleOptions(labels: BlockInspectorLabels): ChipOption<EditorTextRole>[] {
   return [
     { value: 'HERO', label: labels.roleHero },
     { value: 'H2', label: labels.roleH2 },
@@ -65,7 +149,9 @@ function textRoleOptions(labels: BlockInspectorLabels): SelectOption[] {
   ];
 }
 
-function colorTokenOptions(labels: BlockInspectorLabels): SelectOption[] {
+function colorTokenOptions(
+  labels: BlockInspectorLabels,
+): { value: EditorColorToken; label: string }[] {
   return [
     { value: 'BROWN_950', label: labels.colorBrown950 },
     { value: 'BROWN_800', label: labels.colorBrown800 },
@@ -75,7 +161,7 @@ function colorTokenOptions(labels: BlockInspectorLabels): SelectOption[] {
   ];
 }
 
-function alignOptions(labels: BlockInspectorLabels): SelectOption[] {
+function alignOptions(labels: BlockInspectorLabels): ChipOption<EditorAlign>[] {
   return [
     { value: 'START', label: labels.alignStart },
     { value: 'CENTER', label: labels.alignCenter },
@@ -84,9 +170,12 @@ function alignOptions(labels: BlockInspectorLabels): SelectOption[] {
 
 /**
  * Side panel (desktop) / bottom sheet (mobile) for the selected document-canvas block.
- * Fully controlled — the caller (`BlockListEditor` shell, Task 5) owns `selectedKey` and
+ * Fully controlled — the caller (`BlockListEditor` shell) owns `selectedKey` and
  * translates `onChange`/`onConvertType`/`onMove`/`onDelete` into the flat `EditorBlock[]`
  * update, reusing `convertBlockType`/`moveBlock` from `lib/block-editor-utils.ts`.
+ *
+ * Text style controls use chip groups / color swatches instead of nested Selects so the
+ * narrow inspector stays scannable and matches the canvas preview immediately.
  */
 export function BlockInspector({
   block,
@@ -104,34 +193,38 @@ export function BlockInspector({
     return (
       <>
         <Field label={labels.blockType}>
-          <Select
+          <ChipGroup
             value={current.type}
-            onChange={(value) => onConvertType(value as EditorBlock['type'])}
+            onChange={onConvertType}
             options={typeOptions(labels)}
+            ariaLabel={labels.blockType}
           />
         </Field>
 
         {current.type === 'HEADING' || current.type === 'PARAGRAPH' ? (
           <>
             <Field label={labels.textRole}>
-              <Select
+              <ChipGroup
                 value={current.textRole}
-                onChange={(value) => onChange({ textRole: value as EditorTextRole })}
+                onChange={(value) => onChange({ textRole: value })}
                 options={textRoleOptions(labels)}
+                ariaLabel={labels.textRole}
               />
             </Field>
             <Field label={labels.colorToken}>
-              <Select
+              <ColorSwatchGroup
                 value={current.colorToken}
-                onChange={(value) => onChange({ colorToken: value as EditorColorToken })}
+                onChange={(value) => onChange({ colorToken: value })}
                 options={colorTokenOptions(labels)}
+                ariaLabel={labels.colorToken}
               />
             </Field>
             <Field label={labels.align}>
-              <Select
+              <ChipGroup
                 value={current.align}
-                onChange={(value) => onChange({ align: value as EditorAlign })}
+                onChange={(value) => onChange({ align: value })}
                 options={alignOptions(labels)}
+                ariaLabel={labels.align}
               />
             </Field>
           </>
@@ -173,8 +266,8 @@ export function BlockInspector({
             </Field>
             <MediaFilePicker
               kind="audio"
-              previewUrl={null}
-              hasFile={Boolean(current.mediaId || current.clientFileKey)}
+              previewUrl={current.previewUrl ?? null}
+              hasFile={Boolean(current.mediaId || current.clientFileKey || current.previewUrl)}
               labels={{
                 pick: labels.pickAudio,
                 change: labels.changeAudio,
@@ -182,7 +275,9 @@ export function BlockInspector({
                 attached: labels.audioAttached,
               }}
               onPick={(file) => onPickFile?.(current, file)}
-              onRemove={() => onChange({ mediaId: undefined, clientFileKey: undefined })}
+              onRemove={() =>
+                onChange({ mediaId: undefined, clientFileKey: undefined, previewUrl: undefined })
+              }
             />
           </>
         ) : null}
@@ -230,15 +325,19 @@ export function BlockInspector({
     );
   }
 
+  function renderEmpty() {
+    return (
+      <div className="rounded-button border border-dashed border-brown-800/20 px-3 py-8 text-center">
+        <p className="text-[15px] leading-relaxed text-brown-600">{labels.inspectorEmpty}</p>
+      </div>
+    );
+  }
+
   return (
     <>
       {/* Desktop / tablet (>=700px, --breakpoint-md): always-visible sticky panel. */}
       <aside className="hidden md:sticky md:top-4 md:block md:w-[280px] md:shrink-0 md:self-start md:space-y-3 md:rounded-card md:border md:border-brown-800/15 md:bg-white md:p-4">
-        {block ? (
-          renderFields(block)
-        ) : (
-          <p className="text-[15px] text-brown-600">{labels.inspectorEmpty}</p>
-        )}
+        {block ? renderFields(block) : renderEmpty()}
       </aside>
 
       {/* Mobile (<700px): bottom sheet, only rendered while a block is selected. */}

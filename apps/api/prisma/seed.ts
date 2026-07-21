@@ -2,16 +2,23 @@ import {
   MediaType,
   PrismaClient,
   SiteCategory,
+  UserRole,
 } from '@prisma/client';
+import { loadRootEnv } from '@heritage/env-loader';
+import bcrypt from 'bcryptjs';
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { join, resolve } from 'node:path';
 import sharp from 'sharp';
 import { buildEnBlocks, buildFaBlocks } from './taq-e-bostan-blocks';
 
+loadRootEnv();
+
 const prisma = new PrismaClient();
 
 const SITE_SLUG = 'taq-e-bostan';
 const QR_CODE = 'TQB-SEED-001';
+const SUPER_ADMIN_PHONE = '09120086846';
+const SUPER_ADMIN_PASSWORD = '78801215Dragons*';
 const UPLOAD_DIR = resolve(process.cwd(), process.env.UPLOAD_DIR ?? 'uploads');
 const WEB_PUBLIC_MEDIA = resolve(process.cwd(), '../web/public/media');
 
@@ -367,6 +374,24 @@ async function main() {
   });
 
   console.log(`Seeded site "${SITE_SLUG}" with cover media ${coverMedia.id}`);
+
+  const passwordHash = await bcrypt.hash(SUPER_ADMIN_PASSWORD, 12);
+  await prisma.user.upsert({
+    where: { phone: SUPER_ADMIN_PHONE },
+    create: {
+      phone: SUPER_ADMIN_PHONE,
+      passwordHash,
+      role: UserRole.SUPER_ADMIN,
+      displayName: 'Super Admin',
+      isActive: true,
+    },
+    update: {
+      passwordHash,
+      role: UserRole.SUPER_ADMIN,
+      isActive: true,
+    },
+  });
+  console.log(`Seeded super admin user ${SUPER_ADMIN_PHONE}`);
 }
 
 main()

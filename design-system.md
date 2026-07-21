@@ -268,6 +268,7 @@ Implemented under `/admin` (fa default) and `/en/admin/...`. Shares public page 
 | `Select` | Custom button + **portaled** dropdown (`fixed` on `document.body`, inline `zIndex: 1100`) so menus clear Leaflet panes/controls (400–1000) and fields below; white fill; 20×20 `ChevronIcon` |
 | `Checkbox` | Custom 20px square; off = white + brown border; on = teal fill + check |
 | `ImagePicker` | Dashed white `rounded-card` preview; pick/change/clear via `ActionButton` (not ad-hoc `text-xs` pills) |
+| `MediaFilePicker` | Block media control: image uses `object-contain` / `max-h-80` (no stretch); audio shows playable `<audio controls>` when `previewUrl` is set |
 | `ChevronIcon` | Shared 20×20 stroke chevron for Select + LanguageSwitcher |
 | `LocationMapPicker` | Map.ir raster + Leaflet; `aspect-video` min height, `rounded-card`; teal pin; click/drag syncs lat/lng fields (`components/admin/location-map-picker.tsx`) |
 | `ActionButton` | Primary/secondary/ghost; **15px** bold; same hover lift as §4 Buttons |
@@ -281,7 +282,7 @@ Ordered editor for a site's `SiteContentBlock` rows (one instance per locale tab
 
 | Element | Spec |
 |---|---|
-| Layout | `flex-col` on narrow viewports; `lg:flex-row` — canvas `flex-1`, inspector beside it on large screens |
+| Layout | `flex-col` on narrow viewports; `lg:flex-row` — canvas `flex-1`, inspector beside it on large screens; requires `contentDir` (`rtl`/`ltr`) passed through to `BlockCanvas` |
 | Selection | One block at a time; click canvas background deselects; stale selection cleared when the block leaves `value` |
 | Keyboard | **Escape** deselects; **Delete/Backspace** removes the selected block only when focus is **not** in `INPUT` / `TEXTAREA` / `SELECT` / contenteditable (so in-canvas typing and inspector fields stay safe) |
 | File picking | Shell never hashes/optimizes — `onPickFile(block, file)` bubbles raw `File` to the caller (`lib/file-hash.ts`, `lib/optimize-image.ts`); multipart field name === `clientFileKey` on save |
@@ -293,13 +294,15 @@ Single **white** document surface: `rounded-card`, `border-brown-800/15`, `px-6 
 
 | Element | Spec |
 |---|---|
-| Text (HEADING/PARAGRAPH) | Borderless auto-resizing `textarea`; typography from public `TextBlock` maps (`roleClasses` / `colorClasses` / `alignClasses` in `text-block.tsx`) |
-| Image / Audio | `MediaFilePicker` on canvas (pick/change/remove); **caption not on canvas** |
-| Video | Valid `http(s)` embed → `aspect-video` iframe preview; else dashed placeholder labeled with embed URL copy |
+| Text (HEADING/PARAGRAPH) | Borderless auto-resizing `textarea`; typography from public `TextBlock` maps (`roleClasses` / `colorClasses` / `alignClasses` in `text-block.tsx`); inherits permanent `dir` from the canvas root |
+| Image | Public-like `<figure max-w-lg>`: sand frame (`bg-sand-100 p-2 ring-1`), `img` with `h-auto max-h-80 w-auto max-w-full object-contain` (never `object-cover` stretch); editable caption under the frame (`text-[14px] text-brown-800`, centered); pick/change/remove `ActionButton`s below |
+| Audio | Public-like `<figure max-w-lg>`: sand card with playable `<audio controls>` when `previewUrl` is set (blob URL after pick, or persisted media URL); same caption + file actions as image |
+| Video | Public-like `<figure max-w-2xl>`: embed iframe preview when URL valid; editable caption under the frame |
 | Selected block | Wrapper `ring-2 ring-teal-700/40`, `rounded-button`, `-m-1 p-1` |
 | Insert gaps | Before each block: centered **+** via `BlockInsertMenu` (`variant="gap"`) — white 36×36, `border-2 border-brown-800/20`, bold **+** |
 | End insert | `BlockInsertMenu` (`variant="end"`) — `secondary` `ActionButton` with `labels.addBlock` |
 | Empty list | **15px** `brown-600` hint (`labels.empty`) above end insert |
+| Writing direction | Root surface sets `dir` from `contentDir` (`rtl` for FA tab, `ltr` for EN) — independent of the admin UI locale |
 
 #### `BlockInsertMenu` (`components/admin/block-insert-menu.tsx`)
 
@@ -307,26 +310,26 @@ Portaled menu (`fixed`, `zIndex: 1100`) — Heading / Paragraph / Image / Audio 
 
 #### `BlockInspector` (`components/admin/block-inspector.tsx`)
 
-Type, style, media, caption, embed URL, reorder, delete — **not** on the canvas.
+Type, style, reorder, delete — and a second place to edit caption/media — live in the inspector. **Canvas already shows natural-size media + captions + audio playback** (WYSIWYG vs public page).
 
 | Element | Spec |
 |---|---|
-| Desktop (`md+`, ≥700px) | Sticky aside `w-[280px]`, white `rounded-card`, `border-brown-800/15`, `p-4`, `top-4`; empty state: **15px** `brown-600` (`labels.inspectorEmpty`) |
+| Desktop (`md+`, ≥700px) | Sticky aside `w-[280px]`, white `rounded-card`, `border-brown-800/15`, `p-4`, `top-4`; empty state: dashed `rounded-button` frame + **15px** `brown-600` (`labels.inspectorEmpty` — e.g. “Click a block in the document to edit its style.”) |
 | Mobile (`<700px`) | Bottom sheet when a block is selected: `fixed` bottom, `z-[1100]`, `max-h-[75vh]`, `rounded-t-card`, header = type title + `ghost` close (`labels.closeInspector`) |
-| All types | `Select` block type → `convertBlockType` |
-| Text | `Select`s for `textRole` / `colorToken` / `align` (same options as §10) |
-| Image / Audio | `TextInput` caption + `MediaFilePicker` |
+| All types | **Chip group** for block type (not `Select`) → `convertBlockType`; chips = `rounded-button`, `text-xs` bold; active = `teal-700` / `sand-50` + nav shadow; inactive = white + `border-brown-800/15` |
+| Text | Chip groups for `textRole` / `align`; **color swatches** (8×8 `rounded-button` fills from palette tokens, active = `ring-2 ring-teal-700/40`) — replaces nested Selects in the narrow inspector |
+| Image / Audio | `TextInput` caption + `MediaFilePicker` (`object-contain` image / playable audio when `previewUrl` set) |
 | Video | `TextInput` caption + `TextInput dir="ltr"` embed URL |
 | Actions | `ghost` move up / move down (disabled at ends) + delete; top border `border-brown-800/10` |
 
 ### `SiteForm` (`components/admin/site-form.tsx`)
 
-Full-width admin editor for creating/replacing a site. Reads all copy from `useTranslations('admin.siteForm')` (no `labels` prop — pages render `<SiteForm />` / `<SiteForm site={site} />`).
+Full-width admin editor for creating/replacing a site. Reads chrome/field copy from `useTranslations('admin.siteForm')` (no `labels` prop — pages render `<SiteForm />` / `<SiteForm site={site} />`). **Content locale tab labels and canvas `dir` come from `CONTENT_LOCALE_DEFINITIONS`, not next-intl.**
 
 | Element | Spec |
 |---|---|
 | Shared meta | `slug` (create only, `dir="ltr"`), `category`/`city` `Select`s, `LocationMapPicker` + `lat`/`lng` `TextInput`s, cover via `ImagePicker` (`isActive` not edited here — create defaults `true`, edit preserves existing) |
-| Locale content | `Tabs` (Persian/English); each tab = title + short-description `Field`s (`dir="rtl"` for FA, `dir="ltr"` for EN) + document-canvas `BlockListEditor` (canvas + inspector per spec above) |
+| Locale content | `Tabs` with permanent endonyms (`فارسی` / `English`); title/short `Field`s + document canvas use that tab’s permanent `dir` (`rtl` / `ltr`) via `contentDir` → `BlockCanvas` |
 | Copy from FA | EN tab shows a `secondary` `ActionButton` "Copy from Persian" (right-aligned above the editor); `window.confirm` first when EN already has blocks |
 | Save | One atomic multipart request: `POST /admin/sites` (create) or `PUT /admin/sites/:id` (replace). `payload` field = JSON `CreateSiteFullInput`/`UpdateSiteFullInput`; each staged file is optimized (images via `lib/optimize-image.ts`) then hashed (`lib/file-hash.ts`). A hash matching an existing `site.media[].contentHash` → reference by `mediaId` (no upload); otherwise the file is appended once with the multipart **field name === its `clientFileKey`** and identical picks are deduped onto that one part (cover processed first). The old dual JSON + `.../cover` mutation path is removed |
 
@@ -335,7 +338,8 @@ Full-width admin editor for creating/replacing a site. Reads all copy from `useT
 - Compact **dropdown**: white trigger, `border-brown-800/25`, teal code chip + native name + 20px `ChevronIcon`; menu white with stronger shadow
 - Menu: **portaled** to `document.body` (`fixed`, `zIndex: 1100`, same stacking rule as `Select`); scrollable; each row = code chip + native name
 - Active row: teal-700 fill / sand-50 text (same pattern as `Select`)
-- Locale catalog: `i18n/locales.ts` (`LOCALE_DEFINITIONS`) — add code + nativeName + dir + messages JSON when shipping a language
+- UI locale catalog: `i18n/locales.ts` (`LOCALE_DEFINITIONS`) — add code + nativeName + dir + messages JSON when shipping a language
+- Content locale catalog: same file (`CONTENT_LOCALE_DEFINITIONS`) — fa/en endonyms + permanent `dir` for the site editor tabs/canvas (independent of UI locale)
 - Current UI locales: `fa` (default, no prefix), `en`, `ar` (RTL)
 
 ### Form field contrast

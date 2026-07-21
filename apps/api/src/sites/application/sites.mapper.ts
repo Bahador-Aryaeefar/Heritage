@@ -104,7 +104,7 @@ export function mapBlock(
 export function mapSiteCard(
   site: SiteCardRow,
   toAbsoluteUrl: (url: string) => string,
-): LandingResponse['sites'][number] {
+): LandingResponse['items'][number] {
   const cover = site.media[0];
   const coverUrl = cover?.url ? toAbsoluteUrl(cover.url) : null;
 

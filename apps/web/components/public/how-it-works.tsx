@@ -1,7 +1,7 @@
 import { Badge } from '@/components/ui/badge';
 import { HeritageCard } from '@/components/ui/heritage-card';
 import { formatStepNumber } from '@/lib/sites';
-import type { Locale } from '@heritage/shared-types';
+import type { Locale } from '@/i18n/routing';
 
 type Step = { title: string; body: string };
 

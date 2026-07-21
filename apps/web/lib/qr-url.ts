@@ -1,9 +1,10 @@
-import type { Locale } from '@heritage/shared-types';
 import { env } from '@/env';
+import { localizedPath } from '@/i18n/locales';
+import type { Locale } from '@/i18n/routing';
 
 export function buildSiteQrUrl(slug: string, locale: Locale = 'fa'): string {
   const base = env.NEXT_PUBLIC_SITE_URL.replace(/\/$/, '');
-  const path = locale === 'en' ? `/en/sites/${slug}` : `/sites/${slug}`;
+  const path = localizedPath(locale, `/sites/${slug}`);
   return `${base}${path}?src=qr`;
 }
 

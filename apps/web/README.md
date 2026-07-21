@@ -13,12 +13,16 @@ From the monorepo root (preferred):
 
 ```bash
 pnpm install
-cp apps/web/.env.example apps/web/.env
+cp .env.example .env
 # API must be running with seed data (port 4000)
 pnpm --filter web dev
 ```
 
 Open `http://localhost:3000/fa`.
+
+## Env vars
+
+All variables live in the **monorepo root** [`.env.example`](../../.env.example) → `.env`. Web-specific keys: `API_BASE_URL`, `NEXT_PUBLIC_SITE_URL`, `NEXT_PUBLIC_MAP_IR_API_KEY`.
 
 ## Public routes
 

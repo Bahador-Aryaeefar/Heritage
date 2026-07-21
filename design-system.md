@@ -285,7 +285,7 @@ Ordered editor for a site's `SiteContentBlock` rows (one instance per locale tab
 | Selection | One block at a time; click canvas background deselects; stale selection cleared when the block leaves `value` |
 | Keyboard | **Escape** deselects; **Delete/Backspace** removes the selected block only when focus is **not** in `INPUT` / `TEXTAREA` / `SELECT` / contenteditable (so in-canvas typing and inspector fields stay safe) |
 | File picking | Shell never hashes/optimizes — `onPickFile(block, file)` bubbles raw `File` to the caller (`lib/file-hash.ts`, `lib/optimize-image.ts`); multipart field name === `clientFileKey` on save |
-| Copy from FA | Unchanged: new keys + copied text/caption/embedUrl; keeps `mediaId`, drops FA-only `clientFileKey`/`previewUrl` |
+| Copy from FA | Unchanged: new keys + copied spans/caption/embedUrl; keeps `mediaId`, drops FA-only `clientFileKey`/`previewUrl` |
 
 #### `BlockCanvas` (`components/admin/block-canvas.tsx`)
 
@@ -293,7 +293,8 @@ Single **white** document surface: `rounded-card`, `border-brown-800/15`, `px-6 
 
 | Element | Spec |
 |---|---|
-| Text (HEADING/PARAGRAPH) | Borderless auto-resizing `textarea`; typography from public `TextBlock` maps (`roleClasses` / `colorClasses` / `alignClasses` in `text-block.tsx`) |
+| Text (HEADING/PARAGRAPH) | `SpanTextEditor` (`contenteditable`) with typography from public `TextBlock` maps (`roleClasses` / `colorClasses` / `alignClasses` in `text-block.tsx`); when selected, `FormatToolbar` above the block |
+| Format toolbar | `FormatToolbar` — `rounded-button` chips matching inspector `ChipGroup` (white + `border-brown-800/15`, **12px** bold); actions: Bold / Italic / Link (prompt) / Unlink; i18n under `admin.siteForm.block.*` |
 | Image / Audio | `MediaFilePicker` on canvas (pick/change/remove); **caption not on canvas** |
 | Video | Valid `http(s)` embed → `aspect-video` iframe preview; else dashed placeholder labeled with embed URL copy |
 | Selected block | Wrapper `ring-2 ring-teal-700/40`, `rounded-button`, `-m-1 p-1` |
@@ -344,7 +345,7 @@ Full-width admin editor for creating/replacing a site. Reads all copy from `useT
 
 Components: `language-switcher.tsx` (public + admin header + login).
 
-Admin composed components: `admin-shell.tsx`, `login-form.tsx`, `sites-list.tsx`, `site-form.tsx`, `block-list-editor.tsx`, `block-canvas.tsx`, `block-inspector.tsx`, `block-insert-menu.tsx`, `media-file-picker.tsx`, `users-panel.tsx`, `location-map-picker.tsx`.
+Admin composed components: `admin-shell.tsx`, `login-form.tsx`, `sites-list.tsx`, `site-form.tsx`, `block-list-editor.tsx`, `block-canvas.tsx`, `block-inspector.tsx`, `block-insert-menu.tsx`, `span-text-editor.tsx`, `format-toolbar.tsx`, `media-file-picker.tsx`, `users-panel.tsx`, `location-map-picker.tsx`.
 
 
 ## Open questions

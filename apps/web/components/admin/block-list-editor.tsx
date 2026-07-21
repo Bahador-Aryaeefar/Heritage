@@ -51,6 +51,12 @@ export type BlockListEditorLabels = {
   colorSand50: string;
   alignStart: string;
   alignCenter: string;
+  alignEnd: string;
+  bold: string;
+  italic: string;
+  link: string;
+  unlink: string;
+  linkPrompt: string;
   pickImage: string;
   changeImage: string;
   removeImage: string;

@@ -2,7 +2,9 @@
 
 import { Fragment, useEffect, useRef } from 'react';
 import { BlockInsertMenu } from '@/components/admin/block-insert-menu';
+import { FormatToolbar } from '@/components/admin/format-toolbar';
 import { MediaFilePicker } from '@/components/admin/media-file-picker';
+import { SpanTextEditor, type SpanTextEditorHandle } from '@/components/admin/span-text-editor';
 import { alignClasses, colorClasses, roleClasses } from '@/components/public/content-blocks/text-block';
 import type { BlockListEditorLabels } from '@/components/admin/block-list-editor';
 import type {
@@ -24,14 +26,9 @@ type BlockCanvasProps = {
   onInsertAt: (index: number, type: EditorBlock['type']) => void;
   onPickFile?: (block: EditorImageBlock | EditorAudioBlock, file: File) => void;
   labels: BlockCanvasLabels;
-  /** When set, focus that block's in-canvas textarea (text blocks only) once after an insert. */
+  /** When set, focus that block's in-canvas editor (text blocks only) once after an insert. */
   textFocusKey?: string | null;
 };
-
-function autoResize(el: HTMLTextAreaElement) {
-  el.style.height = 'auto';
-  el.style.height = `${el.scrollHeight}px`;
-}
 
 function isValidEmbedUrl(value: string): boolean {
   if (!value.trim()) return false;
@@ -46,7 +43,7 @@ function isValidEmbedUrl(value: string): boolean {
 /**
  * Document canvas: a single white `rounded-card` surface that renders `EditorBlock[]` styled the
  * way the public article body renders them (`roleClasses`/`colorClasses`/`alignClasses` from
- * `TextBlock`), with in-place text editing and "+" insert gaps between blocks. Fully controlled —
+ * `TextBlock`), with in-place span editing and "+" insert gaps between blocks. Fully controlled —
  * the caller (`BlockListEditor` shell, Task 5) owns `selectedKey` and applies `onChangeBlock` /
  * `onInsertAt` to its flat `EditorBlock[]` state. Style/type/caption/media/reorder/delete controls
  * live in `BlockInspector`, not here.
@@ -61,30 +58,41 @@ export function BlockCanvas({
   labels,
   textFocusKey,
 }: BlockCanvasProps) {
-  const textareaRefs = useRef<Map<string, HTMLTextAreaElement>>(new Map());
-
-  useEffect(() => {
-    textareaRefs.current.forEach((el) => autoResize(el));
-  });
+  const editorRef = useRef<SpanTextEditorHandle>(null);
 
   useEffect(() => {
     if (!textFocusKey) return;
-    textareaRefs.current.get(textFocusKey)?.focus();
+    editorRef.current?.focus();
   }, [textFocusKey]);
 
   function renderTextBlock(block: EditorTextBlock) {
+    const selected = selectedKey === block.key;
+
     return (
-      <textarea
-        ref={(el) => {
-          if (el) textareaRefs.current.set(block.key, el);
-          else textareaRefs.current.delete(block.key);
-        }}
-        value={block.text}
-        onChange={(event) => onChangeBlock(block.key, { text: event.target.value })}
-        rows={1}
-        placeholder={block.type === 'HEADING' ? labels.headingTitle : labels.paragraphTitle}
-        className={`w-full resize-none overflow-hidden border-0 bg-transparent p-0 outline-none placeholder:text-brown-600/40 ${roleClasses[block.textRole]} ${colorClasses[block.colorToken]} ${alignClasses[block.align]}`}
-      />
+      <>
+        {selected ? (
+          <FormatToolbar
+            labels={{
+              bold: labels.bold,
+              italic: labels.italic,
+              link: labels.link,
+              unlink: labels.unlink,
+            }}
+            onBold={() => editorRef.current?.toggleBold()}
+            onItalic={() => editorRef.current?.toggleItalic()}
+            onLink={() => editorRef.current?.promptLink()}
+            onUnlink={() => editorRef.current?.unlink()}
+          />
+        ) : null}
+        <SpanTextEditor
+          ref={selected ? editorRef : undefined}
+          value={block.spans}
+          onChange={(spans) => onChangeBlock(block.key, { spans })}
+          placeholder={block.type === 'HEADING' ? labels.headingTitle : labels.paragraphTitle}
+          labels={{ linkPrompt: labels.linkPrompt }}
+          className={`${roleClasses[block.textRole]} ${colorClasses[block.colorToken]} ${alignClasses[block.align]}`}
+        />
+      </>
     );
   }
 

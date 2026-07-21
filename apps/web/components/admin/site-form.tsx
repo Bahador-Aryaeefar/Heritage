@@ -64,7 +64,7 @@ function toEditorBlocks(blocks: AdminSite['translations'][number]['blocks']): Ed
         return {
           key: createBlockKey(),
           type: block.type,
-          text: block.spans.map((span) => span.text).join(''),
+          spans: block.spans.map((span) => ({ ...span })),
           textRole: block.textRole,
           colorToken: block.colorToken,
           align: block.align,
@@ -180,6 +180,12 @@ export function SiteForm({ site }: SiteFormProps) {
     colorSand50: tb('colorSand50'),
     alignStart: tb('alignStart'),
     alignCenter: tb('alignCenter'),
+    alignEnd: tb('alignEnd'),
+    bold: tb('bold'),
+    italic: tb('italic'),
+    link: tb('link'),
+    unlink: tb('unlink'),
+    linkPrompt: tb('linkPrompt'),
     pickImage: t('pickImage'),
     changeImage: t('changeImage'),
     removeImage: t('removeImage'),
@@ -279,7 +285,7 @@ export function SiteForm({ site }: SiteFormProps) {
                 textRole: block.textRole,
                 colorToken: block.colorToken,
                 align: block.align,
-                text: block.text,
+                spans: block.spans,
               });
               break;
             case 'VIDEO':

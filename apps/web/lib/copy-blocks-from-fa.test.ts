@@ -4,8 +4,8 @@ import { copyBlocksFromFa, type EditorBlock } from './copy-blocks-from-fa';
 describe('copyBlocksFromFa', () => {
   it('gives every copied block a new, unique key', () => {
     const fa: EditorBlock[] = [
-      { key: 'fa-1', type: 'HEADING', text: 'Title', textRole: 'H2', colorToken: 'BROWN_800', align: 'START' },
-      { key: 'fa-2', type: 'PARAGRAPH', text: 'Body', textRole: 'BODY', colorToken: 'BROWN_800', align: 'START' },
+      { key: 'fa-1', type: 'HEADING', spans: [{ text: 'Title' }], textRole: 'H2', colorToken: 'BROWN_800', align: 'START' },
+      { key: 'fa-2', type: 'PARAGRAPH', spans: [{ text: 'Body' }], textRole: 'BODY', colorToken: 'BROWN_800', align: 'START' },
     ];
 
     const copied = copyBlocksFromFa(fa);
@@ -16,20 +16,28 @@ describe('copyBlocksFromFa', () => {
     expect(new Set(copied.map((b) => b.key)).size).toBe(2);
   });
 
-  it('copies text/textRole/colorToken/align for HEADING and PARAGRAPH blocks', () => {
+  it('copies spans/textRole/colorToken/align for HEADING and PARAGRAPH blocks', () => {
     const fa: EditorBlock[] = [
-      { key: 'fa-1', type: 'HEADING', text: 'عنوان', textRole: 'HERO', colorToken: 'TEAL_700', align: 'CENTER' },
+      {
+        key: 'fa-1',
+        type: 'HEADING',
+        spans: [{ text: 'عنوان', bold: true }],
+        textRole: 'HERO',
+        colorToken: 'TEAL_700',
+        align: 'CENTER',
+      },
     ];
 
     const [copied] = copyBlocksFromFa(fa);
 
     expect(copied).toMatchObject({
       type: 'HEADING',
-      text: 'عنوان',
+      spans: [{ text: 'عنوان', bold: true }],
       textRole: 'HERO',
       colorToken: 'TEAL_700',
       align: 'CENTER',
     });
+    expect(copied!.key).not.toBe('fa-1');
   });
 
   it('preserves mediaId for an IMAGE block that already has an uploaded file', () => {
@@ -107,7 +115,7 @@ describe('copyBlocksFromFa', () => {
 
   it('preserves order and does not mutate the input array', () => {
     const fa: EditorBlock[] = [
-      { key: 'fa-1', type: 'HEADING', text: 'A', textRole: 'H2', colorToken: 'BROWN_800', align: 'START' },
+      { key: 'fa-1', type: 'HEADING', spans: [{ text: 'A' }], textRole: 'H2', colorToken: 'BROWN_800', align: 'START' },
       { key: 'fa-2', type: 'IMAGE', caption: 'B', mediaId: 'media_1' },
       { key: 'fa-3', type: 'AUDIO', caption: 'C' },
     ];

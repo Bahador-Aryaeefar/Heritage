@@ -123,7 +123,21 @@ Public site pages are built from ordered **content blocks** (see `heritage-schem
 | `TEAL_700` | `teal-700` / `#1D6F8C` |
 | `SAND_50` | `sand-50` / `#FBF7F0` |
 
-Inline **bold** / *italic* come from span flags on each text run, not freeform CSS.
+Inline **bold** / *italic* / links come from span flags on each text run, not freeform CSS:
+
+| Span flag | Public rendering |
+|---|---|
+| `bold` | `<strong>` |
+| `italic` | `<em>` |
+| `href` | `<a>` — `font-bold text-teal-700 hover:text-teal-500`; absolute http(s) links open in a new tab with `rel="noopener noreferrer"` |
+
+| API `align` | Tailwind |
+|---|---|
+| `START` | `text-start` |
+| `CENTER` | `text-center` |
+| `END` | `text-end` |
+
+**Media accessibility (2026-07-21):** block image `alt` and audio/video `aria-label` = the block **caption** for that locale (empty when caption is absent). Cover and site-card thumbnails use **`alt={slug}`** — no separate alt fields on `Media`.
 
 ## 11. Public page layout (landing + site detail)
 
@@ -180,7 +194,7 @@ Content source: `messages/*.json` → `home.banners.top` / `home.banners.mid`; p
 ### Site card
 
 - Radius 16px, `sand-100`, 1px border brown-800/8%
-- Thumb: 150px height, cover image or brown→teal gradient placeholder
+- Thumb: 150px height, cover image or brown→teal gradient placeholder; cover `alt={site.slug}`
 - Body padding 18px; title 15px bold; description **15px** `brown-800`
 
 ### Site detail article
@@ -275,7 +289,7 @@ Implemented under `/admin` (fa default) and `/en/admin/...`. Shares public page 
 
 ### Document block editor (`BlockListEditor` shell)
 
-Ordered editor for a site's `SiteContentBlock` rows (one instance per locale tab, §10). **Document canvas + side inspector** — not a stack of per-block form cards. Spec: [`docs/superpowers/specs/2026-07-21-document-canvas-editor-design.md`](docs/superpowers/specs/2026-07-21-document-canvas-editor-design.md).
+Ordered editor for a site's `SiteContentBlock` rows (one instance per locale tab, §10). **Document canvas + side inspector** — not a stack of per-block form cards. Specs: [`docs/superpowers/specs/2026-07-21-document-canvas-editor-design.md`](docs/superpowers/specs/2026-07-21-document-canvas-editor-design.md), [`docs/superpowers/specs/2026-07-21-editor-completeness-design.md`](docs/superpowers/specs/2026-07-21-editor-completeness-design.md).
 
 **Shell** (`components/admin/block-list-editor.tsx`): owns `selectedKey` / `textFocusKey`; composes `BlockCanvas` + `BlockInspector`. Same controlled API as before: `value: EditorBlock[]` / `onChange` / `labels` / optional `onPickFile`. Structural edits use `lib/block-editor-utils.ts` (`insertBlockAt`, `moveBlock`, `reorderBlock`, `convertBlockType`). See `lib/copy-blocks-from-fa.ts` for the `EditorBlock` union and `copyBlocksFromFa()` (EN "copy from FA").
 
@@ -285,7 +299,16 @@ Ordered editor for a site's `SiteContentBlock` rows (one instance per locale tab
 | Selection | One block at a time; click canvas background deselects; stale selection cleared when the block leaves `value` |
 | Keyboard | **Escape** deselects; **Delete/Backspace** removes the selected block only when focus is **not** in `INPUT` / `TEXTAREA` / `SELECT` / contenteditable (so in-canvas typing and inspector fields stay safe) |
 | File picking | Shell never hashes/optimizes — `onPickFile(block, file)` bubbles raw `File` to the caller (`lib/file-hash.ts`, `lib/optimize-image.ts`); multipart field name === `clientFileKey` on save |
-| Copy from FA | Unchanged: new keys + copied spans/caption/embedUrl; keeps `mediaId`, drops FA-only `clientFileKey`/`previewUrl` |
+| Copy from FA | New keys + copied spans/caption/embedUrl; keeps `mediaId`, drops FA-only `clientFileKey`/`previewUrl`; used from EN **and AR** tabs |
+| `contentDir` | Optional `dir` prop (`rtl` \| `ltr`) from active content tab — passed to title/short fields and canvas text editors so FA/AR stay RTL and EN LTR regardless of admin UI locale |
+
+#### `SpanTextEditor` (`components/admin/span-text-editor.tsx`)
+
+`contenteditable` div bound to `TextSpan[]`; on input/blur walks DOM (`STRONG`/`B` → bold, `EM`/`I` → italic, `A[href]` → href) and emits normalized spans. Typography classes come from public `TextBlock` maps. Accepts `dir` for per-tab content direction.
+
+#### `FormatToolbar` (`components/admin/format-toolbar.tsx`)
+
+Shown above the selected text block in the canvas. **Bold / Italic / Link / Unlink** as `rounded-button` chips (white + `border-brown-800/15`, **12px** bold — same chip pattern as inspector). Link opens `window.prompt` for URL; blank URL clears `href`. Labels under `admin.siteForm.block.*`.
 
 #### `BlockCanvas` (`components/admin/block-canvas.tsx`)
 
@@ -316,7 +339,7 @@ Type, style, media, caption, embed URL, reorder, delete — **not** on the canva
 | Desktop (`md+`, ≥700px) | Sticky aside `w-[280px]`, white `rounded-card`, `border-brown-800/15`, `p-4`, `top-4`; empty state: **15px** `brown-600` (`labels.inspectorEmpty`) |
 | Mobile (`<700px`) | Bottom sheet when a block is selected: `fixed` bottom, `z-[1100]`, `max-h-[75vh]`, `rounded-t-card`, header = type title + `ghost` close (`labels.closeInspector`) |
 | All types | `Select` block type → `convertBlockType` |
-| Text | `Select`s for `textRole` / `colorToken` / `align` (same options as §10) |
+| Text | `Select`s for `textRole` / `colorToken` / `align` (Start \| Center \| End — same options as §10) |
 | Image / Audio | `TextInput` caption + `MediaFilePicker` |
 | Video | `TextInput` caption + `TextInput dir="ltr"` embed URL |
 | Actions | `ghost` move up / move down (disabled at ends) + delete; top border `border-brown-800/10` |
@@ -328,9 +351,10 @@ Full-width admin editor for creating/replacing a site. Reads all copy from `useT
 | Element | Spec |
 |---|---|
 | Shared meta | `slug` (create only, `dir="ltr"`), `category`/`city` `Select`s, `LocationMapPicker` + `lat`/`lng` `TextInput`s, cover via `ImagePicker` (`isActive` not edited here — create defaults `true`, edit preserves existing) |
-| Locale content | `Tabs` (Persian/English); each tab = title + short-description `Field`s (`dir="rtl"` for FA, `dir="ltr"` for EN) + document-canvas `BlockListEditor` (canvas + inspector per spec above) |
-| Copy from FA | EN tab shows a `secondary` `ActionButton` "Copy from Persian" (right-aligned above the editor); `window.confirm` first when EN already has blocks |
-| Save | One atomic multipart request: `POST /admin/sites` (create) or `PUT /admin/sites/:id` (replace). `payload` field = JSON `CreateSiteFullInput`/`UpdateSiteFullInput`; each staged file is optimized (images via `lib/optimize-image.ts`) then hashed (`lib/file-hash.ts`). A hash matching an existing `site.media[].contentHash` → reference by `mediaId` (no upload); otherwise the file is appended once with the multipart **field name === its `clientFileKey`** and identical picks are deduped onto that one part (cover processed first). The old dual JSON + `.../cover` mutation path is removed |
+| Locale content | Three `Tabs` from `CONTENT_LOCALE_DEFINITIONS` (فارسی / English / العربية — native endonyms, not next-intl labels); each tab = title + short-description `Field`s with permanent `contentDir` (`rtl` for FA+AR, `ltr` for EN) + document-canvas `BlockListEditor` |
+| Copy from FA | EN and AR tabs each show a `secondary` `ActionButton` "Copy from Persian" (right-aligned above the editor); `window.confirm` when the target tab already has blocks |
+| Undo / redo | Per active content tab only (`lib/tab-history.ts`): Ctrl/Cmd+Z undo, Ctrl/Cmd+Shift+Z or Ctrl+Y redo; coalesces typing bursts (~300ms) |
+| Save | One atomic multipart request: `POST /admin/sites` (create) or `PUT /admin/sites/:id` (replace). `payload` requires fa/en/ar translations; text blocks send `spans` (empty plain-text blocks omitted). Each staged file is optimized (images via `lib/optimize-image.ts`) then hashed (`lib/file-hash.ts`). A hash matching an existing `site.media[].contentHash` → reference by `mediaId` (no upload); otherwise the file is appended once with the multipart **field name === its `clientFileKey`** and identical picks are deduped onto that one part (cover processed first). The old dual JSON + `.../cover` mutation path is removed |
 
 ### Language switcher
 

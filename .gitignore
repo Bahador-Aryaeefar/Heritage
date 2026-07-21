@@ -26,3 +26,5 @@ apps/api/uploads/
 # misc
 .DS_Store
 *.log
+
+.worktrees/

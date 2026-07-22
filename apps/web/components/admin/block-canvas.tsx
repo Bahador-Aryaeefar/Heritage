@@ -4,8 +4,13 @@ import { Fragment, useEffect, useRef, useState } from 'react';
 import type { TextSpan } from '@heritage/shared-types';
 import { BlockInsertMenu } from '@/components/admin/block-insert-menu';
 import { FormatToolbar } from '@/components/admin/format-toolbar';
+import { LinkPopover } from '@/components/admin/link-popover';
 import { MediaFilePicker } from '@/components/admin/media-file-picker';
-import { SpanTextEditor, type SpanTextEditorHandle } from '@/components/admin/span-text-editor';
+import {
+  SpanTextEditor,
+  type SpanFormatState,
+  type SpanTextEditorHandle,
+} from '@/components/admin/span-text-editor';
 import { alignClasses, colorClasses, roleClasses } from '@/components/public/content-blocks/text-block';
 import type { BlockListEditorLabels } from '@/components/admin/block-list-editor';
 import type { LocaleDirection } from '@/i18n/locales';
@@ -18,6 +23,14 @@ import type {
   EditorVideoBlock,
 } from '@/lib/copy-blocks-from-fa';
 import { spansToPlainText } from '@/lib/text-spans';
+
+const EMPTY_FORMAT: SpanFormatState = {
+  boldActive: false,
+  italicActive: false,
+  linkActive: false,
+  linkHref: null,
+  selection: null,
+};
 
 /** Same label bag as `BlockListEditor`/`BlockInspector` — no canvas-only copy needed. */
 export type BlockCanvasLabels = BlockListEditorLabels;
@@ -117,10 +130,14 @@ export function BlockCanvas({
   const [focusNonce, setFocusNonce] = useState(0);
   const [draggingKey, setDraggingKey] = useState<string | null>(null);
   const [dropTargetIndex, setDropTargetIndex] = useState<number | null>(null);
+  const [formatState, setFormatState] = useState<SpanFormatState>(EMPTY_FORMAT);
+  const [linkOpen, setLinkOpen] = useState(false);
 
   if (listSelectionKey !== selectedKey) {
     setListSelectionKey(selectedKey);
     setActiveListItemIndex(0);
+    setLinkOpen(false);
+    setFormatState(EMPTY_FORMAT);
   }
 
   function requestFocusListItem(index: number) {
@@ -177,24 +194,52 @@ export function BlockCanvas({
     return (
       <>
         {selected ? (
-          <FormatToolbar
-            toolbarLabel={labels.formatToolbar}
-            labels={{
-              bold: labels.bold,
-              italic: labels.italic,
-              link: labels.link,
-            }}
-            onBold={() => editorRef.current?.toggleBold()}
-            onItalic={() => editorRef.current?.toggleItalic()}
-            onLink={() => editorRef.current?.promptLink()}
-          />
+          <>
+            <FormatToolbar
+              toolbarLabel={labels.formatToolbar}
+              labels={{
+                bold: labels.bold,
+                italic: labels.italic,
+                link: labels.link,
+              }}
+              boldActive={formatState.boldActive}
+              italicActive={formatState.italicActive}
+              linkActive={formatState.linkActive}
+              onBold={() => editorRef.current?.toggleBold()}
+              onItalic={() => editorRef.current?.toggleItalic()}
+              onLink={() => {
+                editorRef.current?.openLink();
+                setLinkOpen(true);
+              }}
+            />
+            <LinkPopover
+              open={linkOpen}
+              initialUrl={formatState.linkHref ?? ''}
+              canRemove={Boolean(formatState.linkHref)}
+              labels={{
+                url: labels.linkUrl,
+                apply: labels.linkApply,
+                remove: labels.linkRemove,
+              }}
+              onApply={(url) => {
+                editorRef.current?.applyLinkUrl(url);
+                setLinkOpen(false);
+              }}
+              onRemove={() => {
+                editorRef.current?.removeLink();
+                setLinkOpen(false);
+              }}
+              onClose={() => setLinkOpen(false)}
+            />
+          </>
         ) : null}
         <SpanTextEditor
           ref={selected ? editorRef : undefined}
           value={block.spans}
           onChange={(spans) => onChangeBlock(block.key, { spans })}
           placeholder={block.type === 'HEADING' ? labels.headingTitle : labels.paragraphTitle}
-          labels={{ linkPrompt: labels.linkUrl }}
+          onRequestLink={() => setLinkOpen(true)}
+          onFormatStateChange={setFormatState}
           dir={dir}
           className={`${roleClasses[block.textRole]} ${colorClasses[block.colorToken]} ${alignClasses[block.align]}`}
         />
@@ -289,10 +334,6 @@ export function BlockCanvas({
       onChangeBlock(block.key, { items });
     }
 
-    function activeListHandle() {
-      return listItemRefs.current.get(activeListItemIndex) ?? null;
-    }
-
     function handleEnterSplit(itemIndex: number, parts: { before: TextSpan[]; after: TextSpan[] }) {
       const items = [
         ...block.items.slice(0, itemIndex),
@@ -335,17 +376,44 @@ export function BlockCanvas({
     return (
       <div className="flex flex-col gap-2">
         {selected ? (
-          <FormatToolbar
-            toolbarLabel={labels.formatToolbar}
-            labels={{
-              bold: labels.bold,
-              italic: labels.italic,
-              link: labels.link,
-            }}
-            onBold={() => activeListHandle()?.toggleBold()}
-            onItalic={() => activeListHandle()?.toggleItalic()}
-            onLink={() => activeListHandle()?.promptLink()}
-          />
+          <>
+            <FormatToolbar
+              toolbarLabel={labels.formatToolbar}
+              labels={{
+                bold: labels.bold,
+                italic: labels.italic,
+                link: labels.link,
+              }}
+              boldActive={formatState.boldActive}
+              italicActive={formatState.italicActive}
+              linkActive={formatState.linkActive}
+              onBold={() => listItemRefs.current.get(activeListItemIndex)?.toggleBold()}
+              onItalic={() => listItemRefs.current.get(activeListItemIndex)?.toggleItalic()}
+              onLink={() => {
+                listItemRefs.current.get(activeListItemIndex)?.openLink();
+                setLinkOpen(true);
+              }}
+            />
+            <LinkPopover
+              open={linkOpen}
+              initialUrl={formatState.linkHref ?? ''}
+              canRemove={Boolean(formatState.linkHref)}
+              labels={{
+                url: labels.linkUrl,
+                apply: labels.linkApply,
+                remove: labels.linkRemove,
+              }}
+              onApply={(url) => {
+                listItemRefs.current.get(activeListItemIndex)?.applyLinkUrl(url);
+                setLinkOpen(false);
+              }}
+              onRemove={() => {
+                listItemRefs.current.get(activeListItemIndex)?.removeLink();
+                setLinkOpen(false);
+              }}
+              onClose={() => setLinkOpen(false)}
+            />
+          </>
         ) : null}
         <ListTag className={listClass}>
           {block.items.map((item, itemIndex) => (
@@ -363,6 +431,8 @@ export function BlockCanvas({
                   updateItems(items);
                 }}
                 onFocus={() => setActiveListItemIndex(itemIndex)}
+                onRequestLink={() => setLinkOpen(true)}
+                onFormatStateChange={setFormatState}
                 onEnterSplit={
                   selected ? (parts) => handleEnterSplit(itemIndex, parts) : undefined
                 }
@@ -370,7 +440,6 @@ export function BlockCanvas({
                   selected ? () => handleBackspaceAtStart(itemIndex) : undefined
                 }
                 placeholder={labels.listTitle}
-                labels={{ linkPrompt: labels.linkUrl }}
                 dir={dir}
               />
             </li>

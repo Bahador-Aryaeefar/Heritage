@@ -2,19 +2,29 @@
 
 import { forwardRef, useImperativeHandle, useLayoutEffect, useRef } from 'react';
 import type { TextSpan } from '@heritage/shared-types';
+import { editorHtmlRootToSpans, spansToEditorHtml } from '@/lib/editor-link-html';
 import {
   insertNewlineAt,
+  insertTextAt,
+  linkRangeAt,
+  marksAt,
   normalizeSpans,
+  selectionUniformMark,
   serializeSpans,
   setLink,
   splitSpansAt,
   spansToPlainText,
   toggleMark,
+  type SpanMarks,
   type TextSelection,
 } from '@/lib/text-spans';
 
-export type SpanTextEditorLabels = {
-  linkPrompt: string;
+export type SpanFormatState = {
+  boldActive: boolean;
+  italicActive: boolean;
+  linkActive: boolean;
+  linkHref: string | null;
+  selection: TextSelection | null;
 };
 
 export type SpanTextEditorProps = {
@@ -23,12 +33,11 @@ export type SpanTextEditorProps = {
   className?: string;
   dir?: 'ltr' | 'rtl';
   placeholder?: string;
-  labels: SpanTextEditorLabels;
-  /** Enter (no Shift): split at caret. Used by list items. */
   onEnterSplit?: (parts: { before: TextSpan[]; after: TextSpan[] }) => void;
-  /** Backspace at caret offset 0. Used by list items to merge/remove. */
   onBackspaceAtStart?: () => void;
   onFocus?: () => void;
+  onRequestLink?: () => void;
+  onFormatStateChange?: (state: SpanFormatState) => void;
 };
 
 export type SpanTextEditorHandle = {
@@ -37,108 +46,72 @@ export type SpanTextEditorHandle = {
   focusAtEnd: () => void;
   toggleBold: () => void;
   toggleItalic: () => void;
-  promptLink: () => void;
-  unlink: () => void;
+  openLink: () => void;
+  getFormatState: () => SpanFormatState;
+  applyLinkUrl: (url: string) => void;
+  removeLink: () => void;
 };
 
-function escapeHtml(text: string): string {
-  return text
-    .replaceAll('&', '&amp;')
-    .replaceAll('<', '&lt;')
-    .replaceAll('>', '&gt;')
-    .replaceAll('"', '&quot;');
+function isChromeTextNode(node: Node): boolean {
+  let current: Node | null = node.nodeType === Node.TEXT_NODE ? node.parentNode : node;
+  while (current && current.nodeType === Node.ELEMENT_NODE) {
+    if ((current as Element).getAttribute('data-link-chrome') === '1') return true;
+    current = current.parentNode;
+  }
+  return false;
 }
 
-function escapeAttr(value: string): string {
-  return escapeHtml(value).replaceAll("'", '&#39;');
-}
-
-function spanToHtml(span: TextSpan): string {
-  let html = escapeHtml(span.text);
-  if (span.bold) html = `<strong>${html}</strong>`;
-  if (span.italic) html = `<em>${html}</em>`;
-  if (span.href) html = `<a href="${escapeAttr(span.href)}">${html}</a>`;
-  return html;
-}
-
-function spansToHtml(spans: TextSpan[]): string {
-  return spans.map(spanToHtml).join('');
-}
-
-function collectMarks(element: Element, inherited: Partial<TextSpan>): Partial<TextSpan> {
-  const marks: Partial<TextSpan> = { ...inherited };
-  const tag = element.tagName;
-
-  if (tag === 'STRONG' || tag === 'B') marks.bold = true;
-  if (tag === 'EM' || tag === 'I') marks.italic = true;
-  if (tag === 'A') {
-    const href = element.getAttribute('href')?.trim();
-    if (href) marks.href = href;
+function measureLogicalOffset(root: HTMLElement, container: Node, offset: number): number {
+  const marker = document.createRange();
+  marker.setStart(root, 0);
+  try {
+    marker.setEnd(container, offset);
+  } catch {
+    return spansToPlainText(editorHtmlRootToSpans(root)).length;
   }
 
-  return marks;
+  const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
+  let total = 0;
+  let node = walker.nextNode();
+  while (node) {
+    if (!isChromeTextNode(node)) {
+      const nodeRange = document.createRange();
+      nodeRange.selectNodeContents(node);
+      if (marker.compareBoundaryPoints(Range.END_TO_START, nodeRange) <= 0) break;
+      if (marker.compareBoundaryPoints(Range.END_TO_END, nodeRange) >= 0) {
+        total += node.textContent?.length ?? 0;
+      } else {
+        const partial = document.createRange();
+        partial.selectNodeContents(node);
+        partial.setEnd(container, offset);
+        total += partial.toString().length;
+        break;
+      }
+    }
+    node = walker.nextNode();
+  }
+  return total;
 }
 
-function domToSpans(root: HTMLElement): TextSpan[] {
-  const spans: TextSpan[] = [];
-
-  function walk(node: Node, inherited: Partial<TextSpan>): void {
-    if (node.nodeType === Node.TEXT_NODE) {
-      const text = node.textContent ?? '';
-      if (!text) return;
-      const span: TextSpan = { text };
-      if (inherited.bold) span.bold = true;
-      if (inherited.italic) span.italic = true;
-      if (inherited.href) span.href = inherited.href;
-      spans.push(span);
-      return;
-    }
-
-    if (node.nodeType !== Node.ELEMENT_NODE) return;
-    const element = node as Element;
-    if (element.tagName === 'BR') {
-      spans.push({ text: '\n', ...(inherited.bold ? { bold: true } : {}), ...(inherited.italic ? { italic: true } : {}), ...(inherited.href ? { href: inherited.href } : {}) });
-      return;
-    }
-
-    const marks = collectMarks(element, inherited);
-    for (const child of element.childNodes) {
-      walk(child, marks);
-    }
-  }
-
-  for (const child of root.childNodes) {
-    walk(child, {});
-  }
-
-  return normalizeSpans(spans.length > 0 ? spans : [{ text: '' }]);
-}
-
-function getSelectionOffsets(root: HTMLElement): TextSelection | null {
+function getLogicalSelectionOffsets(root: HTMLElement): TextSelection | null {
   const selection = window.getSelection();
   if (!selection || selection.rangeCount === 0) return null;
-
   const range = selection.getRangeAt(0);
-  if (!root.contains(range.startContainer) || !root.contains(range.endContainer)) {
-    return null;
-  }
-
-  const startRange = range.cloneRange();
-  startRange.selectNodeContents(root);
-  startRange.setEnd(range.startContainer, range.startOffset);
-
-  const endRange = range.cloneRange();
-  endRange.selectNodeContents(root);
-  endRange.setEnd(range.endContainer, range.endOffset);
-
+  if (!root.contains(range.startContainer) || !root.contains(range.endContainer)) return null;
   return {
-    start: startRange.toString().length,
-    end: endRange.toString().length,
+    start: measureLogicalOffset(root, range.startContainer, range.startOffset),
+    end: measureLogicalOffset(root, range.endContainer, range.endOffset),
   };
 }
 
 function isEmptySpans(spans: TextSpan[]): boolean {
-  return spans.length === 1 && spans[0]!.text === '' && !spans[0]!.bold && !spans[0]!.italic && !spans[0]!.href;
+  return (
+    spans.length === 1 &&
+    spans[0]!.text === '' &&
+    !spans[0]!.bold &&
+    !spans[0]!.italic &&
+    !spans[0]!.href
+  );
 }
 
 function placeCaret(root: HTMLElement, offset: number) {
@@ -150,6 +123,10 @@ function placeCaret(root: HTMLElement, offset: number) {
   let node = walker.nextNode();
 
   while (node) {
+    if (isChromeTextNode(node)) {
+      node = walker.nextNode();
+      continue;
+    }
     const length = node.textContent?.length ?? 0;
     if (remaining <= length) {
       const range = document.createRange();
@@ -170,6 +147,43 @@ function placeCaret(root: HTMLElement, offset: number) {
   selection.addRange(range);
 }
 
+function hrefInRange(spans: TextSpan[], range: TextSelection | null): string | null {
+  if (!range || range.start === range.end) return null;
+  return marksAt(spans, range.start + 1).href ?? marksAt(spans, range.end).href ?? null;
+}
+
+function computeFormatState(
+  spans: TextSpan[],
+  selection: TextSelection | null,
+  pending: Partial<{ bold: boolean; italic: boolean }>,
+): SpanFormatState {
+  const collapsed = !selection || selection.start === selection.end;
+  const marks = selection ? marksAt(spans, selection.start) : {};
+
+  const boldActive = collapsed
+    ? (pending.bold ?? Boolean(marks.bold))
+    : selectionUniformMark(spans, selection!, 'bold');
+  const italicActive = collapsed
+    ? (pending.italic ?? Boolean(marks.italic))
+    : selectionUniformMark(spans, selection!, 'italic');
+
+  const linkSel =
+    selection && selection.start !== selection.end
+      ? selection
+      : selection
+        ? linkRangeAt(spans, selection.start)
+        : null;
+  const linkHref = hrefInRange(spans, linkSel);
+
+  return {
+    boldActive: Boolean(boldActive),
+    italicActive: Boolean(italicActive),
+    linkActive: Boolean(linkHref),
+    linkHref,
+    selection,
+  };
+}
+
 export const SpanTextEditor = forwardRef<SpanTextEditorHandle, SpanTextEditorProps>(
   function SpanTextEditor(
     {
@@ -178,18 +192,20 @@ export const SpanTextEditor = forwardRef<SpanTextEditorHandle, SpanTextEditorPro
       className = '',
       dir,
       placeholder,
-      labels,
       onEnterSplit,
       onBackspaceAtStart,
       onFocus,
+      onRequestLink,
+      onFormatStateChange,
     },
     ref,
   ) {
     const editorRef = useRef<HTMLDivElement>(null);
-    // Start as null so the first layout effect always paints `value` into the empty
-    // contentEditable (initializing to serializeSpans(value) skipped that sync and hid text).
     const lastSpansRef = useRef<string | null>(null);
     const syncingRef = useRef(false);
+    const pendingMarksRef = useRef<Partial<{ bold: boolean; italic: boolean }>>({});
+    const valueRef = useRef(value);
+    valueRef.current = value;
 
     useLayoutEffect(() => {
       const root = editorRef.current;
@@ -199,35 +215,69 @@ export const SpanTextEditor = forwardRef<SpanTextEditorHandle, SpanTextEditorPro
       if (signature === lastSpansRef.current) return;
 
       syncingRef.current = true;
-      root.innerHTML = isEmptySpans(value) ? '' : spansToHtml(normalizeSpans(value));
+      root.innerHTML = isEmptySpans(value) ? '' : spansToEditorHtml(normalizeSpans(value));
       lastSpansRef.current = signature;
       syncingRef.current = false;
     }, [value]);
+
+    function emitFormatState(spans: TextSpan[], selection: TextSelection | null) {
+      onFormatStateChange?.(computeFormatState(spans, selection, pendingMarksRef.current));
+    }
 
     function emitFromDom() {
       const root = editorRef.current;
       if (!root || syncingRef.current) return;
 
-      const spans = domToSpans(root);
+      const spans = editorHtmlRootToSpans(root);
       lastSpansRef.current = serializeSpans(spans);
       onChange(spans);
+      emitFormatState(spans, getLogicalSelectionOffsets(root));
     }
 
-    function applyFormat(action: (spans: TextSpan[], selection: TextSelection) => TextSpan[]) {
+    function resolveLinkSelection(
+      spans: TextSpan[],
+      selection: TextSelection | null,
+    ): TextSelection | null {
+      if (selection && selection.start !== selection.end) return selection;
+      const offset = selection?.start ?? 0;
+      return linkRangeAt(spans, offset);
+    }
+
+    function toggleStickyOrRange(mark: 'bold' | 'italic') {
       const root = editorRef.current;
       if (!root) return;
-
-      const selection = getSelectionOffsets(root);
+      const selection = getLogicalSelectionOffsets(root);
       if (!selection) return;
 
-      const next = action(value, selection);
+      if (selection.start !== selection.end) {
+        const next = toggleMark(valueRef.current, selection, mark);
+        const nextPending = { ...pendingMarksRef.current };
+        delete nextPending[mark];
+        pendingMarksRef.current = nextPending;
+        onChange(next);
+        emitFormatState(next, selection);
+        return;
+      }
+
+      const current =
+        pendingMarksRef.current[mark] ?? Boolean(marksAt(valueRef.current, selection.start)[mark]);
+      pendingMarksRef.current = { ...pendingMarksRef.current, [mark]: !current };
+      emitFormatState(valueRef.current, selection);
+    }
+
+    function applyLink(url: string | null) {
+      const root = editorRef.current;
+      if (!root) return;
+      const selection = getLogicalSelectionOffsets(root);
+      const target = resolveLinkSelection(valueRef.current, selection);
+      if (!target || target.start === target.end) return;
+      const next = setLink(valueRef.current, target, url);
       onChange(next);
+      emitFormatState(next, target);
     }
 
     useImperativeHandle(ref, () => ({
-      focus: () => {
-        editorRef.current?.focus();
-      },
+      focus: () => editorRef.current?.focus(),
       focusAtStart: () => {
         const root = editorRef.current;
         if (!root) return;
@@ -238,45 +288,95 @@ export const SpanTextEditor = forwardRef<SpanTextEditorHandle, SpanTextEditorPro
         const root = editorRef.current;
         if (!root) return;
         root.focus();
-        placeCaret(root, spansToPlainText(value).length);
+        placeCaret(root, spansToPlainText(valueRef.current).length);
       },
-      toggleBold: () => {
-        applyFormat((spans, selection) => toggleMark(spans, selection, 'bold'));
+      toggleBold: () => toggleStickyOrRange('bold'),
+      toggleItalic: () => toggleStickyOrRange('italic'),
+      openLink: () => onRequestLink?.(),
+      getFormatState: () => {
+        const root = editorRef.current;
+        const selection = root ? getLogicalSelectionOffsets(root) : null;
+        return computeFormatState(valueRef.current, selection, pendingMarksRef.current);
       },
-      toggleItalic: () => {
-        applyFormat((spans, selection) => toggleMark(spans, selection, 'italic'));
-      },
-      promptLink: () => {
-        const href = window.prompt(labels.linkPrompt);
-        if (href === null) return;
-        applyFormat((spans, selection) => setLink(spans, selection, href));
-      },
-      unlink: () => {
-        applyFormat((spans, selection) => setLink(spans, selection, null));
-      },
+      applyLinkUrl: (url: string) => applyLink(url),
+      removeLink: () => applyLink(null),
     }));
+
+    function handleBeforeInput(event: React.FormEvent<HTMLDivElement>) {
+      const inputEvent = event.nativeEvent as InputEvent;
+      if (inputEvent.inputType !== 'insertText' || !inputEvent.data) return;
+
+      const pending = pendingMarksRef.current;
+      const hasPending = pending.bold !== undefined || pending.italic !== undefined;
+      if (!hasPending) return;
+
+      const root = editorRef.current;
+      if (!root) return;
+      const selection = getLogicalSelectionOffsets(root);
+      if (!selection || selection.start !== selection.end) return;
+
+      event.preventDefault();
+      const baseMarks = marksAt(valueRef.current, selection.start);
+      const marks: SpanMarks = { ...baseMarks };
+      if (pending.bold !== undefined) {
+        if (pending.bold) marks.bold = true;
+        else delete marks.bold;
+      }
+      if (pending.italic !== undefined) {
+        if (pending.italic) marks.italic = true;
+        else delete marks.italic;
+      }
+
+      const next = insertTextAt(valueRef.current, selection.start, inputEvent.data, marks);
+      onChange(next);
+      const caret = selection.start + inputEvent.data.length;
+      requestAnimationFrame(() => {
+        placeCaret(root, caret);
+        emitFormatState(next, { start: caret, end: caret });
+      });
+    }
 
     function handleKeyDown(event: React.KeyboardEvent<HTMLDivElement>) {
       const root = editorRef.current;
       if (!root) return;
 
+      const mod = event.metaKey || event.ctrlKey;
+      if (mod && !event.altKey) {
+        const key = event.key.toLowerCase();
+        if (key === 'b') {
+          event.preventDefault();
+          toggleStickyOrRange('bold');
+          return;
+        }
+        if (key === 'i') {
+          event.preventDefault();
+          toggleStickyOrRange('italic');
+          return;
+        }
+        if (key === 'k') {
+          event.preventDefault();
+          onRequestLink?.();
+          return;
+        }
+      }
+
       if (event.key === 'Enter') {
         event.preventDefault();
-        const selection = getSelectionOffsets(root);
-        const offset = selection?.start ?? spansToPlainText(value).length;
+        const selection = getLogicalSelectionOffsets(root);
+        const offset = selection?.start ?? spansToPlainText(valueRef.current).length;
 
         if (event.shiftKey) {
-          onChange(insertNewlineAt(value, offset));
+          onChange(insertNewlineAt(valueRef.current, offset));
           requestAnimationFrame(() => placeCaret(root, offset + 1));
           return;
         }
 
         if (onEnterSplit) {
-          onEnterSplit(splitSpansAt(value, offset));
+          onEnterSplit(splitSpansAt(valueRef.current, offset));
           return;
         }
 
-        onChange(insertNewlineAt(value, offset));
+        onChange(insertNewlineAt(valueRef.current, offset));
         requestAnimationFrame(() => placeCaret(root, offset + 1));
         return;
       }
@@ -289,7 +389,7 @@ export const SpanTextEditor = forwardRef<SpanTextEditorHandle, SpanTextEditorPro
         !event.ctrlKey &&
         !event.altKey
       ) {
-        const selection = getSelectionOffsets(root);
+        const selection = getLogicalSelectionOffsets(root);
         if (selection && selection.start === 0 && selection.end === 0) {
           event.preventDefault();
           onBackspaceAtStart();
@@ -306,8 +406,23 @@ export const SpanTextEditor = forwardRef<SpanTextEditorHandle, SpanTextEditorPro
         data-placeholder={placeholder}
         onInput={() => emitFromDom()}
         onBlur={() => emitFromDom()}
-        onFocus={() => onFocus?.()}
+        onFocus={() => {
+          onFocus?.();
+          const root = editorRef.current;
+          emitFormatState(valueRef.current, root ? getLogicalSelectionOffsets(root) : null);
+        }}
+        onBeforeInput={handleBeforeInput}
         onKeyDown={handleKeyDown}
+        onKeyUp={() => {
+          const root = editorRef.current;
+          if (!root) return;
+          emitFormatState(valueRef.current, getLogicalSelectionOffsets(root));
+        }}
+        onMouseUp={() => {
+          const root = editorRef.current;
+          if (!root) return;
+          emitFormatState(valueRef.current, getLogicalSelectionOffsets(root));
+        }}
         className={`min-h-[1.5em] w-full whitespace-pre-wrap break-words outline-none empty:before:pointer-events-none empty:before:text-brown-600/40 empty:before:content-[attr(data-placeholder)] ${className}`}
       />
     );

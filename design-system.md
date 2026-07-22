@@ -313,11 +313,11 @@ Ordered editor for a site's `SiteContentBlock` rows (one instance per locale tab
 
 #### `SpanTextEditor` (`components/admin/span-text-editor.tsx`)
 
-`contenteditable` div bound to `TextSpan[]`; on input/blur walks DOM (`STRONG`/`B` → bold, `EM`/`I` → italic, `A[href]` → href) and emits normalized spans. Typography classes come from public `TextBlock` maps. Accepts `dir` for per-tab content direction.
+`contenteditable` div bound to `TextSpan[]`; on input/blur walks editor DOM and emits normalized spans (`lib/editor-link-html.ts`). Linked runs render as markdown chrome `[label](url)` in the editor only (`data-editor-link` / `data-link-chrome`); public pages still use teal `<a>`. Collapsed-caret Bold/Italic toggles sticky pending marks so newly typed characters pick them up; selection still toggles the range. Shortcuts: Ctrl/Cmd+B, I, K. Typography classes come from public `TextBlock` maps. Accepts `dir` for per-tab content direction.
 
-#### `FormatToolbar` (`components/admin/format-toolbar.tsx`)
+#### `FormatToolbar` (`components/admin/format-toolbar.tsx`) + `LinkPopover`
 
-Shown above the selected text block in the canvas. **Bold / Italic / Link / Unlink** as `rounded-button` chips (white + `border-brown-800/15`, **12px** bold  -  same chip pattern as inspector). Link opens `window.prompt` for URL; blank URL clears `href`. Labels under `admin.siteForm.block.*`.
+Shown above the selected text or list block. **Bold / Italic / Link** chips (`rounded-button`; pressed = `bg-teal-700 text-sand-50`). Sticky/selection state drives `aria-pressed`. Link opens `LinkPopover` (URL field + Apply + Remove)  -  no `window.prompt`, no Unlink chip. Apply accepts absolute `http(s)` only; Remove clears `href`. Labels under `admin.siteForm.block.*` (`linkUrl` / `linkApply` / `linkRemove`).
 
 #### `BlockCanvas` (`components/admin/block-canvas.tsx`)
 
@@ -325,8 +325,8 @@ Single **white** document surface: `rounded-card`, `border-brown-800/15`, `px-6 
 
 | Element | Spec |
 |---|---|
-| Text (HEADING/PARAGRAPH) | `SpanTextEditor` (`contenteditable`) with typography from public `TextBlock` maps (`roleClasses` / `colorClasses` / `alignClasses` in `text-block.tsx`); when selected, `FormatToolbar` above the block |
-| Format toolbar | `FormatToolbar`  -  `rounded-button` chips matching inspector `ChipGroup` (white + `border-brown-800/15`, **12px** bold); actions: Bold / Italic / Link (prompt) / Unlink; i18n under `admin.siteForm.block.*` |
+| Text (HEADING/PARAGRAPH) | `SpanTextEditor` (`contenteditable`) with typography from public `TextBlock` maps (`roleClasses` / `colorClasses` / `alignClasses` in `text-block.tsx`); when selected, `FormatToolbar` + `LinkPopover` above the block |
+| Format toolbar | `FormatToolbar` chips Bold / Italic / Link with pressed state; `LinkPopover` for URL apply/remove; i18n under `admin.siteForm.block.*` |
 | Image / Audio | `MediaFilePicker` on canvas (pick/change/remove); **caption not on canvas**; audio shows playable `<audio controls>` when `previewUrl` is set (saved `/uploads/...` or local `blob:`) |
 | Video | Valid `http(s)` embed → playable `aspect-video` iframe (`pointer-events` enabled, click does not deselect via stopPropagation); else dashed placeholder labeled with embed URL copy |
 | Selected block | Wrapper `ring-2 ring-teal-700/40`, `rounded-button`, `-m-1 p-1`; **drag handle** (6-dot grip, white chip, `cursor-grab`) above content  -  only when selected; HTML5 DnD reorders via `reorderBlock` (handle is `draggable`, not the text editor) |

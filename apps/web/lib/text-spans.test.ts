@@ -2,8 +2,13 @@ import { describe, expect, it } from 'vitest';
 import type { TextSpan } from '@heritage/shared-types';
 import {
   insertNewlineAt,
+  insertTextAt,
+  isHttpUrl,
+  linkRangeAt,
+  marksAt,
   normalizeSpans,
   serializeSpans,
+  selectionUniformMark,
   setLink,
   splitSpansAt,
   spansToPlainText,
@@ -147,5 +152,57 @@ describe('splitSpansAt', () => {
 describe('insertNewlineAt', () => {
   it('inserts a newline character at the caret', () => {
     expect(insertNewlineAt([{ text: 'ab' }], 1)).toEqual([{ text: 'a\nb' }]);
+  });
+});
+
+describe('insertTextAt', () => {
+  it('inserts plain text at the caret', () => {
+    expect(insertTextAt([{ text: 'ac' }], 1, 'b')).toEqual([{ text: 'abc' }]);
+  });
+
+  it('applies sticky bold marks to inserted text', () => {
+    expect(insertTextAt([{ text: 'ac' }], 1, 'b', { bold: true })).toEqual([
+      { text: 'a' },
+      { text: 'b', bold: true },
+      { text: 'c' },
+    ]);
+  });
+});
+
+describe('marksAt', () => {
+  it('returns marks of the character before the caret', () => {
+    expect(marksAt([{ text: 'ab', bold: true }, { text: 'c' }], 2)).toEqual({ bold: true });
+    expect(marksAt([{ text: 'ab', bold: true }], 0)).toEqual({});
+  });
+});
+
+describe('linkRangeAt', () => {
+  it('returns the contiguous href run under the caret', () => {
+    const spans = [
+      { text: 'Go ' },
+      { text: 'here', href: 'https://x.test' },
+      { text: ' now' },
+    ];
+    expect(linkRangeAt(spans, 5)).toEqual({ start: 3, end: 7 });
+    expect(linkRangeAt(spans, 7)).toEqual({ start: 3, end: 7 });
+    expect(linkRangeAt(spans, 2)).toBeNull();
+  });
+});
+
+describe('selectionUniformMark', () => {
+  it('is true only when every selected char has the mark', () => {
+    const spans = [{ text: 'Hi', bold: true }, { text: '!' }];
+    expect(selectionUniformMark(spans, { start: 0, end: 2 }, 'bold')).toBe(true);
+    expect(selectionUniformMark(spans, { start: 0, end: 3 }, 'bold')).toBe(false);
+  });
+});
+
+describe('isHttpUrl', () => {
+  it('accepts http(s) only', () => {
+    expect(isHttpUrl(' https://x.test/a ')).toBe(true);
+    expect(isHttpUrl('http://x.test')).toBe(true);
+    expect(isHttpUrl('ftp://x.test')).toBe(false);
+    expect(isHttpUrl('not a url')).toBe(false);
+    expect(isHttpUrl('')).toBe(false);
   });
 });

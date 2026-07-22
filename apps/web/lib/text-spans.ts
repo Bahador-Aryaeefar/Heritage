@@ -2,6 +2,8 @@ import type { TextSpan } from '@heritage/shared-types';
 
 export type TextSelection = { start: number; end: number };
 
+export type SpanMarks = { bold?: boolean; italic?: boolean; href?: string };
+
 type CharMark = {
   char: string;
   bold?: boolean;
@@ -167,4 +169,70 @@ export function insertNewlineAt(spans: TextSpan[], offset: number): TextSpan[] {
   if (left?.italic) newline.italic = true;
   if (left?.href) newline.href = left.href;
   return unflattenChars([...chars.slice(0, clamped), newline, ...chars.slice(clamped)]);
+}
+
+export function insertTextAt(
+  spans: TextSpan[],
+  offset: number,
+  text: string,
+  marks: SpanMarks = {},
+): TextSpan[] {
+  if (!text) return normalizeSpans(spans);
+  const chars = flattenSpans(spans);
+  const clamped = Math.max(0, Math.min(offset, chars.length));
+  const inserted: CharMark[] = [...text].map((char) => {
+    const mark: CharMark = { char };
+    if (marks.bold) mark.bold = true;
+    if (marks.italic) mark.italic = true;
+    if (marks.href) mark.href = marks.href;
+    return mark;
+  });
+  return unflattenChars([...chars.slice(0, clamped), ...inserted, ...chars.slice(clamped)]);
+}
+
+export function marksAt(spans: TextSpan[], offset: number): SpanMarks {
+  const chars = flattenSpans(spans);
+  if (offset <= 0 || chars.length === 0) return {};
+  const left = chars[Math.min(offset, chars.length) - 1]!;
+  const marks: SpanMarks = {};
+  if (left.bold) marks.bold = true;
+  if (left.italic) marks.italic = true;
+  if (left.href) marks.href = left.href;
+  return marks;
+}
+
+export function linkRangeAt(spans: TextSpan[], offset: number): TextSelection | null {
+  const chars = flattenSpans(spans);
+  if (chars.length === 0) return null;
+  const probe = offset > 0 ? offset - 1 : 0;
+  const href = chars[probe]?.href;
+  if (!href) return null;
+  let start = probe;
+  while (start > 0 && chars[start - 1]?.href === href) start -= 1;
+  let end = probe + 1;
+  while (end < chars.length && chars[end]?.href === href) end += 1;
+  return { start, end };
+}
+
+export function selectionUniformMark(
+  spans: TextSpan[],
+  selection: TextSelection,
+  mark: 'bold' | 'italic',
+): boolean {
+  const { start, end } = clampSelection(selection);
+  if (start === end) return false;
+  const chars = flattenSpans(spans);
+  const selected = chars.slice(start, end);
+  return selected.length > 0 && selected.every((char) => Boolean(char[mark]));
+}
+
+export function isHttpUrl(value: string): boolean {
+  const trimmed = value.trim();
+  if (!trimmed) return false;
+  try {
+    const url = new URL(trimmed);
+    return url.protocol === 'http:' || url.protocol === 'https:';
+  } catch {
+    return false;
+  }
 }

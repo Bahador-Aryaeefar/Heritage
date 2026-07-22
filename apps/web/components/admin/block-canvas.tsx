@@ -183,12 +183,10 @@ export function BlockCanvas({
               bold: labels.bold,
               italic: labels.italic,
               link: labels.link,
-              unlink: labels.unlink,
             }}
             onBold={() => editorRef.current?.toggleBold()}
             onItalic={() => editorRef.current?.toggleItalic()}
             onLink={() => editorRef.current?.promptLink()}
-            onUnlink={() => editorRef.current?.unlink()}
           />
         ) : null}
         <SpanTextEditor
@@ -196,7 +194,7 @@ export function BlockCanvas({
           value={block.spans}
           onChange={(spans) => onChangeBlock(block.key, { spans })}
           placeholder={block.type === 'HEADING' ? labels.headingTitle : labels.paragraphTitle}
-          labels={{ linkPrompt: labels.linkPrompt }}
+          labels={{ linkPrompt: labels.linkUrl }}
           dir={dir}
           className={`${roleClasses[block.textRole]} ${colorClasses[block.colorToken]} ${alignClasses[block.align]}`}
         />
@@ -343,12 +341,10 @@ export function BlockCanvas({
               bold: labels.bold,
               italic: labels.italic,
               link: labels.link,
-              unlink: labels.unlink,
             }}
             onBold={() => activeListHandle()?.toggleBold()}
             onItalic={() => activeListHandle()?.toggleItalic()}
             onLink={() => activeListHandle()?.promptLink()}
-            onUnlink={() => activeListHandle()?.unlink()}
           />
         ) : null}
         <ListTag className={listClass}>
@@ -374,7 +370,7 @@ export function BlockCanvas({
                   selected ? () => handleBackspaceAtStart(itemIndex) : undefined
                 }
                 placeholder={labels.listTitle}
-                labels={{ linkPrompt: labels.linkPrompt }}
+                labels={{ linkPrompt: labels.linkUrl }}
                 dir={dir}
               />
             </li>

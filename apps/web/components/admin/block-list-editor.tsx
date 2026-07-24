@@ -68,6 +68,7 @@ export type BlockListEditorLabels = {
   linkUrl: string;
   linkApply: string;
   linkRemove: string;
+  linkInvalidUrl: string;
   formatToolbar: string;
   pickImage: string;
   changeImage: string;

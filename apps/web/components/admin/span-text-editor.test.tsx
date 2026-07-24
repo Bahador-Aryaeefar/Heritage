@@ -25,7 +25,7 @@ describe('SpanTextEditor', () => {
     expect(root?.querySelector('strong')).toHaveTextContent('ساسانی');
   });
 
-  it('renders markdown chrome for linked spans in the editor', () => {
+  it('renders teal anchors for linked spans in the editor', () => {
     const { container } = render(
       <SpanTextEditor
         value={[{ text: 'Museum', href: 'https://x.test' }]}
@@ -34,8 +34,24 @@ describe('SpanTextEditor', () => {
     );
 
     const root = container.querySelector('[contenteditable]');
-    expect(root?.querySelector('[data-editor-href="https://x.test"]')).toBeTruthy();
-    expect(root?.textContent).toContain('[Museum](https://x.test)');
+    const link = root?.querySelector('a[href="https://x.test"]');
+    expect(link).toBeTruthy();
+    expect(link).toHaveTextContent('Museum');
+    expect(root?.textContent).toBe('Museum');
+  });
+
+  it('paints a draft highlight while linkDraftRange is set', () => {
+    const { container } = render(
+      <SpanTextEditor
+        value={[{ text: 'Hello' }]}
+        onChange={() => {}}
+        linkDraftRange={{ start: 0, end: 5 }}
+      />,
+    );
+
+    const root = container.querySelector('[contenteditable]');
+    expect(root?.querySelector('[data-link-draft="1"]')).toBeTruthy();
+    expect(root?.textContent).toBe('Hello');
   });
 
   it('lets click events bubble so the canvas can select the block', () => {
@@ -67,5 +83,75 @@ describe('SpanTextEditor', () => {
     expect(typeof ref.current?.openLink).toBe('function');
     expect(promptSpy).not.toHaveBeenCalled();
     promptSpy.mockRestore();
+  });
+
+  it('openLink asks the parent to show the popover', () => {
+    const onRequestLink = vi.fn();
+    const ref = createRef<SpanTextEditorHandle>();
+    render(
+      <SpanTextEditor
+        ref={ref}
+        value={[{ text: 'Hello' }]}
+        onChange={() => {}}
+        onRequestLink={onRequestLink}
+      />,
+    );
+
+    ref.current!.openLink();
+    expect(onRequestLink).toHaveBeenCalledTimes(1);
+  });
+
+  it('toggles sticky bold when the editor has no live selection yet', () => {
+    const execCommand = vi.fn(() => true);
+    const queryCommandState = vi.fn(() => true);
+    Object.defineProperty(document, 'execCommand', {
+      configurable: true,
+      value: execCommand,
+    });
+    Object.defineProperty(document, 'queryCommandState', {
+      configurable: true,
+      value: queryCommandState,
+    });
+
+    const onFormatStateChange = vi.fn();
+    const ref = createRef<SpanTextEditorHandle>();
+    render(
+      <SpanTextEditor
+        ref={ref}
+        value={[{ text: 'Hi' }]}
+        onChange={() => {}}
+        onFormatStateChange={onFormatStateChange}
+      />,
+    );
+
+    window.getSelection()?.removeAllRanges();
+    ref.current!.toggleBold();
+
+    expect(execCommand).toHaveBeenCalledWith('bold', false);
+    const last = onFormatStateChange.mock.calls.at(-1)?.[0] as { boldActive: boolean };
+    expect(last.boldActive).toBe(true);
+  });
+
+  it('applies bold to a selected range via the span model', () => {
+    const onChange = vi.fn();
+    const ref = createRef<SpanTextEditorHandle>();
+    const { container } = render(
+      <SpanTextEditor ref={ref} value={[{ text: 'Hello' }]} onChange={onChange} />,
+    );
+
+    const root = container.querySelector('[contenteditable]') as HTMLElement;
+    root.focus();
+    const textNode = root.firstChild as Text;
+    const range = document.createRange();
+    range.setStart(textNode, 0);
+    range.setEnd(textNode, 5);
+    const sel = window.getSelection();
+    sel?.removeAllRanges();
+    sel?.addRange(range);
+
+    ref.current!.snapshotSelection();
+    ref.current!.toggleBold();
+
+    expect(onChange).toHaveBeenCalledWith([{ text: 'Hello', bold: true }]);
   });
 });

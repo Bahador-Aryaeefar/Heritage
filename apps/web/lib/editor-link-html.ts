@@ -20,6 +20,7 @@ function labelHtml(span: TextSpan): string {
   return html;
 }
 
+/** Editor presentation matches public teal links (label only; href on the anchor). */
 export function spansToEditorHtml(spans: TextSpan[]): string {
   const normalized = normalizeSpans(spans);
   if (normalized.length === 1 && normalized[0]!.text === '' && !normalized[0]!.href) {
@@ -30,9 +31,7 @@ export function spansToEditorHtml(spans: TextSpan[]): string {
       const label = labelHtml(span);
       if (!span.href) return label;
       const href = escapeAttr(span.href);
-      const open = `<span data-link-chrome="1" contenteditable="false">[</span>`;
-      const close = `<span data-link-chrome="1" contenteditable="false">](${href})</span>`;
-      return `<span data-editor-link="1" data-editor-href="${href}">${open}${label}${close}</span>`;
+      return `<a href="${href}" data-editor-link="1" class="font-bold text-teal-700 hover:text-teal-500">${label}</a>`;
     })
     .join('');
 }
@@ -42,12 +41,9 @@ function collectMarks(element: Element, inherited: Partial<TextSpan>): Partial<T
   const tag = element.tagName;
   if (tag === 'STRONG' || tag === 'B') marks.bold = true;
   if (tag === 'EM' || tag === 'I') marks.italic = true;
-  if (element.hasAttribute('data-editor-link')) {
-    const href = element.getAttribute('data-editor-href')?.trim();
-    if (href) marks.href = href;
-  }
-  if (tag === 'A') {
-    const href = element.getAttribute('href')?.trim();
+  if (element.hasAttribute('data-editor-link') || tag === 'A') {
+    const href =
+      element.getAttribute('data-editor-href')?.trim() || element.getAttribute('href')?.trim();
     if (href) marks.href = href;
   }
   return marks;
@@ -69,7 +65,12 @@ export function editorHtmlRootToSpans(root: HTMLElement): TextSpan[] {
     }
     if (node.nodeType !== Node.ELEMENT_NODE) return;
     const element = node as Element;
+    // Legacy markdown chrome (no longer emitted) and draft highlight wrappers.
     if (element.getAttribute('data-link-chrome') === '1') return;
+    if (element.getAttribute('data-link-draft') === '1') {
+      for (const child of element.childNodes) walk(child, inherited);
+      return;
+    }
     if (element.tagName === 'BR') {
       spans.push({
         text: '\n',

@@ -1,7 +1,7 @@
 # Span format UX (bold / italic / link)
 
 Date: 2026-07-22  
-Status: approved for planning  
+Status: superseded for editor link chrome by [`2026-07-24-editor-link-preview-design.md`](./2026-07-24-editor-link-preview-design.md) (teal `<a>` preview); bold/italic + popover goals still apply  
 Scope: admin `SpanTextEditor` + `FormatToolbar` only (public renderer unchanged)
 
 ## Problem

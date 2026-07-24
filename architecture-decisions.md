@@ -388,7 +388,7 @@ Part of the editor-completeness pass (see `docs/superpowers/specs/2026-07-21-edi
 | Copy from FA | EN and AR tabs: clone FA block structure (spans, captions, embed URLs); keep shared `mediaId`; confirm if target tab already has blocks | Same workflow for both LTR locales |
 | Canvas reorder | HTML5 drag-and-drop on selected block handle (`reorderBlock` helper); keep inspector move up/down | Faster reorder without new DnD library |
 | Per-tab undo/redo | `createTabHistory` stack per active content tab (`{ title, shortDescription, blocks }`); Ctrl/Cmd+Z undo, Shift+Z / Y redo; 300ms coalesce for typing | History isolated per locale tab; does not cross-contaminate FA/EN/AR |
-| Rich text implementation | `SpanTextEditor` (`contenteditable`) + `FormatToolbar` (Bold/Italic/Link/Unlink); offset-based span helpers in `lib/text-spans.ts` for tests | No new rich-text npm dep; round-trip spans on save |
+| Rich text implementation | `SpanTextEditor` (`contenteditable`) + `FormatToolbar` (Bold/Italic/Link) + `LinkPopover`; range toggles via `lib/text-spans.ts`, sticky caret via `execCommand`; editor links render as teal `<a>` (public-style preview); draft highlight while popover open; selection snapshotted before toolbar focus steal | No new rich-text npm dep; round-trip spans on save; editor matches public link look |
 | Native video | Unchanged: `VIDEO` blocks store `embedUrl` only  -  no local video upload | Avoids ffmpeg/transcoding; same as §18 |
 
 Spec: [`docs/superpowers/specs/2026-07-21-editor-completeness-design.md`](./docs/superpowers/specs/2026-07-21-editor-completeness-design.md).

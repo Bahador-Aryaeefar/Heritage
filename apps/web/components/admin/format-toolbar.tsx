@@ -10,6 +10,8 @@ export type FormatToolbarProps = {
   onBold: () => void;
   onItalic: () => void;
   onLink: () => void;
+  /** Snapshot editor selection before the chip mousedown handler runs. */
+  onPrepare?: () => void;
   boldActive?: boolean;
   italicActive?: boolean;
   linkActive?: boolean;
@@ -20,17 +22,22 @@ export type FormatToolbarProps = {
 function ToolbarChip({
   label,
   onClick,
+  onPrepare,
   pressed = false,
 }: {
   label: string;
   onClick: () => void;
+  onPrepare?: () => void;
   pressed?: boolean;
 }) {
   return (
     <button
       type="button"
       aria-pressed={pressed}
-      onMouseDown={(event) => event.preventDefault()}
+      onMouseDown={(event) => {
+        onPrepare?.();
+        event.preventDefault();
+      }}
       onClick={onClick}
       className={`rounded-button border px-2.5 py-1.5 text-xs font-bold transition-colors outline-none focus-visible:ring-2 focus-visible:ring-teal-700/15 ${
         pressed
@@ -47,6 +54,7 @@ export function FormatToolbar({
   onBold,
   onItalic,
   onLink,
+  onPrepare,
   boldActive = false,
   italicActive = false,
   linkActive = false,
@@ -60,9 +68,14 @@ export function FormatToolbar({
       className="mb-2 flex flex-wrap gap-1.5"
       onClick={(event) => event.stopPropagation()}
     >
-      <ToolbarChip label={labels.bold} onClick={onBold} pressed={boldActive} />
-      <ToolbarChip label={labels.italic} onClick={onItalic} pressed={italicActive} />
-      <ToolbarChip label={labels.link} onClick={onLink} pressed={linkActive} />
+      <ToolbarChip label={labels.bold} onClick={onBold} onPrepare={onPrepare} pressed={boldActive} />
+      <ToolbarChip
+        label={labels.italic}
+        onClick={onItalic}
+        onPrepare={onPrepare}
+        pressed={italicActive}
+      />
+      <ToolbarChip label={labels.link} onClick={onLink} onPrepare={onPrepare} pressed={linkActive} />
     </div>
   );
 }

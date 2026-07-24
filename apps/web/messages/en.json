@@ -282,6 +282,7 @@
         "linkUrl": "URL",
         "linkApply": "Apply",
         "linkRemove": "Remove",
+        "linkInvalidUrl": "Enter a web URL (https://...)",
         "formatToolbar": "Format",
         "pickAudio": "Choose audio",
         "changeAudio": "Change audio",

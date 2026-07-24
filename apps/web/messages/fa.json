@@ -285,6 +285,7 @@
         "linkUrl": "نشانی",
         "linkApply": "اعمال",
         "linkRemove": "حذف",
+        "linkInvalidUrl": "یک نشانی وب وارد کنید (https://...)",
         "formatToolbar": "قالب‌بندی",
         "pickAudio": "انتخاب صدا",
         "changeAudio": "تغییر صدا",

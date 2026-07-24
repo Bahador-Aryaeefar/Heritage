@@ -282,6 +282,7 @@
         "linkUrl": "الرابط",
         "linkApply": "تطبيق",
         "linkRemove": "إزالة",
+        "linkInvalidUrl": "أدخل رابط ويب (https://...)",
         "formatToolbar": "تنسيق",
         "pickAudio": "اختيار صوت",
         "changeAudio": "تغيير الصوت",

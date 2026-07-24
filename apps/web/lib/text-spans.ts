@@ -227,12 +227,31 @@ export function selectionUniformMark(
 }
 
 export function isHttpUrl(value: string): boolean {
+  return normalizeHttpUrl(value) !== null;
+}
+
+/**
+ * Accept absolute http(s) URLs, or bare domains / www hosts (prepend https://).
+ * Returns null when the value cannot be treated as a web link.
+ */
+export function normalizeHttpUrl(value: string): string | null {
   const trimmed = value.trim();
-  if (!trimmed) return false;
-  try {
-    const url = new URL(trimmed);
-    return url.protocol === 'http:' || url.protocol === 'https:';
-  } catch {
-    return false;
+  if (!trimmed) return null;
+
+  const candidates = [trimmed];
+  if (!/^[a-z][a-z0-9+.-]*:/i.test(trimmed)) {
+    candidates.push(`https://${trimmed}`);
   }
+
+  for (const candidate of candidates) {
+    try {
+      const url = new URL(candidate);
+      if (url.protocol === 'http:' || url.protocol === 'https:') {
+        return candidate;
+      }
+    } catch {
+      /* try next */
+    }
+  }
+  return null;
 }

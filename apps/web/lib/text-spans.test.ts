@@ -6,6 +6,7 @@ import {
   isHttpUrl,
   linkRangeAt,
   marksAt,
+  normalizeHttpUrl,
   normalizeSpans,
   serializeSpans,
   selectionUniformMark,
@@ -198,11 +199,21 @@ describe('selectionUniformMark', () => {
 });
 
 describe('isHttpUrl', () => {
-  it('accepts http(s) only', () => {
+  it('accepts http(s) and bare domains', () => {
     expect(isHttpUrl(' https://x.test/a ')).toBe(true);
     expect(isHttpUrl('http://x.test')).toBe(true);
+    expect(isHttpUrl('example.com')).toBe(true);
+    expect(isHttpUrl('www.example.com/path')).toBe(true);
     expect(isHttpUrl('ftp://x.test')).toBe(false);
     expect(isHttpUrl('not a url')).toBe(false);
     expect(isHttpUrl('')).toBe(false);
+  });
+});
+
+describe('normalizeHttpUrl', () => {
+  it('prepends https for bare domains', () => {
+    expect(normalizeHttpUrl('example.com')).toBe('https://example.com');
+    expect(normalizeHttpUrl('https://x.test/a')).toBe('https://x.test/a');
+    expect(normalizeHttpUrl('ftp://x.test')).toBeNull();
   });
 });

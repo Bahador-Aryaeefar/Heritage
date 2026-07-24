@@ -323,6 +323,7 @@ export function SiteForm({ site, defaultCategory = 'HISTORICAL' }: SiteFormProps
     linkUrl: tb('linkUrl'),
     linkApply: tb('linkApply'),
     linkRemove: tb('linkRemove'),
+    linkInvalidUrl: tb('linkInvalidUrl'),
     formatToolbar: tb('formatToolbar'),
     pickImage: t('pickImage'),
     changeImage: t('changeImage'),

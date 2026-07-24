@@ -22,7 +22,7 @@ import type {
   EditorTextBlock,
   EditorVideoBlock,
 } from '@/lib/copy-blocks-from-fa';
-import { spansToPlainText } from '@/lib/text-spans';
+import { spansToPlainText, type TextSelection } from '@/lib/text-spans';
 
 const EMPTY_FORMAT: SpanFormatState = {
   boldActive: false,
@@ -132,12 +132,24 @@ export function BlockCanvas({
   const [dropTargetIndex, setDropTargetIndex] = useState<number | null>(null);
   const [formatState, setFormatState] = useState<SpanFormatState>(EMPTY_FORMAT);
   const [linkOpen, setLinkOpen] = useState(false);
+  const [linkDraftRange, setLinkDraftRange] = useState<TextSelection | null>(null);
 
   if (listSelectionKey !== selectedKey) {
     setListSelectionKey(selectedKey);
     setActiveListItemIndex(0);
     setLinkOpen(false);
+    setLinkDraftRange(null);
     setFormatState(EMPTY_FORMAT);
+  }
+
+  function openLinkPopover(getTarget: () => TextSelection | null) {
+    setLinkDraftRange(getTarget());
+    setLinkOpen(true);
+  }
+
+  function closeLinkPopover() {
+    setLinkOpen(false);
+    setLinkDraftRange(null);
   }
 
   function requestFocusListItem(index: number) {
@@ -205,11 +217,11 @@ export function BlockCanvas({
               boldActive={formatState.boldActive}
               italicActive={formatState.italicActive}
               linkActive={formatState.linkActive}
+              onPrepare={() => editorRef.current?.snapshotSelection()}
               onBold={() => editorRef.current?.toggleBold()}
               onItalic={() => editorRef.current?.toggleItalic()}
               onLink={() => {
                 editorRef.current?.openLink();
-                setLinkOpen(true);
               }}
             />
             <LinkPopover
@@ -220,16 +232,18 @@ export function BlockCanvas({
                 url: labels.linkUrl,
                 apply: labels.linkApply,
                 remove: labels.linkRemove,
+                invalidUrl: labels.linkInvalidUrl,
               }}
               onApply={(url) => {
-                editorRef.current?.applyLinkUrl(url);
-                setLinkOpen(false);
+                const ok = editorRef.current?.applyLinkUrl(url) ?? false;
+                if (ok) closeLinkPopover();
+                return ok;
               }}
               onRemove={() => {
                 editorRef.current?.removeLink();
-                setLinkOpen(false);
+                closeLinkPopover();
               }}
-              onClose={() => setLinkOpen(false)}
+              onClose={closeLinkPopover}
             />
           </>
         ) : null}
@@ -238,8 +252,11 @@ export function BlockCanvas({
           value={block.spans}
           onChange={(spans) => onChangeBlock(block.key, { spans })}
           placeholder={block.type === 'HEADING' ? labels.headingTitle : labels.paragraphTitle}
-          onRequestLink={() => setLinkOpen(true)}
+          onRequestLink={() =>
+            openLinkPopover(() => editorRef.current?.getLinkTargetRange() ?? null)
+          }
           onFormatStateChange={setFormatState}
+          linkDraftRange={selected && linkOpen ? linkDraftRange : null}
           dir={dir}
           className={`${roleClasses[block.textRole]} ${colorClasses[block.colorToken]} ${alignClasses[block.align]}`}
         />
@@ -387,11 +404,11 @@ export function BlockCanvas({
               boldActive={formatState.boldActive}
               italicActive={formatState.italicActive}
               linkActive={formatState.linkActive}
+              onPrepare={() => listItemRefs.current.get(activeListItemIndex)?.snapshotSelection()}
               onBold={() => listItemRefs.current.get(activeListItemIndex)?.toggleBold()}
               onItalic={() => listItemRefs.current.get(activeListItemIndex)?.toggleItalic()}
               onLink={() => {
                 listItemRefs.current.get(activeListItemIndex)?.openLink();
-                setLinkOpen(true);
               }}
             />
             <LinkPopover
@@ -402,16 +419,19 @@ export function BlockCanvas({
                 url: labels.linkUrl,
                 apply: labels.linkApply,
                 remove: labels.linkRemove,
+                invalidUrl: labels.linkInvalidUrl,
               }}
               onApply={(url) => {
-                listItemRefs.current.get(activeListItemIndex)?.applyLinkUrl(url);
-                setLinkOpen(false);
+                const ok =
+                  listItemRefs.current.get(activeListItemIndex)?.applyLinkUrl(url) ?? false;
+                if (ok) closeLinkPopover();
+                return ok;
               }}
               onRemove={() => {
                 listItemRefs.current.get(activeListItemIndex)?.removeLink();
-                setLinkOpen(false);
+                closeLinkPopover();
               }}
-              onClose={() => setLinkOpen(false)}
+              onClose={closeLinkPopover}
             />
           </>
         ) : null}
@@ -431,8 +451,15 @@ export function BlockCanvas({
                   updateItems(items);
                 }}
                 onFocus={() => setActiveListItemIndex(itemIndex)}
-                onRequestLink={() => setLinkOpen(true)}
+                onRequestLink={() =>
+                  openLinkPopover(
+                    () => listItemRefs.current.get(itemIndex)?.getLinkTargetRange() ?? null,
+                  )
+                }
                 onFormatStateChange={setFormatState}
+                linkDraftRange={
+                  selected && linkOpen && itemIndex === activeListItemIndex ? linkDraftRange : null
+                }
                 onEnterSplit={
                   selected ? (parts) => handleEnterSplit(itemIndex, parts) : undefined
                 }

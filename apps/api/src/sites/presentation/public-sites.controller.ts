@@ -1,8 +1,12 @@
-import { Controller, Get, Param, Query, Res } from '@nestjs/common';
+import { Body, Controller, Delete, Get, HttpCode, Param, Put, Query, Req, Res, UseGuards } from '@nestjs/common';
 import { ApiOkResponse, ApiOperation, ApiProduces, ApiTags } from '@nestjs/swagger';
-import type { Response } from 'express';
+import type { Request, Response } from 'express';
 import type { LandingResponse, SiteDetail } from '@heritage/shared-types';
+import { upsertSiteReviewSchema } from '@heritage/shared-types';
+import { JwtAuthGuard } from '../../auth/jwt-auth.guard';
+import type { AuthenticatedUser } from '../../auth/roles.decorator';
 import { QrService } from '../../qr/application/qr.service';
+import { SiteReviewsService } from '../application/site-reviews.service';
 import { SitesService } from '../application/sites.service';
 import { PaginationQueryDto } from '../../common/pagination/pagination';
 import {
@@ -10,10 +14,32 @@ import {
   SITE_CARD_SCHEMA,
   SITE_DETAIL_EXAMPLE,
   SITE_DETAIL_SCHEMA,
+  ApiJsonBody,
   ApiJsonOk,
+  ApiNoContent,
   ApiPaginatedResponse,
+  ApiProtectedErrors,
   ApiResourceNotFound,
+  ApiValidationError,
 } from '../../common/openapi/openapi';
+
+const SITE_REVIEW_SCHEMA = {
+  type: 'object',
+  required: ['id', 'body', 'authorName', 'updatedAt'],
+  properties: {
+    id: { type: 'string' },
+    body: { type: 'string' },
+    authorName: { type: 'string' },
+    updatedAt: { type: 'string', format: 'date-time' },
+  },
+} as const;
+
+const SITE_REVIEW_EXAMPLE = {
+  id: 'cm123review',
+  body: 'Beautiful place with rich history.',
+  authorName: 'Sara',
+  updatedAt: '2026-07-25T12:00:00.000Z',
+};
 
 @ApiTags('public')
 @Controller('public/landing')
@@ -33,6 +59,7 @@ export class PublicSitesController {
   constructor(
     private readonly sitesService: SitesService,
     private readonly qrService: QrService,
+    private readonly siteReviewsService: SiteReviewsService,
   ) {}
 
   @Get(':slug/qr.png')
@@ -51,6 +78,62 @@ export class PublicSitesController {
       'Cache-Control': 'public, max-age=3600',
     });
     res.send(png);
+  }
+
+  @Get(':slug/reviews')
+  @ApiPaginatedResponse('List public reviews for a site', SITE_REVIEW_SCHEMA, SITE_REVIEW_EXAMPLE)
+  @ApiResourceNotFound('Site')
+  listReviews(@Param('slug') slug: string, @Query() query: PaginationQueryDto) {
+    return this.siteReviewsService.listBySlug(slug, query);
+  }
+
+  @Get(':slug/reviews/me')
+  @UseGuards(JwtAuthGuard)
+  @ApiJsonOk('Get the current user review for a site', SITE_REVIEW_SCHEMA, SITE_REVIEW_EXAMPLE)
+  @ApiProtectedErrors()
+  @ApiResourceNotFound('Site')
+  async getMyReview(
+    @Param('slug') slug: string,
+    @Req() req: Request & { user: AuthenticatedUser },
+  ) {
+    const review = await this.siteReviewsService.getForUser(slug, req.user.id);
+    return review ?? null;
+  }
+
+  @Put(':slug/reviews/me')
+  @UseGuards(JwtAuthGuard)
+  @ApiJsonOk('Create or update the current user review', SITE_REVIEW_SCHEMA, SITE_REVIEW_EXAMPLE)
+  @ApiJsonBody(
+    {
+      type: 'object',
+      required: ['body'],
+      properties: { body: { type: 'string', example: 'Beautiful place with rich history.' } },
+    },
+    { body: 'Beautiful place with rich history.' },
+  )
+  @ApiValidationError()
+  @ApiProtectedErrors()
+  @ApiResourceNotFound('Site')
+  upsertMyReview(
+    @Param('slug') slug: string,
+    @Body() body: unknown,
+    @Req() req: Request & { user: AuthenticatedUser },
+  ) {
+    const input = upsertSiteReviewSchema.parse(body);
+    return this.siteReviewsService.upsertForUser(slug, req.user.id, input);
+  }
+
+  @Delete(':slug/reviews/me')
+  @HttpCode(204)
+  @UseGuards(JwtAuthGuard)
+  @ApiNoContent('Delete the current user review for a site')
+  @ApiProtectedErrors()
+  @ApiResourceNotFound('Site')
+  async deleteMyReview(
+    @Param('slug') slug: string,
+    @Req() req: Request & { user: AuthenticatedUser },
+  ): Promise<void> {
+    await this.siteReviewsService.deleteForUser(slug, req.user.id);
   }
 
   @Get(':slug')

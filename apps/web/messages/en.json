@@ -107,6 +107,41 @@
       "openNeshan": "Neshan",
       "mapTitle": "Site location map",
       "coordinatesLabel": "Coordinates"
+    },
+    "reviews": {
+      "title": "Visitor reviews",
+      "empty": "No reviews yet. Be the first to share your experience.",
+      "writePrompt": "Sign in to leave a review for this site.",
+      "loginCta": "Sign in",
+      "signupCta": "Create account",
+      "body": "Your review",
+      "submit": "Save review",
+      "remove": "Remove review",
+      "saved": "Review saved.",
+      "error": "Could not save your review. Try again."
+    }
+  },
+  "member": {
+    "login": {
+      "title": "Sign in",
+      "identifier": "Email or phone",
+      "password": "Password",
+      "submit": "Sign in",
+      "error": "Invalid email, phone, or password.",
+      "noAccount": "No account yet?",
+      "signupLink": "Create one"
+    },
+    "signup": {
+      "title": "Create account",
+      "name": "Name",
+      "email": "Email",
+      "phone": "Phone",
+      "password": "Password",
+      "contactHint": "Provide email or phone (or both).",
+      "submit": "Create account",
+      "error": "Could not create your account. Check your details and try again.",
+      "hasAccount": "Already have an account?",
+      "loginLink": "Sign in"
     }
   },
   "lang": {

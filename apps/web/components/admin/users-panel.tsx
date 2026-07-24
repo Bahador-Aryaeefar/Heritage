@@ -174,7 +174,7 @@ export function UsersPanel({ currentUserId, labels }: UsersPanelProps) {
                       {user.displayName?.trim() || '-'}
                     </div>
                     <div role="cell" className="min-w-0 truncate text-[13px] text-brown-600">
-                      <span dir="ltr">{user.phone}</span>
+                      <span dir="ltr">{user.phone ?? user.email ?? '-'}</span>
                     </div>
                     <div role="cell">
                       <Badge>
@@ -422,7 +422,7 @@ function UserEditDialog({
     <DialogShell
       titleId="edit-user-title"
       title={labels.editUser}
-      subtitle={user.phone}
+      subtitle={user.phone ?? user.email ?? '-'}
       onClose={onClose}
       cancelLabel={labels.cancel}
     >

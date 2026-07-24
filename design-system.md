@@ -346,6 +346,16 @@ Bulleted or numbered lists for recipes and steps. Stored as `ContentBlockType.LI
 
 Default cover when `coverUrl` is null (public `SiteCard`, admin sites-list thumbs). Full-bleed brown→teal gradient + one line icon per category (`HISTORICAL` arch, `HANDICRAFT` giveh-like form, `STREET` street facade, `LANDMARK` map pin, `FOOD` bowl). Icons use `brown-800/70` stroke; no emoji.
 
+### Public member auth + site reviews
+
+| Surface | Spec |
+|---|---|
+| Sign up / sign in | `(public)/signup` and `(public)/login`; sand panel on `HeritagePageBackground`; `Field` + `TextInput` / `TextArea`; `ActionButton` primary CTA; i18n under `member.*` |
+| Sign up fields | Name (required), email and/or phone, password (min 8); contact hint under email |
+| Sign in fields | Email or phone + password (`dir="ltr"` on identifiers) |
+| Site reviews block | Below article body on `/sites/[slug]`; H2 `text-[clamp(22px,2.5vw,28px)] font-black`; list items white `rounded-card border-brown-800/15 px-5 py-4`; author `text-[15px] font-bold`; date `text-xs text-brown-600`; body `text-[15px] leading-relaxed`; anonymous CTA links teal-700 |
+| Review form (signed in) | `TextArea` + Save / Remove `ActionButton`s; success `text-teal-700`, errors `#B44B3D` |
+
 #### `BlockInspector` (`components/admin/block-inspector.tsx`)
 
 Type, style, media, caption, embed URL, reorder, delete  -  **not** on the canvas.

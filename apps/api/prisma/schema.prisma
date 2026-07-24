@@ -66,6 +66,7 @@ enum VisitSource {
 }
 
 enum UserRole {
+  MEMBER
   ADMIN
   SUPER_ADMIN
 }
@@ -110,6 +111,7 @@ model Site {
   blocks       SiteContentBlock[]
   qrCodes      QRCode[]
   visitEvents  VisitEvent[]
+  reviews      SiteReview[]
 
   @@index([cityId])
   @@index([isActive])
@@ -204,7 +206,8 @@ model VisitEvent {
 
 model User {
   id            String         @id @default(cuid())
-  phone         String         @unique
+  phone         String?        @unique
+  email         String?        @unique
   passwordHash  String
   displayName   String?
   role          UserRole
@@ -212,6 +215,22 @@ model User {
   createdAt     DateTime       @default(now())
   updatedAt     DateTime       @updatedAt
   refreshTokens RefreshToken[]
+  reviews       SiteReview[]
+}
+
+model SiteReview {
+  id        String   @id @default(cuid())
+  siteId    String
+  userId    String
+  body      String   @db.VarChar(2000)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  site      Site     @relation(fields: [siteId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([siteId, userId])
+  @@index([siteId])
+  @@index([userId])
 }
 
 model RefreshToken {

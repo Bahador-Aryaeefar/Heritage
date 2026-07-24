@@ -1,14 +1,16 @@
 import {
+  ConflictException,
   Injectable,
   UnauthorizedException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
-import { User } from '@prisma/client';
+import { User, UserRole } from '@prisma/client';
 import type { Response } from 'express';
 import bcrypt from 'bcryptjs';
-import type { AuthUser } from '@heritage/shared-types';
+import type { AuthUser, RegisterInput } from '@heritage/shared-types';
 import type { Env } from '../../config/env';
+import { handlePrismaError } from '../../common/filters/handle-prisma-error';
 import { PrismaService } from '../../prisma/prisma.service';
 import { clearAuthCookies, parseDurationMs, setAuthCookies } from '../auth.cookies';
 import { generateFamilyId, generateOpaqueToken, hashRefreshToken } from '../auth.tokens';
@@ -21,8 +23,33 @@ export class AuthService {
     private readonly config: ConfigService<Env, true>,
   ) {}
 
-  async login(phone: string, password: string, res: Response): Promise<AuthUser> {
-    const user = await this.prisma.user.findUnique({ where: { phone } });
+  async register(input: RegisterInput, res: Response): Promise<AuthUser> {
+    const email = input.email?.trim().toLowerCase() ?? null;
+    const phone = input.phone?.trim() ?? null;
+    if (!email && !phone) {
+      throw new ConflictException('Email or phone is required');
+    }
+
+    const passwordHash = await bcrypt.hash(input.password, 12);
+    try {
+      const user = await this.prisma.user.create({
+        data: {
+          displayName: input.displayName.trim(),
+          passwordHash,
+          email,
+          phone,
+          role: UserRole.MEMBER,
+        },
+      });
+      await this.issueAuthPair(user, res, generateFamilyId());
+      return this.toAuthUser(user);
+    } catch (error) {
+      handlePrismaError(error, 'User');
+    }
+  }
+
+  async login(identifier: string, password: string, res: Response): Promise<AuthUser> {
+    const user = await this.findByIdentifier(identifier);
     if (!user || !user.isActive) {
       throw new UnauthorizedException('Invalid credentials');
     }
@@ -110,6 +137,15 @@ export class AuthService {
     });
   }
 
+  private async findByIdentifier(identifier: string): Promise<User | null> {
+    const trimmed = identifier.trim();
+    if (!trimmed) return null;
+    if (trimmed.includes('@')) {
+      return this.prisma.user.findUnique({ where: { email: trimmed.toLowerCase() } });
+    }
+    return this.prisma.user.findUnique({ where: { phone: trimmed } });
+  }
+
   private async issueAuthPair(user: User, res: Response, familyId: string): Promise<void> {
     const jwtSecret: string = this.config.getOrThrow('JWT_SECRET');
     const accessExpiresIn: string = this.config.getOrThrow('JWT_ACCESS_EXPIRES_IN');
@@ -157,6 +193,7 @@ export class AuthService {
     return {
       id: user.id,
       phone: user.phone,
+      email: user.email,
       role: user.role,
       displayName: user.displayName,
     };

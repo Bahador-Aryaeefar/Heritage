@@ -403,6 +403,19 @@ Spec: [`docs/superpowers/specs/2026-07-21-editor-completeness-design.md`](./docs
 | `API_BASE_URL` as a web build ARG | `apps/web/Dockerfile` now declares `ARG API_BASE_URL=http://api:4000/api/v1` (build stage only) and `docker-compose.prod.yml` passes it explicitly | `next.config.ts` reads `API_BASE_URL` at build time to compute the `/uploads/*` and `/downloads/*` rewrite destinations, which get baked into the standalone server output; without this it silently defaulted to `http://localhost:4000` (the dev-only fallback), which is unreachable from inside the `web` container regardless of runtime env vars |
 | `generateStaticParams` (site detail) | Already had its own try/catch returning `[]` on failure (pre-existing) - unaffected by this fix, but confirmed: when it returns `[]`, `/sites/[slug]` becomes a fully dynamic (per-request SSR) route rather than statically generated, which still renders correctly once the API is reachable at runtime | Documented here so a future session doesn't mistake "no static site-detail paths listed in the build output" for a bug - it's an expected fallback, not a broken build |
 
+## 23. Public members and site reviews (2026-07-25)
+
+| Decision | Detail | Reason |
+|---|---|---|
+| Member role | `UserRole.MEMBER` on the existing `User` table; optional unique `email` and/or `phone` with a DB check that at least one is set | Reuse JWT cookie auth; staff remain `ADMIN` / `SUPER_ADMIN` |
+| Member signup/login | `POST /auth/register` (name + password + email and/or phone); `POST /auth/login` with `identifier` (email or phone) + password | No OTP in this phase |
+| Admin user list | `GET /admin/users` excludes `MEMBER` rows | Tourist accounts are not managed in the admin Users UI |
+| Site reviews | `SiteReview` with `@@unique([siteId, userId])`, text body only (1-2000 chars); upsert via `PUT /public/sites/:slug/reviews/me` | One review per member per site; edit replaces body |
+| Public read | `GET /public/sites/:slug/reviews` paginated; author display name only | No email/phone in public payloads |
+| Admin gate | Admin layout rejects `MEMBER` sessions even if cookies are valid | Same cookie pair; role checked on `/auth/me` |
+
+Spec: [`docs/superpowers/specs/2026-07-25-member-reviews-design.md`](./docs/superpowers/specs/2026-07-25-member-reviews-design.md).
+
 ## Open questions
 
 - [x] Hosting: personal VPS with Docker + Caddy (documented in README §Deploy on VPS; `docker-compose.prod.yml`)

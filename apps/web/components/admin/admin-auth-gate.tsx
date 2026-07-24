@@ -30,10 +30,18 @@ export function AdminAuthGate({ children, loginPath, labels }: AdminAuthGateProp
     void (async () => {
       try {
         const me = await adminFetch('/auth/me', authUserSchema);
+        if (me.role !== 'ADMIN' && me.role !== 'SUPER_ADMIN') {
+          window.location.href = loginPath;
+          return;
+        }
         setUser(me);
       } catch {
         try {
           const refreshedUser = await adminFetch('/auth/refresh', authUserSchema, { method: 'POST' });
+          if (refreshedUser.role !== 'ADMIN' && refreshedUser.role !== 'SUPER_ADMIN') {
+            window.location.href = loginPath;
+            return;
+          }
           setUser(refreshedUser);
         } catch {
           window.location.href = loginPath;

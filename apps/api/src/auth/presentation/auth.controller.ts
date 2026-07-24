@@ -18,6 +18,7 @@ import {
   authUserSchema,
   createUserSchema,
   loginSchema,
+  registerSchema,
   updateUserPasswordSchema,
   updateUserSchema,
 } from '@heritage/shared-types';
@@ -53,16 +54,25 @@ import {
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
 
+  @Post('register')
+  @ApiJsonOk('Create a public member account', AUTH_USER_SCHEMA, AUTH_USER_EXAMPLE)
+  @ApiValidationError()
+  async register(@Body() body: unknown, @Res({ passthrough: true }) res: Response) {
+    const input = registerSchema.parse(body);
+    const user = await this.authService.register(input, res);
+    return authUserSchema.parse(user);
+  }
+
   @Post('login')
-  @ApiJsonOk('Sign in with a phone number and password', AUTH_USER_SCHEMA, AUTH_USER_EXAMPLE)
+  @ApiJsonOk('Sign in with email or phone and password', AUTH_USER_SCHEMA, AUTH_USER_EXAMPLE)
   @ApiJsonBody(LOGIN_BODY_SCHEMA, {
-    phone: '09120086846',
+    identifier: '09120086846',
     password: 'StrongPassword123!',
   })
   @ApiValidationError()
   async login(@Body() body: unknown, @Res({ passthrough: true }) res: Response) {
     const input = loginSchema.parse(body);
-    const user = await this.authService.login(input.phone, input.password, res);
+    const user = await this.authService.login(input.identifier, input.password, res);
     return authUserSchema.parse(user);
   }
 

@@ -32,14 +32,19 @@ export class UsersService {
   }): Promise<PaginatedResponse<AdminUser>> {
     const pagination = normalizePagination(query);
     const search = query.search?.trim();
-    const where = search
-      ? {
-          OR: [
-            { phone: { contains: search, mode: 'insensitive' as const } },
-            { displayName: { contains: search, mode: 'insensitive' as const } },
-          ],
-        }
-      : {};
+    const staffRoles = [UserRole.ADMIN, UserRole.SUPER_ADMIN];
+    const where = {
+      role: { in: staffRoles },
+      ...(search
+        ? {
+            OR: [
+              { phone: { contains: search, mode: 'insensitive' as const } },
+              { email: { contains: search, mode: 'insensitive' as const } },
+              { displayName: { contains: search, mode: 'insensitive' as const } },
+            ],
+          }
+        : {}),
+    };
     const [users, totalItems] = await this.prisma.$transaction([
       this.prisma.user.findMany({
         where,
@@ -74,7 +79,7 @@ export class UsersService {
   }
 
   async updateUser(id: string, input: UpdateUserInput, actorId: string): Promise<AdminUser> {
-    const existing = await this.requireUser(id);
+    const existing = await this.requireStaffUser(id);
 
     if (input.isActive === false && existing.role === UserRole.SUPER_ADMIN) {
       await this.assertNotLastSuperAdmin(existing.id);
@@ -108,7 +113,7 @@ export class UsersService {
   }
 
   async updatePassword(id: string, input: UpdateUserPasswordInput): Promise<void> {
-    await this.requireUser(id);
+    await this.requireStaffUser(id);
     const passwordHash = await bcrypt.hash(input.password, 12);
     await this.prisma.user.update({
       where: { id },
@@ -122,7 +127,7 @@ export class UsersService {
       throw new ForbiddenException('You cannot delete yourself');
     }
 
-    const existing = await this.requireUser(id);
+    const existing = await this.requireStaffUser(id);
     if (existing.role === UserRole.SUPER_ADMIN) {
       await this.assertNotLastSuperAdmin(existing.id);
     }
@@ -135,9 +140,9 @@ export class UsersService {
     }
   }
 
-  private async requireUser(id: string) {
+  private async requireStaffUser(id: string) {
     const user = await this.prisma.user.findUnique({ where: { id } });
-    if (!user) {
+    if (!user || user.role === UserRole.MEMBER) {
       throw new NotFoundException('User not found');
     }
     return user;
@@ -154,7 +159,8 @@ export class UsersService {
 
   private toAdminUser(user: {
     id: string;
-    phone: string;
+    phone: string | null;
+    email: string | null;
     role: UserRole;
     displayName: string | null;
     isActive: boolean;
@@ -163,7 +169,8 @@ export class UsersService {
     return {
       id: user.id,
       phone: user.phone,
-      role: user.role,
+      email: user.email,
+      role: user.role as AdminUser['role'],
       displayName: user.displayName,
       isActive: user.isActive,
       createdAt: user.createdAt.toISOString(),

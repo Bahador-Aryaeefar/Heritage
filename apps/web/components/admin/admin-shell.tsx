@@ -127,14 +127,14 @@ export function AdminShell({ user, children, labels }: AdminShellProps) {
           <header className="relative z-30 flex flex-wrap items-center justify-between gap-3 rounded-container border border-brown-800/15 bg-sand-100 px-5 py-4 shadow-[0_8px_28px_rgba(42,29,20,0.08)]">
             <div className="min-w-0">
               <div className="truncate text-[15px] font-black text-brown-950">
-                {user.displayName?.trim() || user.phone}
+                {user.displayName?.trim() || user.phone || user.email}
               </div>
               <div className="mt-1 flex flex-wrap items-center gap-2">
                 <Badge>
                   {user.role === 'SUPER_ADMIN' ? labels.roleSuperAdmin : labels.roleAdmin}
                 </Badge>
                 <span className="truncate text-xs text-brown-600" dir="ltr">
-                  {user.phone}
+                  {user.phone || user.email}
                 </span>
               </div>
             </div>

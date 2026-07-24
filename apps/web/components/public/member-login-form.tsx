@@ -5,20 +5,21 @@ import { useRouter } from '@/i18n/navigation';
 import { authUserSchema, loginSchema } from '@heritage/shared-types';
 import { ActionButton } from '@/components/ui/action-button';
 import { Field, TextInput } from '@/components/ui/text-field';
-import { adminFetch } from '@/lib/admin-api';
+import { memberFetch } from '@/lib/member-api';
 
-type LoginFormProps = {
+type MemberLoginFormProps = {
   labels: {
-    phone: string;
+    identifier: string;
     password: string;
     submit: string;
     error: string;
   };
+  redirectTo?: string;
 };
 
-export function LoginForm({ labels }: LoginFormProps) {
+export function MemberLoginForm({ labels, redirectTo = '/' }: MemberLoginFormProps) {
   const router = useRouter();
-  const [phone, setPhone] = useState('');
+  const [identifier, setIdentifier] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
@@ -28,12 +29,16 @@ export function LoginForm({ labels }: LoginFormProps) {
     setPending(true);
     setError(null);
     try {
-      const input = loginSchema.parse({ identifier: phone, password });
-      await adminFetch('/auth/login', authUserSchema, {
+      const input = loginSchema.parse({ identifier, password });
+      const user = await memberFetch('/auth/login', authUserSchema, {
         method: 'POST',
         body: JSON.stringify(input),
       });
-      router.replace('/admin/sites');
+      if (user.role !== 'MEMBER') {
+        setError(labels.error);
+        return;
+      }
+      router.replace(redirectTo);
       router.refresh();
     } catch {
       setError(labels.error);
@@ -44,10 +49,10 @@ export function LoginForm({ labels }: LoginFormProps) {
 
   return (
     <form onSubmit={(event) => void onSubmit(event)} className="mx-auto w-full max-w-md space-y-4">
-      <Field label={labels.phone}>
+      <Field label={labels.identifier}>
         <TextInput
-          value={phone}
-          onChange={(event) => setPhone(event.target.value)}
+          value={identifier}
+          onChange={(event) => setIdentifier(event.target.value)}
           autoComplete="username"
           dir="ltr"
         />

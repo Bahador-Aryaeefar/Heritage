@@ -48,26 +48,32 @@ export const PAGINATION_META_SCHEMA: SchemaObject = {
 export const AUTH_USER_EXAMPLE = {
   id: 'cm123user',
   phone: '09120086846',
+  email: null,
   role: 'SUPER_ADMIN',
   displayName: 'Super Admin',
 };
 
 export const AUTH_USER_SCHEMA: SchemaObject = {
   type: 'object',
-  required: ['id', 'phone', 'role', 'displayName'],
+  required: ['id', 'phone', 'email', 'role', 'displayName'],
   properties: {
     id: { type: 'string', example: AUTH_USER_EXAMPLE.id },
-    phone: { type: 'string', example: AUTH_USER_EXAMPLE.phone },
-    role: { type: 'string', enum: ['ADMIN', 'SUPER_ADMIN'], example: 'SUPER_ADMIN' },
+    phone: { type: 'string', nullable: true, example: AUTH_USER_EXAMPLE.phone },
+    email: { type: 'string', nullable: true, example: null },
+    role: {
+      type: 'string',
+      enum: ['MEMBER', 'ADMIN', 'SUPER_ADMIN'],
+      example: 'SUPER_ADMIN',
+    },
     displayName: { type: 'string', nullable: true, example: 'Super Admin' },
   },
 };
 
 export const LOGIN_BODY_SCHEMA: SchemaObject = {
   type: 'object',
-  required: ['phone', 'password'],
+  required: ['identifier', 'password'],
   properties: {
-    phone: { type: 'string', example: '09120086846' },
+    identifier: { type: 'string', example: '09120086846' },
     password: { type: 'string', format: 'password', example: 'StrongPassword123!' },
   },
 };

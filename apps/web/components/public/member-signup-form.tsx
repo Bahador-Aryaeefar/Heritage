@@ -2,22 +2,28 @@
 
 import { useState } from 'react';
 import { useRouter } from '@/i18n/navigation';
-import { authUserSchema, loginSchema } from '@heritage/shared-types';
+import { authUserSchema, registerSchema } from '@heritage/shared-types';
 import { ActionButton } from '@/components/ui/action-button';
 import { Field, TextInput } from '@/components/ui/text-field';
-import { adminFetch } from '@/lib/admin-api';
+import { memberFetch } from '@/lib/member-api';
 
-type LoginFormProps = {
+type MemberSignupFormProps = {
   labels: {
+    name: string;
+    email: string;
     phone: string;
     password: string;
+    contactHint: string;
     submit: string;
     error: string;
   };
+  redirectTo?: string;
 };
 
-export function LoginForm({ labels }: LoginFormProps) {
+export function MemberSignupForm({ labels, redirectTo = '/' }: MemberSignupFormProps) {
   const router = useRouter();
+  const [displayName, setDisplayName] = useState('');
+  const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -28,12 +34,17 @@ export function LoginForm({ labels }: LoginFormProps) {
     setPending(true);
     setError(null);
     try {
-      const input = loginSchema.parse({ identifier: phone, password });
-      await adminFetch('/auth/login', authUserSchema, {
+      const input = registerSchema.parse({
+        displayName,
+        password,
+        ...(email.trim() ? { email: email.trim() } : {}),
+        ...(phone.trim() ? { phone: phone.trim() } : {}),
+      });
+      await memberFetch('/auth/register', authUserSchema, {
         method: 'POST',
         body: JSON.stringify(input),
       });
-      router.replace('/admin/sites');
+      router.replace(redirectTo);
       router.refresh();
     } catch {
       setError(labels.error);
@@ -44,11 +55,23 @@ export function LoginForm({ labels }: LoginFormProps) {
 
   return (
     <form onSubmit={(event) => void onSubmit(event)} className="mx-auto w-full max-w-md space-y-4">
+      <Field label={labels.name}>
+        <TextInput value={displayName} onChange={(event) => setDisplayName(event.target.value)} />
+      </Field>
+      <Field label={labels.email} hint={labels.contactHint}>
+        <TextInput
+          type="email"
+          value={email}
+          onChange={(event) => setEmail(event.target.value)}
+          autoComplete="email"
+          dir="ltr"
+        />
+      </Field>
       <Field label={labels.phone}>
         <TextInput
           value={phone}
           onChange={(event) => setPhone(event.target.value)}
-          autoComplete="username"
+          autoComplete="tel"
           dir="ltr"
         />
       </Field>
@@ -57,7 +80,7 @@ export function LoginForm({ labels }: LoginFormProps) {
           type="password"
           value={password}
           onChange={(event) => setPassword(event.target.value)}
-          autoComplete="current-password"
+          autoComplete="new-password"
           dir="ltr"
         />
       </Field>

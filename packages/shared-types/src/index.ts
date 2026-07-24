@@ -203,18 +203,31 @@ export type SiteDetail = z.infer<typeof siteDetailSchema>;
 
 // --- Auth & admin ---
 
-export const userRoleSchema = z.enum(['ADMIN', 'SUPER_ADMIN']);
+export const userRoleSchema = z.enum(['MEMBER', 'ADMIN', 'SUPER_ADMIN']);
 export type UserRole = z.infer<typeof userRoleSchema>;
 
 export const loginSchema = z.object({
-  phone: z.string().min(1),
+  identifier: z.string().min(1),
   password: z.string().min(1),
 });
 export type LoginInput = z.infer<typeof loginSchema>;
 
+export const registerSchema = z
+  .object({
+    displayName: z.string().trim().min(1).max(100),
+    password: z.string().min(8),
+    email: z.string().trim().email().optional(),
+    phone: z.string().trim().min(1).optional(),
+  })
+  .refine((input) => Boolean(input.email || input.phone), {
+    message: 'Email or phone is required',
+  });
+export type RegisterInput = z.infer<typeof registerSchema>;
+
 export const authUserSchema = z.object({
   id: z.string(),
-  phone: z.string(),
+  phone: z.string().nullable(),
+  email: z.string().nullable(),
   role: userRoleSchema,
   displayName: z.string().nullable(),
 });
@@ -222,24 +235,38 @@ export type AuthUser = z.infer<typeof authUserSchema>;
 
 export const adminUserSchema = z.object({
   id: z.string(),
-  phone: z.string(),
-  role: userRoleSchema,
+  phone: z.string().nullable(),
+  email: z.string().nullable(),
+  role: z.enum(['ADMIN', 'SUPER_ADMIN']),
   displayName: z.string().nullable(),
   isActive: z.boolean(),
   createdAt: z.string(),
 });
 export type AdminUser = z.infer<typeof adminUserSchema>;
 
+export const siteReviewSchema = z.object({
+  id: z.string(),
+  body: z.string(),
+  authorName: z.string(),
+  updatedAt: z.string(),
+});
+export type SiteReview = z.infer<typeof siteReviewSchema>;
+
+export const upsertSiteReviewSchema = z.object({
+  body: z.string().trim().min(1).max(2000),
+});
+export type UpsertSiteReviewInput = z.infer<typeof upsertSiteReviewSchema>;
+
 export const createUserSchema = z.object({
   phone: z.string().min(1),
   password: z.string().min(8),
-  role: userRoleSchema,
+  role: z.enum(['ADMIN', 'SUPER_ADMIN']),
   displayName: z.string().optional(),
 });
 export type CreateUserInput = z.infer<typeof createUserSchema>;
 
 export const updateUserSchema = z.object({
-  role: userRoleSchema.optional(),
+  role: z.enum(['ADMIN', 'SUPER_ADMIN']).optional(),
   displayName: z.string().nullable().optional(),
   isActive: z.boolean().optional(),
 });

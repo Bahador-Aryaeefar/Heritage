@@ -5,12 +5,16 @@ import { Badge } from '@/components/ui/badge';
 import { BlockRenderer } from '@/components/public/content-blocks/block-renderer';
 import { SiteLocation } from '@/components/public/site-location';
 import { SiteQrPanel } from '@/components/public/site-qr-panel';
+import { SiteReviewsPanel } from '@/components/public/site-reviews-panel';
 import {
   getLanding,
   getSiteBySlug,
   localizedPlaceName,
   pickSiteDetailTranslation,
 } from '@/lib/sites';
+import { getSiteReviews } from '@/lib/reviews';
+import { getMemberSessionUser } from '@/lib/member-session';
+import { localizedPath } from '@/i18n/locales';
 import { routing } from '@/i18n/routing';
 import type { Locale } from '@/i18n/routing';
 
@@ -63,6 +67,27 @@ export default async function SiteDetailPage({ params }: PageProps) {
   const t = await getTranslations('site.category');
   const tQr = await getTranslations('site.qr');
   const tLocation = await getTranslations('site.location');
+  const tReviews = await getTranslations('site.reviews');
+  const member = await getMemberSessionUser();
+  let reviews;
+  try {
+    reviews = await getSiteReviews(slug);
+  } catch {
+    reviews = {
+      items: [],
+      meta: {
+        page: 1,
+        limit: 20,
+        totalItems: 0,
+        totalPages: 0,
+        hasNextPage: false,
+        hasPreviousPage: false,
+      },
+    };
+  }
+  const loginPath = localizedPath(locale as Locale, '/login');
+  const signupPath = localizedPath(locale as Locale, '/signup');
+  const returnTo = localizedPath(locale as Locale, `/sites/${slug}`);
   const cityName = localizedPlaceName(locale as Locale, site.city.nameFa, site.city.nameEn);
   const provinceName = localizedPlaceName(
     locale as Locale,
@@ -109,6 +134,26 @@ export default async function SiteDetailPage({ params }: PageProps) {
       <div className="w-full rounded-container bg-sand-100/95 px-6 py-8 ring-1 ring-brown-800/8 backdrop-blur-[2px] md:px-10 md:py-10">
         <BlockRenderer blocks={translation.blocks} locale={locale as Locale} siteSlug={slug} />
       </div>
+      <SiteReviewsPanel
+        slug={slug}
+        initialReviews={reviews}
+        member={member}
+        locale={locale}
+        labels={{
+          title: tReviews('title'),
+          empty: tReviews('empty'),
+          writePrompt: tReviews('writePrompt'),
+          loginCta: tReviews('loginCta'),
+          signupCta: tReviews('signupCta'),
+          body: tReviews('body'),
+          submit: tReviews('submit'),
+          remove: tReviews('remove'),
+          saved: tReviews('saved'),
+          error: tReviews('error'),
+          loginPath: `${loginPath}?returnTo=${encodeURIComponent(returnTo)}`,
+          signupPath: `${signupPath}?returnTo=${encodeURIComponent(returnTo)}`,
+        }}
+      />
     </article>
   );
 }

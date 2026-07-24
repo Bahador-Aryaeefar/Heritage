@@ -76,7 +76,14 @@ GET http://localhost:4000/api/v1/health
 ```text
 GET http://localhost:4000/api/v1/public/landing?page=1&limit=20
 GET http://localhost:4000/api/v1/public/sites/taq-e-bostan
+GET http://localhost:4000/api/v1/public/sites/taq-e-bostan/reviews?page=1&limit=20
+POST http://localhost:4000/api/v1/auth/register
+POST http://localhost:4000/api/v1/auth/login
+PUT http://localhost:4000/api/v1/public/sites/taq-e-bostan/reviews/me   (cookie auth)
+DELETE http://localhost:4000/api/v1/public/sites/taq-e-bostan/reviews/me (cookie auth)
 ```
+
+Public member signup uses `displayName`, `password`, and email and/or phone. Login uses `identifier` (email or phone) plus `password`. Same JWT cookies as admin (`heritage_access` / `heritage_refresh`). Public pages: `/login`, `/signup`, and reviews on each site detail page.
 
 All list endpoints use the same response envelope:
 

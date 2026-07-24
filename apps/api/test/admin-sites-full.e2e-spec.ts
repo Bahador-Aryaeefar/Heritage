@@ -62,7 +62,7 @@ describe('Admin sites — atomic multipart write + cleanup (e2e)', () => {
   it('logs in as the seed SuperAdmin and receives auth cookies', async () => {
     const res = await agent
       .post('/api/v1/auth/login')
-      .send({ phone: SUPER_ADMIN_PHONE, password: SUPER_ADMIN_PASSWORD })
+      .send({ identifier: SUPER_ADMIN_PHONE, password: SUPER_ADMIN_PASSWORD })
       // NestJS defaults POST handlers to 201 Created; AuthController.login has no @HttpCode override.
       .expect(201);
 

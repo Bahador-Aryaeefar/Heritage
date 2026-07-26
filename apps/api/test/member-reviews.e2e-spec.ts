@@ -31,7 +31,7 @@ describe('Member reviews (e2e)', () => {
     const suffix = Date.now();
     const email = `member-${suffix}@example.com`;
 
-    await memberAgent
+    const registerRes = await memberAgent
       .post('/api/v1/auth/register')
       .send({
         displayName: 'Test Member',
@@ -40,8 +40,14 @@ describe('Member reviews (e2e)', () => {
       })
       .expect(201);
 
+    const setCookies = registerRes.headers['set-cookie'] as unknown as string[];
+    const csrfCookie = setCookies.find((cookie) => cookie.startsWith('heritage_csrf='));
+    expect(csrfCookie).toBeDefined();
+    const csrfToken = csrfCookie!.split(';')[0]!.split('=')[1]!;
+
     const reviewRes = await memberAgent
       .put('/api/v1/public/sites/taq-e-bostan/reviews/me')
+      .set('x-csrf-token', csrfToken)
       .send({ body: 'Great heritage site for testing.' })
       .expect(200);
 
@@ -53,6 +59,7 @@ describe('Member reviews (e2e)', () => {
 
     await memberAgent
       .post(`/api/v1/public/sites/taq-e-bostan/reviews/${reviewId}/like`)
+      .set('x-csrf-token', csrfToken)
       .expect(200)
       .expect((res) => {
         expect(res.body.likeCount).toBe(1);
@@ -73,6 +80,7 @@ describe('Member reviews (e2e)', () => {
 
     await memberAgent
       .patch('/api/v1/auth/me')
+      .set('x-csrf-token', csrfToken)
       .send({
         displayName: 'Updated Member',
         email,
@@ -95,6 +103,7 @@ describe('Member reviews (e2e)', () => {
 
     await memberAgent
       .put('/api/v1/public/sites/taq-e-bostan/reviews/me')
+      .set('x-csrf-token', csrfToken)
       .send({ body: 'Updated review text.' })
       .expect(200)
       .expect((res) => {

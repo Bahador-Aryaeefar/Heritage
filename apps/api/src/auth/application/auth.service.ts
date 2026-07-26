@@ -215,8 +215,9 @@ export class AuthService {
     });
 
     const accessMaxAgeMs = parseDurationMs(accessExpiresIn, 15 * 60_000);
+    const csrfToken = generateOpaqueToken();
 
-    setAuthCookies(res, accessToken, opaqueRefresh, {
+    setAuthCookies(res, accessToken, opaqueRefresh, csrfToken, {
       secure: cookieSecure,
       accessMaxAgeMs,
       refreshMaxAgeMs,

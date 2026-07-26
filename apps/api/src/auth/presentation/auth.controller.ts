@@ -25,6 +25,7 @@ import {
   updateUserSchema,
 } from '@heritage/shared-types';
 import { REFRESH_COOKIE } from '../auth.constants';
+import { SkipCsrf } from '../../common/security/skip-csrf.decorator';
 import { JwtAuthGuard } from '../jwt-auth.guard';
 import { Roles } from '../roles.decorator';
 import { RolesGuard } from '../roles.guard';
@@ -66,6 +67,7 @@ export class AuthController {
   ) {}
 
   @Post('register')
+  @SkipCsrf()
   @Throttle({ default: { limit: 5, ttl: 60_000 } })
   @ApiJsonCreated('Create a public member account', AUTH_USER_SCHEMA, AUTH_USER_EXAMPLE)
   @ApiJsonBody(REGISTER_BODY_SCHEMA, {
@@ -81,6 +83,7 @@ export class AuthController {
   }
 
   @Post('login')
+  @SkipCsrf()
   @Throttle({ default: { limit: 5, ttl: 60_000 } })
   @ApiJsonOk('Sign in with email or phone and password', AUTH_USER_SCHEMA, AUTH_USER_EXAMPLE)
   @ApiJsonBody(LOGIN_BODY_SCHEMA, {
@@ -95,6 +98,7 @@ export class AuthController {
   }
 
   @Post('refresh')
+  @SkipCsrf()
   @Throttle({ default: { limit: 10, ttl: 60_000 } })
   @ApiCookieAuth('heritage_refresh')
   @ApiJsonOk('Rotate the refresh token and issue a new token pair', AUTH_USER_SCHEMA, AUTH_USER_EXAMPLE)

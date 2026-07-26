@@ -14,6 +14,7 @@ import { MediaModule } from './media/media.module';
 import { PrismaModule } from './prisma/prisma.module';
 import { SitesModule } from './sites/sites.module';
 import { StorageModule } from './storage/storage.module';
+import { CsrfGuard } from './common/security/csrf.guard';
 
 @Module({
   imports: [
@@ -44,6 +45,9 @@ import { StorageModule } from './storage/storage.module';
     AuthModule,
     SitesModule,
   ],
-  providers: [{ provide: APP_GUARD, useClass: ThrottlerGuard }],
+  providers: [
+    { provide: APP_GUARD, useClass: ThrottlerGuard },
+    { provide: APP_GUARD, useClass: CsrfGuard },
+  ],
 })
 export class AppModule {}

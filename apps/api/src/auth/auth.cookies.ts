@@ -1,5 +1,5 @@
 import type { Response } from 'express';
-import { ACCESS_COOKIE, REFRESH_COOKIE } from './auth.constants';
+import { ACCESS_COOKIE, CSRF_COOKIE, REFRESH_COOKIE } from './auth.constants';
 
 type CookieOptions = {
   secure: boolean;
@@ -11,10 +11,10 @@ export function setAuthCookies(
   res: Response,
   accessToken: string,
   refreshToken: string,
+  csrfToken: string,
   options: CookieOptions,
 ): void {
   const base = {
-    httpOnly: true,
     sameSite: 'lax' as const,
     path: '/',
     secure: options.secure,
@@ -22,11 +22,21 @@ export function setAuthCookies(
 
   res.cookie(ACCESS_COOKIE, accessToken, {
     ...base,
+    httpOnly: true,
     maxAge: options.accessMaxAgeMs,
   });
 
   res.cookie(REFRESH_COOKIE, refreshToken, {
     ...base,
+    httpOnly: true,
+    maxAge: options.refreshMaxAgeMs,
+  });
+
+  // Not httpOnly: the frontend reads this cookie and mirrors it into the
+  // X-CSRF-Token header on every mutating request (double-submit pattern).
+  res.cookie(CSRF_COOKIE, csrfToken, {
+    ...base,
+    httpOnly: false,
     maxAge: options.refreshMaxAgeMs,
   });
 }
@@ -34,6 +44,7 @@ export function setAuthCookies(
 export function clearAuthCookies(res: Response): void {
   res.clearCookie(ACCESS_COOKIE, { path: '/' });
   res.clearCookie(REFRESH_COOKIE, { path: '/' });
+  res.clearCookie(CSRF_COOKIE, { path: '/' });
 }
 
 export function parseDurationMs(value: string, fallbackMs: number): number {

@@ -1,4 +1,5 @@
 import type { ZodType } from 'zod';
+import { isMutatingMethod, readCsrfToken } from '@/lib/csrf';
 
 let refreshInFlight: Promise<boolean> | null = null;
 
@@ -37,6 +38,7 @@ export async function memberFetch<T>(
       credentials: 'include',
       headers: {
         ...(init?.body instanceof FormData ? {} : { 'Content-Type': 'application/json' }),
+        ...(isMutatingMethod(init?.method) ? { 'X-CSRF-Token': readCsrfToken() ?? '' } : {}),
         ...init?.headers,
       },
     });
@@ -67,6 +69,7 @@ export async function memberFetchVoid(path: string, init?: RequestInit): Promise
       credentials: 'include',
       headers: {
         ...(init?.body instanceof FormData ? {} : { 'Content-Type': 'application/json' }),
+        ...(isMutatingMethod(init?.method) ? { 'X-CSRF-Token': readCsrfToken() ?? '' } : {}),
         ...init?.headers,
       },
     });

@@ -77,6 +77,22 @@ export const textSpanSchema = z.object({
 
 export type TextSpan = z.infer<typeof textSpanSchema>;
 
+/**
+ * Drops an unsafe `href` from a raw (not-yet-validated) span-like object,
+ * without touching any other field. Used on the READ path so an already
+ * persisted span with a legacy/malformed href degrades to plain text
+ * instead of throwing and taking down the whole page. The WRITE path must
+ * keep using `textSpanSchema`'s strict refine so bad input is rejected
+ * with a 400 at save time.
+ */
+export function sanitizeUnsafeHref<T extends { href?: unknown }>(span: T): T {
+  if (typeof span?.href === 'string' && span.href.length > 0 && !isSafeHref(span.href)) {
+    const { href: _href, ...rest } = span;
+    return rest as T;
+  }
+  return span;
+}
+
 export const mediaRefSchema = z.object({
   id: z.string(),
   type: mediaTypeSchema,

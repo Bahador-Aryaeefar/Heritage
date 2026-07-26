@@ -1,5 +1,7 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
+import { APP_GUARD } from '@nestjs/core';
+import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 import { ServeStaticModule } from '@nestjs/serve-static';
 import { existsSync } from 'node:fs';
 import { resolve } from 'node:path';
@@ -20,6 +22,7 @@ import { StorageModule } from './storage/storage.module';
       validate: validateEnv,
       envFilePath: existsSync(rootEnvFilePath()) ? rootEnvFilePath() : undefined,
     }),
+    ThrottlerModule.forRoot([{ name: 'default', ttl: 60_000, limit: 60 }]),
     ServeStaticModule.forRootAsync({
       imports: [ConfigModule],
       inject: [ConfigService],
@@ -41,5 +44,6 @@ import { StorageModule } from './storage/storage.module';
     AuthModule,
     SitesModule,
   ],
+  providers: [{ provide: APP_GUARD, useClass: ThrottlerGuard }],
 })
 export class AppModule {}

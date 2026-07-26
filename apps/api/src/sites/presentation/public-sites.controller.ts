@@ -1,5 +1,6 @@
 import { Body, Controller, Delete, Get, HttpCode, Param, Patch, Post, Put, Query, Req, Res, UseGuards } from '@nestjs/common';
 import { ApiOkResponse, ApiOperation, ApiProduces, ApiTags } from '@nestjs/swagger';
+import { Throttle } from '@nestjs/throttler';
 import type { Request, Response } from 'express';
 import type { LandingResponse, SiteDetail } from '@heritage/shared-types';
 import { upsertSiteReviewSchema } from '@heritage/shared-types';
@@ -92,6 +93,7 @@ export class PublicSitesController {
   }
 
   @Put(':slug/reviews/me')
+  @Throttle({ default: { limit: 10, ttl: 60_000 } })
   @UseGuards(JwtAuthGuard)
   @ApiJsonOk('Create or update the current user review', SITE_REVIEW_SCHEMA, SITE_REVIEW_EXAMPLE)
   @ApiJsonBody(

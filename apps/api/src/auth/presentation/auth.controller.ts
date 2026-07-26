@@ -13,6 +13,7 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { ApiCookieAuth, ApiTags } from '@nestjs/swagger';
+import { Throttle } from '@nestjs/throttler';
 import type { Request, Response } from 'express';
 import {
   authUserSchema,
@@ -65,6 +66,7 @@ export class AuthController {
   ) {}
 
   @Post('register')
+  @Throttle({ default: { limit: 5, ttl: 60_000 } })
   @ApiJsonCreated('Create a public member account', AUTH_USER_SCHEMA, AUTH_USER_EXAMPLE)
   @ApiJsonBody(REGISTER_BODY_SCHEMA, {
     displayName: 'Sara Member',
@@ -79,6 +81,7 @@ export class AuthController {
   }
 
   @Post('login')
+  @Throttle({ default: { limit: 5, ttl: 60_000 } })
   @ApiJsonOk('Sign in with email or phone and password', AUTH_USER_SCHEMA, AUTH_USER_EXAMPLE)
   @ApiJsonBody(LOGIN_BODY_SCHEMA, {
     identifier: '09120086846',
@@ -92,6 +95,7 @@ export class AuthController {
   }
 
   @Post('refresh')
+  @Throttle({ default: { limit: 10, ttl: 60_000 } })
   @ApiCookieAuth('heritage_refresh')
   @ApiJsonOk('Rotate the refresh token and issue a new token pair', AUTH_USER_SCHEMA, AUTH_USER_EXAMPLE)
   async refresh(@Req() req: Request, @Res({ passthrough: true }) res: Response) {

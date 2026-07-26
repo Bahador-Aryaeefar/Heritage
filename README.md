@@ -79,11 +79,15 @@ GET http://localhost:4000/api/v1/public/sites/taq-e-bostan
 GET http://localhost:4000/api/v1/public/sites/taq-e-bostan/reviews?page=1&limit=20
 POST http://localhost:4000/api/v1/auth/register
 POST http://localhost:4000/api/v1/auth/login
+PATCH http://localhost:4000/api/v1/auth/me                        (cookie auth, member)
+GET http://localhost:4000/api/v1/auth/me/reviews?locale=fa        (cookie auth, member)
 PUT http://localhost:4000/api/v1/public/sites/taq-e-bostan/reviews/me   (cookie auth)
 DELETE http://localhost:4000/api/v1/public/sites/taq-e-bostan/reviews/me (cookie auth)
+POST http://localhost:4000/api/v1/public/sites/taq-e-bostan/reviews/:id/like   (cookie auth)
+DELETE http://localhost:4000/api/v1/public/sites/taq-e-bostan/reviews/:id/like (cookie auth)
 ```
 
-Public member signup uses `displayName`, `password`, and email and/or phone. Login uses `identifier` (email or phone) plus `password`. Same JWT cookies as admin (`heritage_access` / `heritage_refresh`). Public pages: `/login`, `/signup`, and reviews on each site detail page.
+Public member signup uses `displayName`, `password`, and email and/or phone. Login uses `identifier` (email or phone) plus `password`. Same JWT cookies as admin (`heritage_access` / `heritage_refresh`). Public pages: `/login`, `/signup`, `/profile`, and reviews (with likes) on each site detail page.
 
 All list endpoints use the same response envelope:
 

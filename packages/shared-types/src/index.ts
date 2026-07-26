@@ -249,8 +249,38 @@ export const siteReviewSchema = z.object({
   body: z.string(),
   authorName: z.string(),
   updatedAt: z.string(),
+  likeCount: z.number().int().nonnegative(),
+  likedByMe: z.boolean().optional(),
 });
 export type SiteReview = z.infer<typeof siteReviewSchema>;
+
+export const memberReviewSchema = z.object({
+  id: z.string(),
+  body: z.string(),
+  likeCount: z.number().int().nonnegative(),
+  updatedAt: z.string(),
+  siteSlug: z.string(),
+  siteTitle: z.string(),
+});
+export type MemberReview = z.infer<typeof memberReviewSchema>;
+
+export const updateMemberProfileSchema = z
+  .object({
+    displayName: z.string().trim().min(1).max(100),
+    email: z.string().trim().email().optional().or(z.literal('')),
+    phone: z.string().trim().min(1).optional().or(z.literal('')),
+    password: z.string().min(8).optional().or(z.literal('')),
+  })
+  .transform((input) => ({
+    displayName: input.displayName,
+    email: input.email?.trim() ? input.email.trim().toLowerCase() : null,
+    phone: input.phone?.trim() ? input.phone.trim() : null,
+    password: input.password?.trim() ? input.password : undefined,
+  }))
+  .refine((input) => Boolean(input.email || input.phone), {
+    message: 'Email or phone is required',
+  });
+export type UpdateMemberProfileInput = z.infer<typeof updateMemberProfileSchema>;
 
 export const upsertSiteReviewSchema = z.object({
   body: z.string().trim().min(1).max(2000),

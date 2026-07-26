@@ -416,6 +416,15 @@ Spec: [`docs/superpowers/specs/2026-07-21-editor-completeness-design.md`](./docs
 
 Spec: [`docs/superpowers/specs/2026-07-25-member-reviews-design.md`](./docs/superpowers/specs/2026-07-25-member-reviews-design.md).
 
+## 24. Review likes and member profile (2026-07-25)
+
+| Decision | Detail | Reason |
+|---|---|---|
+| Review likes | `SiteReviewLike` with `@@unique([reviewId, userId])`; `POST`/`DELETE` `/public/sites/:slug/reviews/:reviewId/like`; public list includes `likeCount`; optional `likedByMe` when a member cookie is present | Lightweight engagement without nested comments |
+| Optional auth on review list | `OptionalJwtAuthGuard` on `GET .../reviews` sets `likedByMe` only for `MEMBER` sessions | Anonymous visitors still get counts; signed-in members see their like state |
+| Member profile | `PATCH /auth/me` (displayName, email, phone, optional password); `GET /auth/me/reviews?locale=` paginated with site slug/title | Single dashboard at `/profile` for account edits and review history |
+| Navbar auth CTA | Public header shows **View profile** (teal) when a member session exists, otherwise **Sign in** | Avoid duplicate login prompts when already signed in |
+
 ## Open questions
 
 - [x] Hosting: personal VPS with Docker + Caddy (documented in README §Deploy on VPS; `docker-compose.prod.yml`)

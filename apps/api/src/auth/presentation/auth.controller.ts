@@ -19,6 +19,7 @@ import {
   createUserSchema,
   loginSchema,
   registerSchema,
+  updateMemberProfileSchema,
   updateUserPasswordSchema,
   updateUserSchema,
 } from '@heritage/shared-types';
@@ -29,7 +30,9 @@ import { RolesGuard } from '../roles.guard';
 import type { AuthenticatedUser } from '../roles.decorator';
 import { AuthService } from '../application/auth.service';
 import { UsersService } from '../application/users.service';
+import { SiteReviewsService } from '../../sites/application/site-reviews.service';
 import { AdminUsersListQueryDto } from './admin-users-list.query';
+import { MemberReviewsListQueryDto } from './member-reviews-list.query';
 import {
   ADMIN_USER_EXAMPLE,
   ADMIN_USER_SCHEMA,
@@ -47,15 +50,27 @@ import {
   ApiPaginatedResponse,
   ApiProtectedErrors,
   ApiValidationError,
+  MEMBER_REVIEW_EXAMPLE,
+  MEMBER_REVIEW_SCHEMA,
+  REGISTER_BODY_SCHEMA,
+  UPDATE_MEMBER_PROFILE_BODY_SCHEMA,
 } from '../../common/openapi/openapi';
 
 @ApiTags('auth')
 @Controller('auth')
 export class AuthController {
-  constructor(private readonly authService: AuthService) {}
+  constructor(
+    private readonly authService: AuthService,
+    private readonly siteReviewsService: SiteReviewsService,
+  ) {}
 
   @Post('register')
-  @ApiJsonOk('Create a public member account', AUTH_USER_SCHEMA, AUTH_USER_EXAMPLE)
+  @ApiJsonCreated('Create a public member account', AUTH_USER_SCHEMA, AUTH_USER_EXAMPLE)
+  @ApiJsonBody(REGISTER_BODY_SCHEMA, {
+    displayName: 'Sara Member',
+    email: 'sara@example.com',
+    password: 'StrongPassword123!',
+  })
   @ApiValidationError()
   async register(@Body() body: unknown, @Res({ passthrough: true }) res: Response) {
     const input = registerSchema.parse(body);
@@ -102,6 +117,39 @@ export class AuthController {
   async me(@Req() req: Request & { user: AuthenticatedUser }) {
     const user = await this.authService.getMe(req.user.id);
     return authUserSchema.parse(user);
+  }
+
+  @Patch('me')
+  @UseGuards(JwtAuthGuard)
+  @ApiCookieAuth('heritage_access')
+  @ApiJsonOk('Update the current member profile', AUTH_USER_SCHEMA, AUTH_USER_EXAMPLE)
+  @ApiJsonBody(UPDATE_MEMBER_PROFILE_BODY_SCHEMA, {
+    displayName: 'Sara Member',
+    email: 'sara@example.com',
+    phone: '09121234567',
+  })
+  @ApiValidationError()
+  @ApiProtectedErrors()
+  async updateMe(
+    @Req() req: Request & { user: AuthenticatedUser },
+    @Body() body: unknown,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    const input = updateMemberProfileSchema.parse(body);
+    const user = await this.authService.updateMemberProfile(req.user.id, input, res);
+    return authUserSchema.parse(user);
+  }
+
+  @Get('me/reviews')
+  @UseGuards(JwtAuthGuard)
+  @ApiCookieAuth('heritage_access')
+  @ApiPaginatedResponse('List reviews written by the current member', MEMBER_REVIEW_SCHEMA, MEMBER_REVIEW_EXAMPLE)
+  @ApiProtectedErrors()
+  listMyReviews(
+    @Req() req: Request & { user: AuthenticatedUser },
+    @Query() query: MemberReviewsListQueryDto,
+  ) {
+    return this.siteReviewsService.listForMember(req.user.id, query.locale, query);
   }
 }
 

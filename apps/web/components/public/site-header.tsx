@@ -2,11 +2,16 @@
 
 import { useState } from 'react';
 import { useTranslations } from 'next-intl';
+import type { AuthUser } from '@heritage/shared-types';
 import { LogoMark } from '@/components/public/logo-mark';
 import { LanguageSwitcher } from '@/components/public/language-switcher';
 import { Link } from '@/i18n/navigation';
 
-export function SiteHeader() {
+type SiteHeaderProps = {
+  member: AuthUser | null;
+};
+
+export function SiteHeader({ member }: SiteHeaderProps) {
   const t = useTranslations('nav');
   const [open, setOpen] = useState(false);
 
@@ -15,6 +20,10 @@ export function SiteHeader() {
     { href: '/#how', label: t('how') },
     { href: '/#contact', label: t('contact') },
   ];
+
+  const authLink = member
+    ? { href: '/profile', label: t('viewProfile') }
+    : { href: '/login', label: t('signIn') };
 
   return (
     <header className="sticky top-0 z-30 border-b border-brown-800/10 bg-sand-100/92 backdrop-blur-md">
@@ -35,6 +44,16 @@ export function SiteHeader() {
               {link.label}
             </Link>
           ))}
+          <Link
+            href={authLink.href}
+            className={`cursor-pointer rounded-button border-2 px-4 py-2 text-[15px] font-bold transition-transform hover:-translate-y-0.5 ${
+              member
+                ? 'border-teal-700 bg-teal-700 text-sand-50'
+                : 'border-brown-800 bg-transparent text-brown-800'
+            }`}
+          >
+            {authLink.label}
+          </Link>
           <LanguageSwitcher />
         </nav>
 
@@ -59,6 +78,17 @@ export function SiteHeader() {
                   {link.label}
                 </Link>
               ))}
+              <Link
+                href={authLink.href}
+                onClick={() => setOpen(false)}
+                className={`mt-1 w-fit cursor-pointer rounded-button border-2 px-4 py-2 text-[15px] font-bold ${
+                  member
+                    ? 'border-teal-700 bg-teal-700 text-sand-50'
+                    : 'border-brown-800 bg-transparent text-brown-800'
+                }`}
+              >
+                {authLink.label}
+              </Link>
             </nav>
           </div>
         ) : null}

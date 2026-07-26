@@ -145,7 +145,7 @@ Reference mock: [`heritage.html`](./heritage.html). Implemented in `apps/web/com
 
 ### Landing section order
 
-1. **Site header**  -  logo lockup, anchor nav (`#categories`, `#how`, `#contact`), language switcher; hamburger below 900px
+1. **Site header**  -  logo lockup, anchor nav (`#categories`, `#how`, `#contact`), **Sign in** or **View profile** (teal primary when signed in, secondary outline when guest; links to `/login` or `/profile`), language switcher; hamburger below 900px
 2. **Hero**  -  two-column grid (copy + plaque visual); secondary CTA → `#categories`
 3. **Category stack**  -  3D fanned cards on a `sand-100/90` band; card transition ~500ms; dwell between switches ~5.5s; click/tab only changes the active card (no page scroll); `prefers-reduced-motion` → flat crossfade (`components/public/category-stack.tsx`)
 4. **Topic promo banners**  -  one unique full-bleed photo strip **immediately above** How it works and above each category section (not above the stack; no repeats). Copy under `home.banners.how` / `home.banners.categories.*`; images in `lib/heritage-images.ts` (`landingBannerImages`, Wikimedia Commons URLs)
@@ -241,7 +241,7 @@ Fixed full-viewport layer (`HeritagePageBackground`): `sand-50` + diagonal strip
 
 ### Site header
 
-Sticky top bar: `bg-sand-100/92`, `backdrop-blur-md`, bottom border `brown-800/10`.
+Sticky top bar: `bg-sand-100/92`, `backdrop-blur-md`, bottom border `brown-800/10`. Desktop nav: anchor links + auth CTA (`/login` guest, `/profile` member) + `LanguageSwitcher`. Mobile drawer repeats anchor links and auth CTA.
 
 ### Site detail layout
 
@@ -350,10 +350,10 @@ Default cover when `coverUrl` is null (public `SiteCard`, admin sites-list thumb
 
 | Surface | Spec |
 |---|---|
-| Sign up / sign in | `(public)/signup` and `(public)/login`; sand panel on `HeritagePageBackground`; `Field` + `TextInput` / `TextArea`; `ActionButton` primary CTA; i18n under `member.*` |
-| Sign up fields | Name (required), email and/or phone, password (min 8); contact hint under email |
-| Sign in fields | Email or phone + password (`dir="ltr"` on identifiers) |
-| Site reviews block | Below article body on `/sites/[slug]`; H2 `text-[clamp(22px,2.5vw,28px)] font-black`; list items white `rounded-card border-brown-800/15 px-5 py-4`; author `text-[15px] font-bold`; date `text-xs text-brown-600`; body `text-[15px] leading-relaxed`; anonymous CTA links teal-700 |
+| Sign up / sign in | `(public)/signup` and `(public)/login`; use the **public layout shell** (header with language switcher, footer, page background). Page body is only the centered sand card (`max-w-md`); no duplicate footer or language control on the page |
+| Sign up / sign in | `(public)/signup` and `(public)/login`; public layout shell only; centered sand card (`max-w-md`) |
+| Member profile | `(public)/profile`; `ReviewAvatar` header; `MemberProfileForm` (PATCH `/auth/me`); `MemberReviewsList` (GET `/auth/me/reviews`) |
+| Site reviews block | Below article on `/sites/[slug]`; compose white card when signed in; `ReviewCard` list with avatar, like row; `ReviewLikeButton` for members |
 | Review form (signed in) | `TextArea` + Save / Remove `ActionButton`s; success `text-teal-700`, errors `#B44B3D` |
 
 #### `BlockInspector` (`components/admin/block-inspector.tsx`)
@@ -394,7 +394,7 @@ Full-width admin editor for creating/replacing a site. Reads all copy from `useT
 
 - On `sand-100` panels, controls use **white** fill + `border-brown-800/25` (TextInput, Select, ImagePicker, Checkbox off-state). Avoid `sand-50` nested in `sand-100`  -  contrast is too low on the striped page background.
 
-Components: `language-switcher.tsx` (public + admin header + login).
+Components: `language-switcher.tsx` (public header, admin header, admin login).
 
 Admin composed components: `admin-shell.tsx`, `login-form.tsx`, `sites-list.tsx`, `site-form.tsx`, `admin-site-qr-panel.tsx`, `block-list-editor.tsx`, `block-canvas.tsx`, `block-inspector.tsx`, `block-insert-menu.tsx`, `span-text-editor.tsx`, `format-toolbar.tsx`, `media-file-picker.tsx`, `users-panel.tsx`, `location-map-picker.tsx`.
 

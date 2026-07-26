@@ -1,9 +1,10 @@
-import { Body, Controller, Delete, Get, HttpCode, Param, Put, Query, Req, Res, UseGuards } from '@nestjs/common';
+import { Body, Controller, Delete, Get, HttpCode, Param, Patch, Post, Put, Query, Req, Res, UseGuards } from '@nestjs/common';
 import { ApiOkResponse, ApiOperation, ApiProduces, ApiTags } from '@nestjs/swagger';
 import type { Request, Response } from 'express';
 import type { LandingResponse, SiteDetail } from '@heritage/shared-types';
 import { upsertSiteReviewSchema } from '@heritage/shared-types';
 import { JwtAuthGuard } from '../../auth/jwt-auth.guard';
+import { OptionalJwtAuthGuard } from '../../auth/optional-jwt-auth.guard';
 import type { AuthenticatedUser } from '../../auth/roles.decorator';
 import { QrService } from '../../qr/application/qr.service';
 import { SiteReviewsService } from '../application/site-reviews.service';
@@ -14,6 +15,8 @@ import {
   SITE_CARD_SCHEMA,
   SITE_DETAIL_EXAMPLE,
   SITE_DETAIL_SCHEMA,
+  SITE_REVIEW_EXAMPLE,
+  SITE_REVIEW_SCHEMA,
   ApiJsonBody,
   ApiJsonOk,
   ApiNoContent,
@@ -22,24 +25,6 @@ import {
   ApiResourceNotFound,
   ApiValidationError,
 } from '../../common/openapi/openapi';
-
-const SITE_REVIEW_SCHEMA = {
-  type: 'object',
-  required: ['id', 'body', 'authorName', 'updatedAt'],
-  properties: {
-    id: { type: 'string' },
-    body: { type: 'string' },
-    authorName: { type: 'string' },
-    updatedAt: { type: 'string', format: 'date-time' },
-  },
-} as const;
-
-const SITE_REVIEW_EXAMPLE = {
-  id: 'cm123review',
-  body: 'Beautiful place with rich history.',
-  authorName: 'Sara',
-  updatedAt: '2026-07-25T12:00:00.000Z',
-};
 
 @ApiTags('public')
 @Controller('public/landing')
@@ -81,10 +66,16 @@ export class PublicSitesController {
   }
 
   @Get(':slug/reviews')
+  @UseGuards(OptionalJwtAuthGuard)
   @ApiPaginatedResponse('List public reviews for a site', SITE_REVIEW_SCHEMA, SITE_REVIEW_EXAMPLE)
   @ApiResourceNotFound('Site')
-  listReviews(@Param('slug') slug: string, @Query() query: PaginationQueryDto) {
-    return this.siteReviewsService.listBySlug(slug, query);
+  listReviews(
+    @Param('slug') slug: string,
+    @Query() query: PaginationQueryDto,
+    @Req() req: Request & { user?: AuthenticatedUser },
+  ) {
+    const viewerUserId = req.user?.role === 'MEMBER' ? req.user.id : undefined;
+    return this.siteReviewsService.listBySlug(slug, query, viewerUserId);
   }
 
   @Get(':slug/reviews/me')
@@ -134,6 +125,33 @@ export class PublicSitesController {
     @Req() req: Request & { user: AuthenticatedUser },
   ): Promise<void> {
     await this.siteReviewsService.deleteForUser(slug, req.user.id);
+  }
+
+  @Post(':slug/reviews/:reviewId/like')
+  @HttpCode(200)
+  @UseGuards(JwtAuthGuard)
+  @ApiJsonOk('Like a site review', SITE_REVIEW_SCHEMA, SITE_REVIEW_EXAMPLE)
+  @ApiProtectedErrors()
+  @ApiResourceNotFound('Site')
+  likeReview(
+    @Param('slug') slug: string,
+    @Param('reviewId') reviewId: string,
+    @Req() req: Request & { user: AuthenticatedUser },
+  ) {
+    return this.siteReviewsService.likeReview(slug, reviewId, req.user.id);
+  }
+
+  @Delete(':slug/reviews/:reviewId/like')
+  @UseGuards(JwtAuthGuard)
+  @ApiJsonOk('Remove a like from a site review', SITE_REVIEW_SCHEMA, SITE_REVIEW_EXAMPLE)
+  @ApiProtectedErrors()
+  @ApiResourceNotFound('Site')
+  unlikeReview(
+    @Param('slug') slug: string,
+    @Param('reviewId') reviewId: string,
+    @Req() req: Request & { user: AuthenticatedUser },
+  ) {
+    return this.siteReviewsService.unlikeReview(slug, reviewId, req.user.id);
   }
 
   @Get(':slug')

@@ -216,6 +216,7 @@ model User {
   updatedAt     DateTime       @updatedAt
   refreshTokens RefreshToken[]
   reviews       SiteReview[]
+  reviewLikes   SiteReviewLike[]
 }
 
 model SiteReview {
@@ -227,9 +228,23 @@ model SiteReview {
   updatedAt DateTime @updatedAt
   site      Site     @relation(fields: [siteId], references: [id], onDelete: Cascade)
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  likes     SiteReviewLike[]
 
   @@unique([siteId, userId])
   @@index([siteId])
+  @@index([userId])
+}
+
+model SiteReviewLike {
+  id        String     @id @default(cuid())
+  reviewId  String
+  userId    String
+  createdAt DateTime   @default(now())
+  review    SiteReview @relation(fields: [reviewId], references: [id], onDelete: Cascade)
+  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([reviewId, userId])
+  @@index([reviewId])
   @@index([userId])
 }
 

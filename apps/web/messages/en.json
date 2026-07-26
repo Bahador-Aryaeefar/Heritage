@@ -3,6 +3,8 @@
     "how": "How it works",
     "sites": "Heritage sites",
     "contact": "Contact",
+    "signIn": "Sign in",
+    "viewProfile": "View profile",
     "menu": "Menu"
   },
   "footer": {
@@ -110,15 +112,20 @@
     },
     "reviews": {
       "title": "Visitor reviews",
+      "composeTitle": "Share your experience",
       "empty": "No reviews yet. Be the first to share your experience.",
-      "writePrompt": "Sign in to leave a review for this site.",
+      "writePrompt": "Tell others what stood out during your visit.",
       "loginCta": "Sign in",
       "signupCta": "Create account",
       "body": "Your review",
       "submit": "Save review",
       "remove": "Remove review",
       "saved": "Review saved.",
-      "error": "Could not save your review. Try again."
+      "error": "Could not save your review. Try again.",
+      "like": "Like",
+      "liked": "Liked",
+      "likes": "likes",
+      "signInToLike": "Sign in to like"
     }
   },
   "member": {
@@ -142,6 +149,25 @@
       "error": "Could not create your account. Check your details and try again.",
       "hasAccount": "Already have an account?",
       "loginLink": "Sign in"
+    },
+    "profile": {
+      "title": "Your profile",
+      "subtitle": "Manage your account and reviews",
+      "accountTitle": "Account details",
+      "name": "Name",
+      "email": "Email",
+      "phone": "Phone",
+      "password": "New password",
+      "passwordHint": "Leave blank to keep your current password.",
+      "contactHint": "Provide email or phone (or both).",
+      "submit": "Save changes",
+      "saved": "Profile updated.",
+      "error": "Could not update your profile. Check your details and try again.",
+      "logout": "Sign out",
+      "reviewsTitle": "Your reviews",
+      "reviewsEmpty": "You have not posted any reviews yet.",
+      "likes": "likes",
+      "viewSite": "View site"
     }
   },
   "lang": {

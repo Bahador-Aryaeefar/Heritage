@@ -14,6 +14,8 @@ import {
 } from '@/lib/sites';
 import { getSiteReviews } from '@/lib/reviews';
 import { getMemberSessionUser } from '@/lib/member-session';
+import { memberFetchServer } from '@/lib/member-server-api';
+import { paginatedResponseSchema, siteReviewSchema } from '@heritage/shared-types';
 import { localizedPath } from '@/i18n/locales';
 import { routing } from '@/i18n/routing';
 import type { Locale } from '@/i18n/routing';
@@ -69,9 +71,17 @@ export default async function SiteDetailPage({ params }: PageProps) {
   const tLocation = await getTranslations('site.location');
   const tReviews = await getTranslations('site.reviews');
   const member = await getMemberSessionUser();
+  const reviewsResponseSchema = paginatedResponseSchema(siteReviewSchema);
   let reviews;
   try {
-    reviews = await getSiteReviews(slug);
+    if (member) {
+      reviews = await memberFetchServer(
+        `/public/sites/${encodeURIComponent(slug)}/reviews?page=1&limit=20`,
+        reviewsResponseSchema,
+      );
+    } else {
+      reviews = await getSiteReviews(slug);
+    }
   } catch {
     reviews = {
       items: [],
@@ -141,6 +151,7 @@ export default async function SiteDetailPage({ params }: PageProps) {
         locale={locale}
         labels={{
           title: tReviews('title'),
+          composeTitle: tReviews('composeTitle'),
           empty: tReviews('empty'),
           writePrompt: tReviews('writePrompt'),
           loginCta: tReviews('loginCta'),
@@ -150,6 +161,10 @@ export default async function SiteDetailPage({ params }: PageProps) {
           remove: tReviews('remove'),
           saved: tReviews('saved'),
           error: tReviews('error'),
+          like: tReviews('like'),
+          liked: tReviews('liked'),
+          likes: tReviews('likes'),
+          signInToLike: tReviews('signInToLike'),
           loginPath: `${loginPath}?returnTo=${encodeURIComponent(returnTo)}`,
           signupPath: `${signupPath}?returnTo=${encodeURIComponent(returnTo)}`,
         }}

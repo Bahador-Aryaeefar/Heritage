@@ -27,7 +27,7 @@ describe('Member reviews (e2e)', () => {
     await app.close();
   });
 
-  it('registers a member, posts a review, and lists it publicly', async () => {
+  it('registers a member, posts a review, likes it, updates profile, and lists reviews', async () => {
     const suffix = Date.now();
     const email = `member-${suffix}@example.com`;
 
@@ -40,13 +40,23 @@ describe('Member reviews (e2e)', () => {
       })
       .expect(201);
 
-    await memberAgent
+    const reviewRes = await memberAgent
       .put('/api/v1/public/sites/taq-e-bostan/reviews/me')
       .send({ body: 'Great heritage site for testing.' })
+      .expect(200);
+
+    expect(reviewRes.body.body).toBe('Great heritage site for testing.');
+    expect(reviewRes.body.authorName).toBe('Test Member');
+    expect(reviewRes.body.likeCount).toBe(0);
+
+    const reviewId = reviewRes.body.id as string;
+
+    await memberAgent
+      .post(`/api/v1/public/sites/taq-e-bostan/reviews/${reviewId}/like`)
       .expect(200)
       .expect((res) => {
-        expect(res.body.body).toBe('Great heritage site for testing.');
-        expect(res.body.authorName).toBe('Test Member');
+        expect(res.body.likeCount).toBe(1);
+        expect(res.body.likedByMe).toBe(true);
       });
 
     await request(app.getHttpServer())
@@ -54,10 +64,33 @@ describe('Member reviews (e2e)', () => {
       .expect(200)
       .expect((res) => {
         expect(
-          res.body.items.some((item: { body: string }) =>
-            item.body.includes('Great heritage site for testing.'),
+          res.body.items.some(
+            (item: { body: string; likeCount: number }) =>
+              item.body.includes('Great heritage site for testing.') && item.likeCount === 1,
           ),
         ).toBe(true);
+      });
+
+    await memberAgent
+      .patch('/api/v1/auth/me')
+      .send({
+        displayName: 'Updated Member',
+        email,
+        phone: `0912${String(suffix).slice(-7)}`,
+      })
+      .expect(200)
+      .expect((res) => {
+        expect(res.body.displayName).toBe('Updated Member');
+        expect(res.body.phone).toMatch(/^0912/);
+      });
+
+    await memberAgent
+      .get('/api/v1/auth/me/reviews?locale=en&page=1&limit=20')
+      .expect(200)
+      .expect((res) => {
+        expect(res.body.items.length).toBeGreaterThan(0);
+        expect(res.body.items[0].siteSlug).toBe('taq-e-bostan');
+        expect(res.body.items[0].likeCount).toBe(1);
       });
 
     await memberAgent

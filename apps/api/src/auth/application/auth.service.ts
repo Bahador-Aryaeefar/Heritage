@@ -1,5 +1,6 @@
 import {
   ConflictException,
+  ForbiddenException,
   Injectable,
   UnauthorizedException,
 } from '@nestjs/common';
@@ -8,7 +9,7 @@ import { JwtService } from '@nestjs/jwt';
 import { User, UserRole } from '@prisma/client';
 import type { Response } from 'express';
 import bcrypt from 'bcryptjs';
-import type { AuthUser, RegisterInput } from '@heritage/shared-types';
+import type { AuthUser, RegisterInput, UpdateMemberProfileInput } from '@heritage/shared-types';
 import type { Env } from '../../config/env';
 import { handlePrismaError } from '../../common/filters/handle-prisma-error';
 import { PrismaService } from '../../prisma/prisma.service';
@@ -128,6 +129,46 @@ export class AuthService {
       throw new UnauthorizedException('User not found');
     }
     return this.toAuthUser(user);
+  }
+
+  async updateMemberProfile(
+    userId: string,
+    input: UpdateMemberProfileInput,
+    res?: Response,
+  ): Promise<AuthUser> {
+    const user = await this.prisma.user.findUnique({ where: { id: userId } });
+    if (!user || !user.isActive || user.role !== UserRole.MEMBER) {
+      throw new ForbiddenException('Only members can update this profile');
+    }
+
+    const data: {
+      displayName: string;
+      email: string | null;
+      phone: string | null;
+      passwordHash?: string;
+    } = {
+      displayName: input.displayName,
+      email: input.email,
+      phone: input.phone,
+    };
+
+    if (input.password) {
+      data.passwordHash = await bcrypt.hash(input.password, 12);
+      await this.revokeAllUserTokens(userId);
+    }
+
+    try {
+      const updated = await this.prisma.user.update({
+        where: { id: userId },
+        data,
+      });
+      if (input.password && res) {
+        await this.issueAuthPair(updated, res, generateFamilyId());
+      }
+      return this.toAuthUser(updated);
+    } catch (error) {
+      handlePrismaError(error, 'User');
+    }
   }
 
   async revokeAllUserTokens(userId: string): Promise<void> {

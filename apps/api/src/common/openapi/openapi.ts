@@ -78,6 +78,72 @@ export const LOGIN_BODY_SCHEMA: SchemaObject = {
   },
 };
 
+export const REGISTER_BODY_SCHEMA: SchemaObject = {
+  type: 'object',
+  required: ['displayName', 'password'],
+  properties: {
+    displayName: { type: 'string', example: 'Sara Member' },
+    email: { type: 'string', format: 'email', nullable: true, example: 'sara@example.com' },
+    phone: { type: 'string', nullable: true, example: '09121234567' },
+    password: { type: 'string', format: 'password', example: 'StrongPassword123!' },
+  },
+};
+
+export const SITE_REVIEW_EXAMPLE = {
+  id: 'cm123review',
+  body: 'Beautiful place with rich history.',
+  authorName: 'Sara',
+  updatedAt: '2026-07-25T12:00:00.000Z',
+  likeCount: 3,
+  likedByMe: false,
+};
+
+export const SITE_REVIEW_SCHEMA: SchemaObject = {
+  type: 'object',
+  required: ['id', 'body', 'authorName', 'updatedAt', 'likeCount'],
+  properties: {
+    id: { type: 'string', example: SITE_REVIEW_EXAMPLE.id },
+    body: { type: 'string', example: SITE_REVIEW_EXAMPLE.body },
+    authorName: { type: 'string', example: SITE_REVIEW_EXAMPLE.authorName },
+    updatedAt: { type: 'string', format: 'date-time', example: SITE_REVIEW_EXAMPLE.updatedAt },
+    likeCount: { type: 'integer', minimum: 0, example: 3 },
+    likedByMe: { type: 'boolean', example: false },
+  },
+};
+
+export const MEMBER_REVIEW_EXAMPLE = {
+  id: 'cm123review',
+  body: 'Beautiful place with rich history.',
+  likeCount: 3,
+  updatedAt: '2026-07-25T12:00:00.000Z',
+  siteSlug: 'taq-e-bostan',
+  siteTitle: 'Taq-e Bostan',
+};
+
+export const MEMBER_REVIEW_SCHEMA: SchemaObject = {
+  type: 'object',
+  required: ['id', 'body', 'likeCount', 'updatedAt', 'siteSlug', 'siteTitle'],
+  properties: {
+    id: { type: 'string', example: MEMBER_REVIEW_EXAMPLE.id },
+    body: { type: 'string', example: MEMBER_REVIEW_EXAMPLE.body },
+    likeCount: { type: 'integer', minimum: 0, example: MEMBER_REVIEW_EXAMPLE.likeCount },
+    updatedAt: { type: 'string', format: 'date-time', example: MEMBER_REVIEW_EXAMPLE.updatedAt },
+    siteSlug: { type: 'string', example: MEMBER_REVIEW_EXAMPLE.siteSlug },
+    siteTitle: { type: 'string', example: MEMBER_REVIEW_EXAMPLE.siteTitle },
+  },
+};
+
+export const UPDATE_MEMBER_PROFILE_BODY_SCHEMA: SchemaObject = {
+  type: 'object',
+  required: ['displayName'],
+  properties: {
+    displayName: { type: 'string', example: 'Sara Member' },
+    email: { type: 'string', format: 'email', nullable: true, example: 'sara@example.com' },
+    phone: { type: 'string', nullable: true, example: '09121234567' },
+    password: { type: 'string', format: 'password', example: 'NewStrongPassword123!' },
+  },
+};
+
 export const ADMIN_USER_EXAMPLE = {
   ...AUTH_USER_EXAMPLE,
   isActive: true,

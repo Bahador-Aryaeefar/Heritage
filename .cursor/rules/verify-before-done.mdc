@@ -1,0 +1,25 @@
+---
+description: Run targeted tests and smoke checks before claiming work is complete
+alwaysApply: true
+---
+
+# Verify before done
+
+Do not mark a task complete until you have **run verification** for the area you changed.
+
+## Required checks by area
+
+| Area | Minimum verification |
+|---|---|
+| API route or service | `pnpm exec tsc --noEmit -p tsconfig.build.json` in `apps/api`, then hit the route (curl/supertest) or run the matching `*.e2e-spec.ts` |
+| Web UI / client fetch | Confirm the browser path resolves (rewrite/proxy), then exercise the flow or run web tests if they exist |
+| Prisma schema | `prisma migrate deploy` (or dev migrate) + `prisma generate`; confirm API compiles and e2e passes |
+| i18n keys | Grep all locale files (`en`, `fa`, `ar`) for the same key path |
+
+## API dev server caveat
+
+Nest `dev` keeps serving the **last successful build** when TypeScript errors block recompilation. If a new endpoint returns 404 but exists in source, fix compile errors first, then re-test the live server.
+
+## When claiming success
+
+State what you ran and the outcome (status code, test pass count). Do not say "should work" without evidence.

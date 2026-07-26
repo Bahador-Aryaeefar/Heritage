@@ -46,9 +46,20 @@ Usage going forward:
 - Before a non-trivial task (new feature, refactor, cross-module change), query the graph first to see which files/modules/docs are actually connected to the area being touched, instead of guessing from file names or re-reading the whole tree.
 - Treat it as a discovery aid, not a replacement for reading the actual code before editing it.
 
+## Rule 4 - Verify before claiming done
+
+After implementing a feature, bugfix, or API change, **run verification** before telling the user it is complete:
+
+1. **Compile:** for API work, `pnpm exec tsc --noEmit -p tsconfig.build.json` in `apps/api` must pass. A failing watch build leaves Nest serving stale routes (new endpoints can 404 even though source looks correct).
+2. **Exercise the path:** hit new/changed endpoints (curl, supertest e2e, or the web flow that calls them). For web + API features, test through the same URL the browser uses (`/api/v1/...` rewrites).
+3. **Report evidence:** say what you ran and the result (HTTP status, test count), not "should work".
+
+Cursor rule: `.cursor/rules/verify-before-done.mdc`.
+
 ## Order of operations for a typical task
 
 1. Read `architecture-decisions.md` and `design-system.md` (Rule 1).
 2. Query Graphify for the relevant area of the codebase (Rule 3).
 3. Do the work.
-4. Update the guide files if the work involved a decision (Rule 2).
+4. **Verify the change** (Rule 4).
+5. Update the guide files if the work involved a decision (Rule 2).

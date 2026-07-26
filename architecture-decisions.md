@@ -425,8 +425,33 @@ Spec: [`docs/superpowers/specs/2026-07-25-member-reviews-design.md`](./docs/supe
 | Member profile | `PATCH /auth/me` (displayName, email, phone, optional password); `GET /auth/me/reviews?locale=` paginated with site slug/title | Single dashboard at `/profile` for account edits and review history |
 | Navbar auth CTA | Public header shows **View profile** (teal) when a member session exists, otherwise **Sign in** | Avoid duplicate login prompts when already signed in |
 
+## 25. Security hardening: rate limiting, CSRF, href sanitization, login lockout (2026-07-26)
+
+Closes the four backend security gaps found in the 2026-07-26 gap analysis. Plan: [`docs/superpowers/plans/2026-07-26-security-hardening.md`](./docs/superpowers/plans/2026-07-26-security-hardening.md).
+
+| Decision | Detail | Reason |
+|---|---|---|
+| Rate limiting | `@nestjs/throttler`, global `ThrottlerGuard` (60 req/60s) via `APP_GUARD`; per-route `@Throttle`: 5/60s on `POST /auth/register` and `POST /auth/login`, 10/60s on `POST /auth/refresh` and `PUT /public/sites/:slug/reviews/me` | Auth endpoints were open to unlimited credential stuffing; the review-write cap bounds spam |
+| CSRF | Double-submit cookie: `heritage_csrf` (readable by JS, issued alongside the auth pair) must match an `x-csrf-token` header on every mutating request. Global `CsrfGuard`; safe methods and `@SkipCsrf()` routes exempt | Delivers §5's stated requirement. `register`/`login`/`refresh` are `@SkipCsrf()`: no cookie exists yet at that point, and `refreshSession()` in the web fetch wrappers calls refresh through a raw `fetch` that carries no header |
+| CSRF on the web side | `readCsrfToken()` + `isMutatingMethod()` in `apps/web/lib/csrf.ts`, applied in all four fetch wrappers (`memberFetch`, `memberFetchVoid`, `adminFetch`, `adminFetchVoid`) | Every client-side mutation already routes through these four; the duplication matches the existing shape of those two files rather than introducing a shared abstraction |
+| Span `href` allow-list | `isSafeHref()` in `@heritage/shared-types` permits `http:`, `https:`, `mailto:` only; `textSpanSchema.href` refines against it | A `javascript:`/`data:` URI entered in the admin editor was previously storable and renderable |
+| Split read vs write href handling | Write path keeps the strict refine (a bad href is a 400 in the admin editor). Read path applies `sanitizeUnsafeHref()` in `sites.mapper.ts` **before** the strict parse, for both text spans and nested LIST-item spans, dropping the href and keeping the text | `mapBlock` parses stored spans on every public page render with a throwing `.parse()`. Without this, one legacy non-conforming href would break the entire page instead of one link. Dropping the attribute is no less secure and far more available |
+| Login lockout | `LOGIN_LOCKOUT_MS` 15 min after `MAX_FAILED_LOGIN_ATTEMPTS` 5 consecutive failures, tracked on `User.failedLoginAttempts` / `User.lockedUntil`; counter clears on success | Throttling alone is per-IP; this bounds attempts against a single account |
+
+### Accepted trade-offs (reviewed 2026-07-26, deliberately not fixed)
+
+These were raised by review, understood, and accepted for this threat model (single-tenant Cultural Heritage CMS, a handful of staff accounts, low-value member accounts). Recorded so a future session does not re-litigate them as bugs.
+
+| Trade-off | Detail | Why accepted |
+|---|---|---|
+| Lockout as a DoS vector | Anyone who knows a valid email/phone can fail 5 logins to lock that account, and repeat every ~15 min indefinitely to keep the real user out. IP throttling does not stop a patient or IP-rotating attacker | Scoping the lock to (account, IP) was considered and rejected as disproportionate: it needs a new table, a migration, and plumbing the client IP through the service. Revisit if account takeover or targeted harassment becomes a real concern |
+| Account-existence leak in the lockout message | A locked account returns `Account temporarily locked, try again later` while every other failure returns the generic `Invalid credentials`, so an attacker can tell a real locked identifier from a nonexistent one | Kept for the legitimate user's benefit: without it, a locked-out user sees only "invalid credentials" for 15 minutes despite typing the right password. One-line change to the generic message if the enumeration risk outweighs that |
+| `trust proxy` not configured | No `app.set('trust proxy', ...)` in `main.ts`, so behind Caddy (§16) `req.ip` is the proxy address for every request and `ThrottlerGuard` buckets all clients together, making the limits either global or meaningless in production | Known gap, not yet fixed. It matters before the rate limits can be relied on in production; harmless in local dev where connections are direct. Fix by typing the app as `NestExpressApplication` and setting the hop count from a `TRUST_PROXY` env var |
+| Non-atomic failed-login counter | Two concurrent failed logins both read the same `failedLoginAttempts` and each write their own `lockedUntil` | Millisecond-level jitter in the lock end time; no security impact |
+
 ## Open questions
 
 - [x] Hosting: personal VPS with Docker + Caddy (documented in README §Deploy on VPS; `docker-compose.prod.yml`)
 - [ ] Database and image backup strategy
 - [ ] Whether "nearby sites" (GPS-based) ships in phase one or phase two
+- [ ] `trust proxy` hop count for production (blocks per-IP rate limiting from working behind Caddy, see §25 trade-offs)

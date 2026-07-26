@@ -74,7 +74,7 @@ describe('Admin sites — atomic multipart write + cleanup (e2e)', () => {
     const setCookies = res.headers['set-cookie'] as unknown as string[];
     const csrfCookie = setCookies.find((cookie) => cookie.startsWith('heritage_csrf='));
     expect(csrfCookie).toBeDefined();
-    csrfToken = csrfCookie!.split(';')[0]!.split('=')[1]!;
+    csrfToken = csrfCookie!.split(';')[0].split('=')[1]!;
   });
 
   let cityId: string;

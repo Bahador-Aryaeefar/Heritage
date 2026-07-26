@@ -79,7 +79,7 @@ describe('AuthService login lockout', () => {
 
     expect(prisma.user.update).toHaveBeenCalledWith({
       where: { id: 'user1' },
-      data: { failedLoginAttempts: 0, lockedUntil: expect.any(Date) },
+      data: { failedLoginAttempts: 0, lockedUntil: expect.any(Date) as Date },
     });
   });
 

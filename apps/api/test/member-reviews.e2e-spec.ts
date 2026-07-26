@@ -43,7 +43,7 @@ describe('Member reviews (e2e)', () => {
     const setCookies = registerRes.headers['set-cookie'] as unknown as string[];
     const csrfCookie = setCookies.find((cookie) => cookie.startsWith('heritage_csrf='));
     expect(csrfCookie).toBeDefined();
-    const csrfToken = csrfCookie!.split(';')[0]!.split('=')[1]!;
+    const csrfToken = csrfCookie!.split(';')[0].split('=')[1];
 
     const reviewRes = await memberAgent
       .put('/api/v1/public/sites/taq-e-bostan/reviews/me')

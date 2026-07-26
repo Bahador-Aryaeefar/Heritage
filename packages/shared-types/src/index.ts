@@ -55,11 +55,24 @@ function validateSiteCoords(
 
 // --- Content block spans ---
 
+export function isSafeHref(href: string): boolean {
+  try {
+    const url = new URL(href, 'http://localhost');
+    return url.protocol === 'http:' || url.protocol === 'https:' || url.protocol === 'mailto:';
+  } catch {
+    return false;
+  }
+}
+
 export const textSpanSchema = z.object({
   text: z.string(),
   bold: z.boolean().optional(),
   italic: z.boolean().optional(),
-  href: z.string().min(1).optional(),
+  href: z
+    .string()
+    .min(1)
+    .refine(isSafeHref, { message: 'href must be an http(s) or mailto link' })
+    .optional(),
 });
 
 export type TextSpan = z.infer<typeof textSpanSchema>;

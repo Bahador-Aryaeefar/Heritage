@@ -1,12 +1,19 @@
 import {
+  memberReviewSchema,
   paginatedResponseSchema,
   siteReviewSchema,
+  type MemberReview,
   type PaginatedResponse,
   type SiteReview,
 } from '@heritage/shared-types';
 import { apiFetch } from '@/lib/api-client';
 
 const siteReviewsResponseSchema = paginatedResponseSchema(siteReviewSchema);
+
+// Must live in a server-safe module: the /profile Server Component parses with
+// this. Exporting it from a 'use client' file makes the server-side import a
+// client-reference stub rather than a real schema.
+export const memberReviewsResponseSchema = paginatedResponseSchema(memberReviewSchema);
 
 export async function getSiteReviews(slug: string, page = 1, limit = 20) {
   return apiFetch(
@@ -17,3 +24,4 @@ export async function getSiteReviews(slug: string, page = 1, limit = 20) {
 }
 
 export type SiteReviewsResponse = PaginatedResponse<SiteReview>;
+export type MemberReviewsResponse = PaginatedResponse<MemberReview>;

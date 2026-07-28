@@ -2,8 +2,7 @@
 
 import { useMemo } from 'react';
 import { Link } from '@/i18n/navigation';
-import { paginatedResponseSchema, memberReviewSchema, type MemberReview } from '@heritage/shared-types';
-import type { PaginatedResponse } from '@heritage/shared-types';
+import type { MemberReview, PaginatedResponse } from '@heritage/shared-types';
 
 type MemberReviewsListProps = {
   reviews: PaginatedResponse<MemberReview>;
@@ -67,5 +66,3 @@ export function MemberReviewsList({ reviews, locale, labels }: MemberReviewsList
     </section>
   );
 }
-
-export const memberReviewsResponseSchema = paginatedResponseSchema(memberReviewSchema);

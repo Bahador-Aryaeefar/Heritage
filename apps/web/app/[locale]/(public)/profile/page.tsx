@@ -4,7 +4,7 @@ import { MemberProfileForm } from '@/components/public/member-profile-form';
 import { MemberReviewsList } from '@/components/public/member-reviews-list';
 import { ReviewAvatar } from '@/components/public/review-avatar';
 import { getMemberSessionUser } from '@/lib/member-session';
-import { memberReviewsResponseSchema } from '@/components/public/member-reviews-list';
+import { memberReviewsResponseSchema } from '@/lib/reviews';
 import { memberFetchServer } from '@/lib/member-server-api';
 import { localizedPath } from '@/i18n/locales';
 

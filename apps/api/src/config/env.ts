@@ -23,7 +23,10 @@ export const envSchema = z.object({
   // to the real client instead of the reverse-proxy address. Never set this to
   // an untrusted blanket value: a wrong (too high) hop count lets a client
   // spoof X-Forwarded-For and evade the auth rate limits.
-  TRUST_PROXY: z.coerce.number().int().nonnegative().default(0),
+  // Capped deliberately: real topologies here are 0 (direct dev) or 1 (Caddy),
+  // with 2 covering a CDN in front of Caddy. Anything higher is operator error
+  // rather than a real chain, and would hand a client the spoofable slot.
+  TRUST_PROXY: z.coerce.number().int().min(0).max(2).default(0),
 });
 
 export type Env = z.infer<typeof envSchema>;

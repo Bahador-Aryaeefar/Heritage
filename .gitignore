@@ -29,3 +29,6 @@ apps/api/uploads/
 
 .worktrees/
 .superpowers/
+
+# local agent tooling config (dev server ports and commands are machine specific)
+.claude/

@@ -15,6 +15,15 @@ export const envSchema = z.object({
     .default('false')
     .transform((value) => value === 'true'),
   CORS_ORIGIN: z.url().default('http://localhost:3000'),
+  // Number of reverse-proxy hops in front of the API that are trusted to set
+  // X-Forwarded-For (Express `trust proxy` hop count). Default 0 means "no
+  // proxy, trust only the direct TCP peer" - safe for local dev, where
+  // connections are direct. In production behind Caddy (architecture-decisions
+  // §16), set this to the number of hops Caddy adds (1) so `req.ip` resolves
+  // to the real client instead of the reverse-proxy address. Never set this to
+  // an untrusted blanket value: a wrong (too high) hop count lets a client
+  // spoof X-Forwarded-For and evade the auth rate limits.
+  TRUST_PROXY: z.coerce.number().int().nonnegative().default(0),
 });
 
 export type Env = z.infer<typeof envSchema>;

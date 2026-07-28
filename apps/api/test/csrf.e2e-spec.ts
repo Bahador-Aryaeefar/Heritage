@@ -5,10 +5,14 @@ import request from 'supertest';
 import { App } from 'supertest/types';
 import { AppModule } from './../src/app.module';
 
+const SUPER_ADMIN_PHONE = '09120086846';
+const SUPER_ADMIN_PASSWORD = '78801215Dragons*';
+
 describe('CSRF protection (e2e)', () => {
   let app: INestApplication<App>;
   const agent = request.agent;
   let memberAgent: ReturnType<typeof agent>;
+  let adminAgent: ReturnType<typeof agent>;
 
   beforeAll(async () => {
     const moduleFixture: TestingModule = await Test.createTestingModule({
@@ -21,6 +25,7 @@ describe('CSRF protection (e2e)', () => {
     app.use(cookieParser());
     await app.init();
     memberAgent = agent(app.getHttpServer());
+    adminAgent = agent(app.getHttpServer());
   });
 
   afterAll(async () => {
@@ -53,5 +58,16 @@ describe('CSRF protection (e2e)', () => {
       .set('x-csrf-token', csrfToken)
       .send({ body: 'Has a matching CSRF header.' })
       .expect(200);
+  });
+
+  it('rejects an admin mutating route with no CSRF header', async () => {
+    await adminAgent
+      .post('/api/v1/auth/login')
+      .send({ identifier: SUPER_ADMIN_PHONE, password: SUPER_ADMIN_PASSWORD })
+      .expect(201);
+
+    await adminAgent
+      .delete('/api/v1/admin/sites/00000000-0000-0000-0000-000000000000')
+      .expect(403);
   });
 });

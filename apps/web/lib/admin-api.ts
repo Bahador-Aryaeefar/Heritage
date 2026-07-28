@@ -32,6 +32,14 @@ export async function adminFetch<T>(
   schema: ZodType<T>,
   init?: RequestInit,
 ): Promise<T> {
+  if (isMutatingMethod(init?.method) && !readCsrfToken()) {
+    // A still-valid access cookie from before a deploy (or before this
+    // session ever hit a route that mints heritage_csrf) means no CSRF
+    // cookie exists yet. It never 401s, so the wrapper would never retry on
+    // its own; mint one via refresh before sending the mutation.
+    await refreshSession();
+  }
+
   const request = () =>
     fetch(`/api/v1${path}`, {
       ...init,
@@ -63,6 +71,10 @@ export async function adminFetch<T>(
 }
 
 export async function adminFetchVoid(path: string, init?: RequestInit): Promise<void> {
+  if (isMutatingMethod(init?.method) && !readCsrfToken()) {
+    await refreshSession();
+  }
+
   const request = () =>
     fetch(`/api/v1${path}`, {
       ...init,

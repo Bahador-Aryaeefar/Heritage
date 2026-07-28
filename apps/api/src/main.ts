@@ -1,6 +1,7 @@
 import { ValidationPipe, VersioningType } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { NestFactory } from '@nestjs/core';
+import type { NestExpressApplication } from '@nestjs/platform-express';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { apiReference } from '@scalar/nestjs-api-reference';
 import cookieParser from 'cookie-parser';
@@ -11,7 +12,7 @@ import { PrismaExceptionFilter } from './common/filters/prisma-exception.filter'
 import type { Env } from './config/env';
 
 async function bootstrap(): Promise<void> {
-  const app = await NestFactory.create(AppModule);
+  const app = await NestFactory.create<NestExpressApplication>(AppModule);
 
   app.setGlobalPrefix('api');
   app.enableVersioning({ type: VersioningType.URI, defaultVersion: '1' });
@@ -22,6 +23,14 @@ async function bootstrap(): Promise<void> {
   app.useGlobalFilters(new GlobalExceptionFilter(), new PrismaExceptionFilter());
 
   const config = app.get(ConfigService<Env, true>);
+
+  // Trust the operator-configured number of reverse-proxy hops so `req.ip`
+  // (and the rate limiter's per-client bucketing) reflects the real client
+  // behind Caddy instead of the proxy's own address. See TRUST_PROXY in
+  // config/env.ts and architecture-decisions.md §25.
+  const trustProxyHops: number = config.getOrThrow('TRUST_PROXY');
+  app.set('trust proxy', trustProxyHops);
+
   const corsOrigin: string = config.getOrThrow('CORS_ORIGIN');
   app.enableCors({
     origin: corsOrigin,

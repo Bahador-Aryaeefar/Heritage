@@ -129,6 +129,7 @@ export class AuthController {
 
   @Patch('me')
   @UseGuards(JwtAuthGuard)
+  @Throttle({ default: { limit: 10, ttl: 60_000 } })
   @ApiCookieAuth('heritage_access')
   @ApiJsonOk('Update the current member profile', AUTH_USER_SCHEMA, AUTH_USER_EXAMPLE)
   @ApiJsonBody(UPDATE_MEMBER_PROFILE_BODY_SCHEMA, {
@@ -208,6 +209,7 @@ export class AdminUsersController {
   }
 
   @Patch(':id/password')
+  @Throttle({ default: { limit: 10, ttl: 60_000 } })
   @ApiJsonOk('Change a user password and revoke their sessions', OK_SCHEMA, { ok: true })
   @ApiJsonBody(UPDATE_PASSWORD_BODY_SCHEMA, { password: 'NewStrongPassword123!' })
   @ApiValidationError()

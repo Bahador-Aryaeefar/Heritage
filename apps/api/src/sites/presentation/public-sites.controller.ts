@@ -49,6 +49,7 @@ export class PublicSitesController {
   ) {}
 
   @Get(':slug/qr.png')
+  @Throttle({ default: { limit: 10, ttl: 60_000 } })
   @ApiOperation({ summary: 'Download a printable QR plaque PNG' })
   @ApiProduces('image/png')
   @ApiOkResponse({
@@ -131,6 +132,7 @@ export class PublicSitesController {
 
   @Post(':slug/reviews/:reviewId/like')
   @HttpCode(200)
+  @Throttle({ default: { limit: 20, ttl: 60_000 } })
   @UseGuards(JwtAuthGuard)
   @ApiJsonOk('Like a site review', SITE_REVIEW_SCHEMA, SITE_REVIEW_EXAMPLE)
   @ApiProtectedErrors()
@@ -144,6 +146,7 @@ export class PublicSitesController {
   }
 
   @Delete(':slug/reviews/:reviewId/like')
+  @Throttle({ default: { limit: 20, ttl: 60_000 } })
   @UseGuards(JwtAuthGuard)
   @ApiJsonOk('Remove a like from a site review', SITE_REVIEW_SCHEMA, SITE_REVIEW_EXAMPLE)
   @ApiProtectedErrors()

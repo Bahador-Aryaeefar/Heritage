@@ -13,6 +13,7 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { ApiCookieAuth, ApiTags } from '@nestjs/swagger';
+import { Throttle } from '@nestjs/throttler';
 import type { Request, Response } from 'express';
 import {
   authUserSchema,
@@ -24,6 +25,7 @@ import {
   updateUserSchema,
 } from '@heritage/shared-types';
 import { REFRESH_COOKIE } from '../auth.constants';
+import { SkipCsrf } from '../../common/security/skip-csrf.decorator';
 import { JwtAuthGuard } from '../jwt-auth.guard';
 import { Roles } from '../roles.decorator';
 import { RolesGuard } from '../roles.guard';
@@ -65,6 +67,8 @@ export class AuthController {
   ) {}
 
   @Post('register')
+  @SkipCsrf()
+  @Throttle({ default: { limit: 5, ttl: 60_000 } })
   @ApiJsonCreated('Create a public member account', AUTH_USER_SCHEMA, AUTH_USER_EXAMPLE)
   @ApiJsonBody(REGISTER_BODY_SCHEMA, {
     displayName: 'Sara Member',
@@ -79,6 +83,8 @@ export class AuthController {
   }
 
   @Post('login')
+  @SkipCsrf()
+  @Throttle({ default: { limit: 5, ttl: 60_000 } })
   @ApiJsonOk('Sign in with email or phone and password', AUTH_USER_SCHEMA, AUTH_USER_EXAMPLE)
   @ApiJsonBody(LOGIN_BODY_SCHEMA, {
     identifier: '09120086846',
@@ -92,6 +98,8 @@ export class AuthController {
   }
 
   @Post('refresh')
+  @SkipCsrf()
+  @Throttle({ default: { limit: 10, ttl: 60_000 } })
   @ApiCookieAuth('heritage_refresh')
   @ApiJsonOk('Rotate the refresh token and issue a new token pair', AUTH_USER_SCHEMA, AUTH_USER_EXAMPLE)
   async refresh(@Req() req: Request, @Res({ passthrough: true }) res: Response) {
@@ -121,6 +129,7 @@ export class AuthController {
 
   @Patch('me')
   @UseGuards(JwtAuthGuard)
+  @Throttle({ default: { limit: 10, ttl: 60_000 } })
   @ApiCookieAuth('heritage_access')
   @ApiJsonOk('Update the current member profile', AUTH_USER_SCHEMA, AUTH_USER_EXAMPLE)
   @ApiJsonBody(UPDATE_MEMBER_PROFILE_BODY_SCHEMA, {
@@ -200,6 +209,7 @@ export class AdminUsersController {
   }
 
   @Patch(':id/password')
+  @Throttle({ default: { limit: 10, ttl: 60_000 } })
   @ApiJsonOk('Change a user password and revoke their sessions', OK_SCHEMA, { ok: true })
   @ApiJsonBody(UPDATE_PASSWORD_BODY_SCHEMA, { password: 'NewStrongPassword123!' })
   @ApiValidationError()

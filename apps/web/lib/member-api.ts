@@ -1,4 +1,5 @@
 import type { ZodType } from 'zod';
+import { isMutatingMethod, readCsrfToken } from '@/lib/csrf';
 
 let refreshInFlight: Promise<boolean> | null = null;
 
@@ -31,12 +32,21 @@ export async function memberFetch<T>(
   schema: ZodType<T>,
   init?: RequestInit,
 ): Promise<T> {
+  if (isMutatingMethod(init?.method) && !readCsrfToken()) {
+    // A still-valid access cookie from before a deploy (or before this
+    // session ever hit a route that mints heritage_csrf) means no CSRF
+    // cookie exists yet. It never 401s, so the wrapper would never retry on
+    // its own; mint one via refresh before sending the mutation.
+    await refreshSession();
+  }
+
   const request = () =>
     fetch(`/api/v1${path}`, {
       ...init,
       credentials: 'include',
       headers: {
         ...(init?.body instanceof FormData ? {} : { 'Content-Type': 'application/json' }),
+        ...(isMutatingMethod(init?.method) ? { 'X-CSRF-Token': readCsrfToken() ?? '' } : {}),
         ...init?.headers,
       },
     });
@@ -61,12 +71,17 @@ export async function memberFetch<T>(
 }
 
 export async function memberFetchVoid(path: string, init?: RequestInit): Promise<void> {
+  if (isMutatingMethod(init?.method) && !readCsrfToken()) {
+    await refreshSession();
+  }
+
   const request = () =>
     fetch(`/api/v1${path}`, {
       ...init,
       credentials: 'include',
       headers: {
         ...(init?.body instanceof FormData ? {} : { 'Content-Type': 'application/json' }),
+        ...(isMutatingMethod(init?.method) ? { 'X-CSRF-Token': readCsrfToken() ?? '' } : {}),
         ...init?.headers,
       },
     });

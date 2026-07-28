@@ -4,6 +4,7 @@ import {
   landingResponseSchema,
   listItemSchema,
   localeSchema,
+  sanitizeUnsafeHref,
   siteDetailSchema,
   textSpanSchema,
   type ContentBlock,
@@ -78,7 +79,9 @@ export function mapBlock(
   toAbsoluteUrl: (url: string) => string,
 ): ContentBlock {
   if (block.type === ContentBlockType.HEADING || block.type === ContentBlockType.PARAGRAPH) {
-    const spans = textSpanSchema.array().min(1).parse(block.spans ?? []);
+    const rawSpans = Array.isArray(block.spans) ? block.spans : [];
+    const sanitizedSpans = rawSpans.map((span) => sanitizeUnsafeHref(span as { href?: unknown }));
+    const spans = textSpanSchema.array().min(1).parse(sanitizedSpans);
     return {
       type: block.type,
       sortOrder: block.sortOrder,
@@ -90,7 +93,19 @@ export function mapBlock(
   }
 
   if (block.type === ContentBlockType.LIST) {
-    const items = z.object({ items: listItemSchema.array().min(1) }).parse(block.spans ?? {}).items;
+    const rawItems = Array.isArray((block.spans as { items?: unknown[] } | null)?.items)
+      ? (block.spans as { items: unknown[] }).items
+      : [];
+    const sanitizedItems = rawItems.map((item) => {
+      const rawItemSpans = Array.isArray((item as { spans?: unknown[] })?.spans)
+        ? (item as { spans: unknown[] }).spans
+        : [];
+      return {
+        ...(item as object),
+        spans: rawItemSpans.map((span) => sanitizeUnsafeHref(span as { href?: unknown })),
+      };
+    });
+    const items = z.object({ items: listItemSchema.array().min(1) }).parse({ items: sanitizedItems }).items;
     return {
       type: 'LIST',
       sortOrder: block.sortOrder,

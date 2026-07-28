@@ -205,18 +205,20 @@ model VisitEvent {
 }
 
 model User {
-  id            String         @id @default(cuid())
-  phone         String?        @unique
-  email         String?        @unique
-  passwordHash  String
-  displayName   String?
-  role          UserRole
-  isActive      Boolean        @default(true)
-  createdAt     DateTime       @default(now())
-  updatedAt     DateTime       @updatedAt
-  refreshTokens RefreshToken[]
-  reviews       SiteReview[]
-  reviewLikes   SiteReviewLike[]
+  id                  String         @id @default(cuid())
+  phone               String?        @unique
+  email               String?        @unique
+  passwordHash        String
+  displayName         String?
+  role                UserRole
+  isActive            Boolean        @default(true)
+  failedLoginAttempts Int            @default(0)
+  lockedUntil         DateTime?
+  createdAt           DateTime       @default(now())
+  updatedAt           DateTime       @updatedAt
+  refreshTokens       RefreshToken[]
+  reviews             SiteReview[]
+  reviewLikes         SiteReviewLike[]
 }
 
 model SiteReview {

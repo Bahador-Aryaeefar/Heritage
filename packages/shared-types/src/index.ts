@@ -55,14 +55,43 @@ function validateSiteCoords(
 
 // --- Content block spans ---
 
+export function isSafeHref(href: string): boolean {
+  try {
+    const url = new URL(href, 'http://localhost');
+    return url.protocol === 'http:' || url.protocol === 'https:' || url.protocol === 'mailto:';
+  } catch {
+    return false;
+  }
+}
+
 export const textSpanSchema = z.object({
   text: z.string(),
   bold: z.boolean().optional(),
   italic: z.boolean().optional(),
-  href: z.string().min(1).optional(),
+  href: z
+    .string()
+    .min(1)
+    .refine(isSafeHref, { message: 'href must be an http(s) or mailto link' })
+    .optional(),
 });
 
 export type TextSpan = z.infer<typeof textSpanSchema>;
+
+/**
+ * Drops an unsafe `href` from a raw (not-yet-validated) span-like object,
+ * without touching any other field. Used on the READ path so an already
+ * persisted span with a legacy/malformed href degrades to plain text
+ * instead of throwing and taking down the whole page. The WRITE path must
+ * keep using `textSpanSchema`'s strict refine so bad input is rejected
+ * with a 400 at save time.
+ */
+export function sanitizeUnsafeHref<T extends { href?: unknown }>(span: T): T {
+  if (typeof span?.href === 'string' && span.href.length > 0 && !isSafeHref(span.href)) {
+    const { href: _href, ...rest } = span;
+    return rest as T;
+  }
+  return span;
+}
 
 export const mediaRefSchema = z.object({
   id: z.string(),

@@ -15,6 +15,7 @@ import { handlePrismaError } from '../../common/filters/handle-prisma-error';
 import { PrismaService } from '../../prisma/prisma.service';
 import { clearAuthCookies, parseDurationMs, setAuthCookies } from '../auth.cookies';
 import { generateFamilyId, generateOpaqueToken, hashRefreshToken } from '../auth.tokens';
+import { MAX_FAILED_LOGIN_ATTEMPTS, LOGIN_LOCKOUT_MS } from '../auth.constants';
 
 @Injectable()
 export class AuthService {
@@ -55,13 +56,37 @@ export class AuthService {
       throw new UnauthorizedException('Invalid credentials');
     }
 
+    if (user.lockedUntil && user.lockedUntil.getTime() > Date.now()) {
+      throw new UnauthorizedException('Account temporarily locked, try again later');
+    }
+
     const valid = await bcrypt.compare(password, user.passwordHash);
     if (!valid) {
+      await this.registerFailedLogin(user.id, user.failedLoginAttempts);
       throw new UnauthorizedException('Invalid credentials');
+    }
+
+    if (user.failedLoginAttempts > 0 || user.lockedUntil) {
+      await this.prisma.user.update({
+        where: { id: user.id },
+        data: { failedLoginAttempts: 0, lockedUntil: null },
+      });
     }
 
     await this.issueAuthPair(user, res, generateFamilyId());
     return this.toAuthUser(user);
+  }
+
+  private async registerFailedLogin(userId: string, currentAttempts: number): Promise<void> {
+    const nextAttempts = currentAttempts + 1;
+    const locked = nextAttempts >= MAX_FAILED_LOGIN_ATTEMPTS;
+    await this.prisma.user.update({
+      where: { id: userId },
+      data: {
+        failedLoginAttempts: locked ? 0 : nextAttempts,
+        lockedUntil: locked ? new Date(Date.now() + LOGIN_LOCKOUT_MS) : null,
+      },
+    });
   }
 
   async refresh(refreshToken: string | undefined, res: Response): Promise<AuthUser> {
@@ -215,8 +240,9 @@ export class AuthService {
     });
 
     const accessMaxAgeMs = parseDurationMs(accessExpiresIn, 15 * 60_000);
+    const csrfToken = generateOpaqueToken();
 
-    setAuthCookies(res, accessToken, opaqueRefresh, {
+    setAuthCookies(res, accessToken, opaqueRefresh, csrfToken, {
       secure: cookieSecure,
       accessMaxAgeMs,
       refreshMaxAgeMs,

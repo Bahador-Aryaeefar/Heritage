@@ -39,6 +39,7 @@ describe('Admin sites — atomic multipart write + cleanup (e2e)', () => {
 
   let app: INestApplication<App>;
   let agent: ReturnType<typeof request.agent>;
+  let csrfToken: string;
   const slug = `e2e-site-${Date.now()}-${randomUUID().slice(0, 8)}`;
 
   beforeAll(async () => {
@@ -69,6 +70,11 @@ describe('Admin sites — atomic multipart write + cleanup (e2e)', () => {
     const body = res.body as { phone: string; role: string };
     expect(body.phone).toBe(SUPER_ADMIN_PHONE);
     expect(body.role).toBe('SUPER_ADMIN');
+
+    const setCookies = res.headers['set-cookie'] as unknown as string[];
+    const csrfCookie = setCookies.find((cookie) => cookie.startsWith('heritage_csrf='));
+    expect(csrfCookie).toBeDefined();
+    csrfToken = csrfCookie!.split(';')[0].split('=')[1]!;
   });
 
   let cityId: string;
@@ -151,6 +157,7 @@ describe('Admin sites — atomic multipart write + cleanup (e2e)', () => {
 
     const res = await agent
       .post('/api/v1/admin/sites')
+      .set('x-csrf-token', csrfToken)
       // The multipart field name for a file MUST equal its clientFileKey exactly
       // (here "cover") — no `file_` prefix. See admin-sites.controller.ts `indexFiles`.
       .field('payload', JSON.stringify(payload))
@@ -279,6 +286,7 @@ describe('Admin sites — atomic multipart write + cleanup (e2e)', () => {
 
     const res = await agent
       .put(`/api/v1/admin/sites/${siteId}`)
+      .set('x-csrf-token', csrfToken)
       .field('payload', JSON.stringify(payload))
       .expect(200);
 
@@ -294,7 +302,7 @@ describe('Admin sites — atomic multipart write + cleanup (e2e)', () => {
   });
 
   it('DELETE removes the site; a subsequent GET 404s', async () => {
-    await agent.delete(`/api/v1/admin/sites/${siteId}`).expect(204);
+    await agent.delete(`/api/v1/admin/sites/${siteId}`).set('x-csrf-token', csrfToken).expect(204);
     await agent.get(`/api/v1/admin/sites/${siteId}`).expect(404);
   });
 });

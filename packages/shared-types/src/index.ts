@@ -34,6 +34,37 @@ export type ColorToken = z.infer<typeof colorTokenSchema>;
 export type BlockAlign = z.infer<typeof blockAlignSchema>;
 export type Locale = z.infer<typeof localeSchema>;
 
+export const visitSourceSchema = z.enum(['QR', 'WEB']);
+export type VisitSource = z.infer<typeof visitSourceSchema>;
+
+export const recordVisitSchema = z.object({
+  source: visitSourceSchema,
+  locale: localeSchema,
+});
+export type RecordVisitInput = z.infer<typeof recordVisitSchema>;
+
+export const visitDailyCountSchema = z.object({
+  date: z.string(),
+  count: z.number().int().nonnegative(),
+});
+export type VisitDailyCount = z.infer<typeof visitDailyCountSchema>;
+
+export const visitQrCodeStatSchema = z.object({
+  code: z.string(),
+  isActive: z.boolean(),
+  scanCount: z.number().int().nonnegative(),
+});
+export type VisitQrCodeStat = z.infer<typeof visitQrCodeStatSchema>;
+
+export const siteVisitStatsSchema = z.object({
+  totalVisits: z.number().int().nonnegative(),
+  qrVisits: z.number().int().nonnegative(),
+  webVisits: z.number().int().nonnegative(),
+  last30Days: z.array(visitDailyCountSchema),
+  qrCodes: z.array(visitQrCodeStatSchema),
+});
+export type SiteVisitStats = z.infer<typeof siteVisitStatsSchema>;
+
 export function siteCategoryRequiresCoords(category: SiteCategory): boolean {
   return (SITE_CATEGORIES_REQUIRING_COORDS as readonly SiteCategory[]).includes(category);
 }

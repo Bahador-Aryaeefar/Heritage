@@ -28,6 +28,7 @@ import {
   type BlockListEditorLabels,
 } from '@/components/admin/block-list-editor';
 import { AdminSiteQrPanel } from '@/components/admin/admin-site-qr-panel';
+import { VisitStatsPanel } from '@/components/admin/visit-stats-panel';
 import {
   copyBlocksFromFa,
   createBlockKey,
@@ -649,6 +650,24 @@ export function SiteForm({ site, defaultCategory = 'HISTORICAL' }: SiteFormProps
             scan: t('qrScan'),
             download: t('qrDownload'),
             targetUrl: t('qrTargetUrl'),
+          }}
+        />
+      ) : null}
+
+      {isEdit && site ? (
+        <VisitStatsPanel
+          siteId={site.id}
+          labels={{
+            title: t('visitStatsTitle'),
+            totalVisits: t('visitStatsTotal'),
+            qrVisits: t('visitStatsQr'),
+            webVisits: t('visitStatsWeb'),
+            last30Days: t('visitStatsLast30Days'),
+            qrCodes: t('visitStatsQrCodes'),
+            active: t('visitStatsActive'),
+            inactive: t('visitStatsInactive'),
+            loading: t('visitStatsLoading'),
+            error: t('visitStatsError'),
           }}
         />
       ) : null}

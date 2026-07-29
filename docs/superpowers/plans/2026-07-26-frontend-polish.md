@@ -12,9 +12,9 @@
 
 - No em dashes, curly quotes, or other AI punctuation in code, docs, i18n copy, or commits (CLAUDE.md Rule 0).
 - Reuse `components/ui/*` primitives; never invent a one-off pill, chevron, or pagination control that duplicates a primitive (CLAUDE.md Rule 1).
-- Any new public/admin section or composed component gets documented in `design-system.md` in the same session (CLAUDE.md Rule 1/Rule 2 — this plan's final task updates that file).
+- Any new public/admin section or composed component gets documented in `design-system.md` in the same session (CLAUDE.md Rule 1/Rule 2 - this plan's final task updates that file).
 - After every task, run `pnpm --filter web exec tsc --noEmit` and `pnpm --filter web test` and keep both green.
-- Follow the RTL-first, Vazirmatn-only, brown/sand/teal token rules already codified in `design-system.md` — no new colors or fonts.
+- Follow the RTL-first, Vazirmatn-only, brown/sand/teal token rules already codified in `design-system.md` - no new colors or fonts.
 
 ---
 
@@ -35,7 +35,7 @@
 
 - [ ] **Step 1: Move `ListPagination` into `components/ui/`**
 
-Read the existing `apps/web/components/admin/list-pagination.tsx` and create `apps/web/components/ui/list-pagination.tsx` with byte-identical content (no code changes — only the file's location changes; it has no admin-specific imports already, so nothing inside the file needs editing). Then delete `apps/web/components/admin/list-pagination.tsx`.
+Read the existing `apps/web/components/admin/list-pagination.tsx` and create `apps/web/components/ui/list-pagination.tsx` with byte-identical content (no code changes - only the file's location changes; it has no admin-specific imports already, so nothing inside the file needs editing). Then delete `apps/web/components/admin/list-pagination.tsx`.
 
 - [ ] **Step 2: Update the two existing admin importers**
 
@@ -66,7 +66,7 @@ In `apps/web/components/public/site-reviews-panel.tsx`, add the import:
 import { ListPagination } from '@/components/ui/list-pagination';
 ```
 
-Extend the `labels` type — replace:
+Extend the `labels` type - replace:
 
 ```ts
     signInToLike: string;
@@ -380,7 +380,7 @@ In `apps/web/messages/ar.json`, find the same two insertion points (`"signInToLi
       "last": "الصفحة الأخيرة"
 ```
 
-(Every insertion is "add a comma after the existing last line of that JSON object, then these new keys" — read the surrounding braces before editing so the file stays valid JSON.)
+(Every insertion is "add a comma after the existing last line of that JSON object, then these new keys" - read the surrounding braces before editing so the file stays valid JSON.)
 
 - [ ] **Step 8: Manually verify in the browser**
 
@@ -408,7 +408,7 @@ git commit -m "feat(web): wire real pagination into site and member review lists
 
 - [ ] **Step 1: Add the `errors` i18n namespace**
 
-In `apps/web/messages/en.json`, add a new top-level `"errors"` object as a sibling of the existing top-level keys (`"nav"`, `"home"`, `"site"`, `"member"`, `"admin"`, `"footer"`, ...one of them is last before the file's final closing `}` — add a comma after that block's closing brace, then this key):
+In `apps/web/messages/en.json`, add a new top-level `"errors"` object as a sibling of the existing top-level keys (`"nav"`, `"home"`, `"site"`, `"member"`, `"admin"`, `"footer"`, ...one of them is last before the file's final closing `}` - add a comma after that block's closing brace, then this key):
 
 ```json
   "errors": {
@@ -587,7 +587,7 @@ git commit -m "feat(web): add error, loading, and not-found boundaries"
 
 ---
 
-### Task 3: SEO — Open Graph, JSON-LD, sitemap, robots
+### Task 3: SEO - Open Graph, JSON-LD, sitemap, robots
 
 **Files:**
 - Modify: `apps/web/app/[locale]/(public)/sites/[slug]/page.tsx`
@@ -734,7 +734,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 }
 ```
 
-Add the imports this needs — replace:
+Add the imports this needs - replace:
 
 ```ts
 import { localizedPath } from '@/i18n/locales';
@@ -784,7 +784,7 @@ with:
       <VisitTracker slug={slug} locale={locale} source={visitSource} />
 ```
 
-(Note: this replacement references `visitSource`, `cityName`, and `provinceName`, which only exist if Task 4 of the visit-analytics plan and the existing `cityName`/`provinceName` computation further down the file have already run. If the visit-analytics plan has not been applied yet, drop the `<VisitTracker .../>` line and the `visitSource` prop from this snippet — `cityName`/`provinceName` are already computed unconditionally later in this file regardless of that plan.)
+(Note: this replacement references `visitSource`, `cityName`, and `provinceName`, which only exist if Task 4 of the visit-analytics plan and the existing `cityName`/`provinceName` computation further down the file have already run. If the visit-analytics plan has not been applied yet, drop the `<VisitTracker .../>` line and the `visitSource` prop from this snippet - `cityName`/`provinceName` are already computed unconditionally later in this file regardless of that plan.)
 
 - [ ] **Step 4: Add `sitemap.ts`**
 
@@ -854,7 +854,7 @@ git commit -m "feat(web): add Open Graph, JSON-LD, sitemap, and robots.txt"
 
 ---
 
-### Task 4: PWA — manifest and service worker
+### Task 4: PWA - manifest and service worker
 
 **Files:**
 - Modify: `apps/web/package.json`
@@ -989,7 +989,7 @@ installSerwist({
 });
 ```
 
-If `@serwist/next`'s current README documents a different export name for the worker-side `defaultCache` helper or a different `installSerwist` options shape, follow the installed version's own docs instead — this is standard Serwist Next.js App Router boilerplate as of Serwist 9.x, but check `node_modules/@serwist/next/README.md` if the build fails on this file.
+If `@serwist/next`'s current README documents a different export name for the worker-side `defaultCache` helper or a different `installSerwist` options shape, follow the installed version's own docs instead - this is standard Serwist Next.js App Router boilerplate as of Serwist 9.x, but check `node_modules/@serwist/next/README.md` if the build fails on this file.
 
 - [ ] **Step 5: Wire Serwist into `next.config.ts`**
 
@@ -1017,7 +1017,7 @@ const withPWA = withSerwist({
 export default withPWA(withNextIntl(nextConfig));
 ```
 
-(Service worker is disabled in dev so `next dev`'s HMR is not fought by a caching worker — Serwist itself recommends this.)
+(Service worker is disabled in dev so `next dev`'s HMR is not fought by a caching worker - Serwist itself recommends this.)
 
 - [ ] **Step 6: Manually verify**
 
@@ -1040,7 +1040,7 @@ git commit -m "feat(web): add PWA manifest and Serwist service worker"
 - Modify: `apps/web/components/public/review-card.tsx`
 - Modify: `design-system.md`
 
-**Interfaces:** none new — `Heart` and `LogIn` from `lucide-react` replace the ad hoc `+`/`*` text glyphs.
+**Interfaces:** none new - `Heart` and `LogIn` from `lucide-react` replace the ad hoc `+`/`*` text glyphs.
 
 - [ ] **Step 1: Install lucide-react**
 
@@ -1159,7 +1159,7 @@ describe('LogoMark', () => {
 - [ ] **Step 2: Run the test to verify it fails**
 
 Run: `pnpm --filter web test -- logo-mark.test.tsx`
-Expected: FAIL — the second test fails because no `variant` prop exists yet (every fill is still a brand hex color).
+Expected: FAIL - the second test fails because no `variant` prop exists yet (every fill is still a brand hex color).
 
 - [ ] **Step 3: Implement the `variant` prop**
 
@@ -1175,7 +1175,7 @@ type LogoMarkProps = {
   variant?: 'color' | 'mono';
 };
 
-// Design system §11 logo lockup — arch + QR corner (from heritage.html).
+// Design system §11 logo lockup - arch + QR corner (from heritage.html).
 export function LogoMark({ className = 'h-[42px] w-[42px]', style, variant = 'color' }: LogoMarkProps) {
   if (variant === 'mono') {
     return (
@@ -1211,7 +1211,7 @@ export function LogoMark({ className = 'h-[42px] w-[42px]', style, variant = 'co
 }
 ```
 
-The mono variant outlines the QR corner square and its three pips (instead of filling them solid) so the arch and the QR mark stay visually distinguishable from each other even in a single ink color — a solid-filled square in the same color as the arch would visually merge with it.
+The mono variant outlines the QR corner square and its three pips (instead of filling them solid) so the arch and the QR mark stay visually distinguishable from each other even in a single ink color - a solid-filled square in the same color as the arch would visually merge with it.
 
 - [ ] **Step 4: Run the test to verify it passes**
 
@@ -1289,7 +1289,7 @@ describe('Select keyboard navigation', () => {
 - [ ] **Step 2: Run the test to verify it fails**
 
 Run: `pnpm --filter web test -- select.test.tsx`
-Expected: FAIL — the trigger has no `onKeyDown` handler yet, so ArrowDown does nothing while closed, and ArrowDown/Enter while open does not move or select anything.
+Expected: FAIL - the trigger has no `onKeyDown` handler yet, so ArrowDown does nothing while closed, and ArrowDown/Enter while open does not move or select anything.
 
 - [ ] **Step 3: Implement keyboard navigation in `Select`**
 
@@ -1521,7 +1521,7 @@ import {
 } from '@/lib/measure-portal-menu';
 
 /**
- * Compact dropdown language switcher — scales to many locales without
+ * Compact dropdown language switcher - scales to many locales without
  * a growing pill row. Native names come from LOCALE_DEFINITIONS.
  */
 export function LanguageSwitcher() {
@@ -1722,7 +1722,7 @@ export function LanguageSwitcher() {
 
 - [ ] **Step 6: Manually verify in the browser**
 
-Tab to the language switcher trigger, press ArrowDown, confirm the menu opens with the next locale highlighted; press ArrowDown/ArrowUp to move the highlight, Enter to switch locale, Escape to close without switching. Repeat for a `Select` in the admin site form (e.g. the category filter — note category is read-only on the site form itself, so use the admin sites list's search-adjacent `Select` if present, or any other live `Select` usage).
+Tab to the language switcher trigger, press ArrowDown, confirm the menu opens with the next locale highlighted; press ArrowDown/ArrowUp to move the highlight, Enter to switch locale, Escape to close without switching. Repeat for a `Select` in the admin site form (e.g. the category filter - note category is read-only on the site form itself, so use the admin sites list's search-adjacent `Select` if present, or any other live `Select` usage).
 
 - [ ] **Step 7: Commit**
 
@@ -1753,7 +1753,7 @@ Expected: no errors; the build succeeds with Serwist's service-worker generation
 
 - [ ] **Step 4: Update `design-system.md` with the new PWA/SEO surfaces**
 
-Add a short new subsection under the existing "Where the tokens live in code" section (§9) or as a new top-level section, documenting: `app/manifest.ts` + `app/sw.ts` (Serwist, disabled in dev) as the PWA surface, `app/sitemap.ts` + `app/robots.ts` as the SEO surface, and the `errors` i18n namespace backing `error.tsx`/`not-found.tsx`. This keeps CLAUDE.md Rule 2's requirement satisfied — a new composed frontend surface was added this session and must be documented in the same session.
+Add a short new subsection under the existing "Where the tokens live in code" section (§9) or as a new top-level section, documenting: `app/manifest.ts` + `app/sw.ts` (Serwist, disabled in dev) as the PWA surface, `app/sitemap.ts` + `app/robots.ts` as the SEO surface, and the `errors` i18n namespace backing `error.tsx`/`not-found.tsx`. This keeps CLAUDE.md Rule 2's requirement satisfied - a new composed frontend surface was added this session and must be documented in the same session.
 
 - [ ] **Step 5: Commit**
 
@@ -1764,6 +1764,6 @@ git commit -m "docs: document PWA, SEO, and error-boundary surfaces in design-sy
 
 ## Self-review notes
 
-- Spec coverage: pagination (Task 1), error/loading/not-found (Task 2), SEO (Task 3), PWA (Task 4), icon library (Task 5), single-color logo (Task 6), dropdown keyboard nav (Task 7) — every frontend gap from the analysis is covered. Password-reset UI was explicitly excluded per the scoping decision (no backend password-reset endpoint was selected for this round).
+- Spec coverage: pagination (Task 1), error/loading/not-found (Task 2), SEO (Task 3), PWA (Task 4), icon library (Task 5), single-color logo (Task 6), dropdown keyboard nav (Task 7) - every frontend gap from the analysis is covered. Password-reset UI was explicitly excluded per the scoping decision (no backend password-reset endpoint was selected for this round).
 - Task 3 Step 3 flags its own cross-plan dependency explicitly (the `VisitTracker`/`visitSource` reference depends on the visit-analytics plan) rather than silently assuming it, so this plan stays correct if run alone.
-- Type consistency check: `ListPagination`'s props (`meta`, `onPageChange`, `labels: { first, previous, next, last }`) are used identically in Task 1 (both review lists) and already matched what `UsersPanel`/`SitesList` pass today — no signature drift introduced.
+- Type consistency check: `ListPagination`'s props (`meta`, `onPageChange`, `labels: { first, previous, next, last }`) are used identically in Task 1 (both review lists) and already matched what `UsersPanel`/`SitesList` pass today - no signature drift introduced.

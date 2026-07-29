@@ -11,7 +11,7 @@
 ## Global Constraints
 
 - No em dashes, curly quotes, or other AI punctuation in code, docs, or commits (CLAUDE.md Rule 0).
-- New unit tests mock `PrismaService` as a plain object cast `as unknown as PrismaService`, matching `sites.service.spec.ts` and `admin-sites-full.service.spec.ts` — no `@nestjs/testing` `TestingModule` unless a test genuinely needs Nest's DI container (none in this plan do).
+- New unit tests mock `PrismaService` as a plain object cast `as unknown as PrismaService`, matching `sites.service.spec.ts` and `admin-sites-full.service.spec.ts` - no `@nestjs/testing` `TestingModule` unless a test genuinely needs Nest's DI container (none in this plan do).
 - Playwright specs assume the developer already has the API + local Postgres (seeded) and the web dev server running, exactly like the existing Jest e2e specs already assume ("Requires the local Postgres container running... and the seed script to have run"). No `webServer` auto-start is configured, to avoid the complexity of orchestrating two separate app processes plus a database from one test runner.
 - Tasks 6 in this plan modify files that two other plans (`2026-07-26-security-hardening.md`, `2026-07-26-review-moderation.md`) may also create. Each step says explicitly what to do if the file already exists vs. does not, so this plan is correct regardless of execution order.
 
@@ -24,7 +24,7 @@
 - Create: `apps/web/playwright.config.ts`
 - Create: `apps/web/e2e/scan-to-page-load.spec.ts`
 
-**Interfaces:** none — this is the first Playwright spec in the repo.
+**Interfaces:** none - this is the first Playwright spec in the repo.
 
 - [ ] **Step 1: Install Playwright and its browsers**
 
@@ -152,7 +152,7 @@ With both dev servers and the seeded database running:
 `pnpm --filter web test:e2e -- sign-in-to-edit-a-site.spec.ts`
 Expected: PASS
 
-Note: this test permanently overwrites the short description of whichever site sorts first under the `HISTORICAL` category in the admin list (Taq-e Bostan in the current seed). That is an accepted, intentional side effect of an e2e test that proves a real write path — it is not run against a production database.
+Note: this test permanently overwrites the short description of whichever site sorts first under the `HISTORICAL` category in the admin list (Taq-e Bostan in the current seed). That is an accepted, intentional side effect of an e2e test that proves a real write path - it is not run against a production database.
 
 - [ ] **Step 3: Commit**
 
@@ -170,7 +170,7 @@ git commit -m "test(web): add the sign-in-to-edit-a-site e2e flow"
 - Create: `apps/api/src/auth/optional-jwt-auth.guard.spec.ts`
 - Create: `apps/api/src/auth/roles.guard.spec.ts`
 
-**Interfaces:** none — these are pure unit tests of existing, unchanged guards.
+**Interfaces:** none - these are pure unit tests of existing, unchanged guards.
 
 - [ ] **Step 1: Write the failing `JwtAuthGuard` tests**
 
@@ -242,7 +242,7 @@ describe('JwtAuthGuard', () => {
 - [ ] **Step 2: Run the test to verify it passes**
 
 Run: `pnpm --filter api test -- jwt-auth.guard.spec.ts`
-Expected: PASS (4 tests) — `JwtAuthGuard` already exists and is unchanged, so this test should pass immediately; it documents behavior that had no coverage before.
+Expected: PASS (4 tests) - `JwtAuthGuard` already exists and is unchanged, so this test should pass immediately; it documents behavior that had no coverage before.
 
 - [ ] **Step 3: Write the `OptionalJwtAuthGuard` tests**
 
@@ -384,7 +384,7 @@ git commit -m "test(api): cover JwtAuthGuard, OptionalJwtAuthGuard, and RolesGua
 **Files:**
 - Create: `apps/api/src/auth/application/users.service.spec.ts`
 
-**Interfaces:** none — tests existing, unchanged service methods.
+**Interfaces:** none - tests existing, unchanged service methods.
 
 - [ ] **Step 1: Write the tests**
 
@@ -501,7 +501,7 @@ git commit -m "test(api): cover UsersService update/delete guard rails"
 - Create: `apps/api/src/qr/application/qr-plaque.builder.spec.ts`
 - Create: `apps/api/src/qr/application/qr.service.spec.ts`
 
-**Interfaces:** none — tests existing, unchanged code.
+**Interfaces:** none - tests existing, unchanged code.
 
 - [ ] **Step 1: Write the `buildPlaqueSvg` tests**
 
@@ -605,11 +605,11 @@ git commit -m "test(api): cover QR plaque SVG generation and scan URL building"
 - Modify (or create): `apps/api/src/auth/application/auth.service.spec.ts`
 - Modify (or create): `apps/api/src/sites/application/site-reviews.service.spec.ts`
 
-**Interfaces:** none — tests existing, unchanged service methods not otherwise covered by the security-hardening or review-moderation plans.
+**Interfaces:** none - tests existing, unchanged service methods not otherwise covered by the security-hardening or review-moderation plans.
 
 - [ ] **Step 1: Check whether `auth.service.spec.ts` already exists**
 
-Check `apps/api/src/auth/application/auth.service.spec.ts`. If the security-hardening plan (`2026-07-26-security-hardening.md`, Task 4) already ran, this file exists with one `describe('AuthService login lockout', ...)` block and already imports `AuthService`, `PrismaService`, `JwtService`, `ConfigService`, `bcrypt`, and `UnauthorizedException`. If it does not exist yet, create it with just the imports below (the lockout describe block from that plan is not this plan's concern — if that plan runs later, it adds its own describe block to this same file without conflict, since each `describe` callback declares its own local `const` mocks).
+Check `apps/api/src/auth/application/auth.service.spec.ts`. If the security-hardening plan (`2026-07-26-security-hardening.md`, Task 4) already ran, this file exists with one `describe('AuthService login lockout', ...)` block and already imports `AuthService`, `PrismaService`, `JwtService`, `ConfigService`, `bcrypt`, and `UnauthorizedException`. If it does not exist yet, create it with just the imports below (the lockout describe block from that plan is not this plan's concern - if that plan runs later, it adds its own describe block to this same file without conflict, since each `describe` callback declares its own local `const` mocks).
 
 - [ ] **Step 2: Add the new describe block**
 
@@ -904,6 +904,6 @@ Expected: no errors.
 
 ## Self-review notes
 
-- Spec coverage: Playwright + both named flows (Tasks 1-2), guards (Task 3), `UsersService` (Task 4), QR generation (Task 5), `AuthService` remaining methods + `SiteReviewsService` member flows (Task 6) — every test-coverage gap from the analysis is addressed.
+- Spec coverage: Playwright + both named flows (Tasks 1-2), guards (Task 3), `UsersService` (Task 4), QR generation (Task 5), `AuthService` remaining methods + `SiteReviewsService` member flows (Task 6) - every test-coverage gap from the analysis is addressed.
 - Task 2's e2e spec intentionally mutates seed data (documented inline) rather than attempting a revert, since reverting would require either a second brittle UI round-trip or direct DB access from a browser-automation test, both worse trade-offs than accepting the mutation.
-- Task 6 is written so it produces correct, working test files whether run before, after, or independent of the security-hardening and review-moderation plans — each `describe` block owns its own local mocks, so there is no shared-state collision even when both blocks end up in the same file.
+- Task 6 is written so it produces correct, working test files whether run before, after, or independent of the security-hardening and review-moderation plans - each `describe` block owns its own local mocks, so there is no shared-state collision even when both blocks end up in the same file.

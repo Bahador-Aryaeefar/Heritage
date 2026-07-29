@@ -267,6 +267,7 @@ Implemented under `/admin` (fa default) and `/en/admin/...`. Shares public page 
 | Field label / table header | **12px** bold (`text-xs`) | `Field`, map label, column headers |
 | Caption / metadata | **12-13px** | Slug, phone, file name, map hint |
 | Brand tagline only | `text-[11px]` tracking-wide | Sidebar tagline (documented exception) |
+| Stat tile number only | `text-[22px]` black | Visit-stats panel totals (documented exception - a compact tile headline is not the same role as the page-title H1, and 15px body copy reads too weak for a headline number; scoped to this one tile pattern, not for reuse elsewhere) |
 
 **Layout:**
 
@@ -276,6 +277,7 @@ Implemented under `/admin` (fa default) and `/en/admin/...`. Shares public page 
 | Main panel | Opaque sand-100; padding `p-5` / `md:p-6`; nested lists/cards use **white** + `border-brown-800/15` |
 | Forms | **Full width of main**  -  do not center with `max-w-3xl` / `mx-auto` (login card may stay `max-w-md`) |
 | Site edit QR | On edit only: white `rounded-card` `AdminSiteQrPanel`  -  live `HeritageQrCode` from slug URL + plaque PNG download (`/downloads/sites/{slug}/plaque.png`); target URL label follows page `dir`, URL value in nested `dir="ltr"` span |
+| Site edit visit stats | On edit only, below the QR panel: white `rounded-card` `VisitStatsPanel` (`components/admin/visit-stats-panel.tsx`). Fetches `GET /admin/sites/:id/visit-stats` via `adminFetch` + React Query (`queryKey: ['admin', 'sites', siteId, 'visit-stats']`). Loading/error copy in **15px** body size (loading `brown-600`, error `[#B44B3D]` matching the form's own error color). Layout: 3-column stat-tile grid (total / QR / web visits, each white-on-`sand-50` `rounded-button` tile, number **22px black** - see type-scale exception above, label **12px** `text-xs` `brown-600`); "last 30 days" day-strip as plain `<li>` bars (`h-6 w-2 shrink-0 rounded-sm bg-teal-700`, opacity keyed to that day's count, `title` tooltip plus `aria-label` with date + count so the series is not decorative-only to screen readers, `<ul>` named by its heading via `aria-labelledby` - no charting library, by design). The strip stays a **single row** (`flex-nowrap`) inside an `overflow-x-auto` wrapper: wrapping to a second row breaks the at-a-glance trend read, so the container scrolls rather than the page. Under `dir="rtl"` the bars run oldest-at-right, which is the correct RTL timeline convention (reading-start = past) and needs no override. The QR-code subsection is **omitted entirely when a site has no QR codes**, rather than rendering a bare heading. QR-code list as `sand-50` rows (code in nested `dir="ltr"` span, scan count, then status `Badge` `tone="default"`/`"muted"` for active/inactive - never a hand-rolled pill). |
 | Lists | Filtered by sidebar category (`?category=` + API `category`); white nested rows on sand panels (`items-center`): cover thumb → title + status `Badge` (`gap-1`, `items-start`) → **slug** (before actions) → Edit/Delete; search + always-visible pagination: first / prev / up to **3** nearby page numbers / next / last (icon buttons + teal current page; 10/page) on sites and users; page H1 + New CTA / empty / delete copy is per-category |
 | Category + location | Category is **locked** from the active tab (create) or existing entry (edit)  -  shown as `Badge`, not a Select. Map/lat/lng only for `HISTORICAL`/`STREET`/`LANDMARK`; handicraft/food show category-specific location hint instead |
 | Login | Opaque sand-100 card; language switcher above; **shared `SiteFooter`** below centered card |
@@ -396,7 +398,7 @@ Full-width admin editor for creating/replacing a site. Reads all copy from `useT
 
 Components: `language-switcher.tsx` (public header, admin header, admin login).
 
-Admin composed components: `admin-shell.tsx`, `login-form.tsx`, `sites-list.tsx`, `site-form.tsx`, `admin-site-qr-panel.tsx`, `block-list-editor.tsx`, `block-canvas.tsx`, `block-inspector.tsx`, `block-insert-menu.tsx`, `span-text-editor.tsx`, `format-toolbar.tsx`, `media-file-picker.tsx`, `users-panel.tsx`, `location-map-picker.tsx`.
+Admin composed components: `admin-shell.tsx`, `login-form.tsx`, `sites-list.tsx`, `site-form.tsx`, `admin-site-qr-panel.tsx`, `visit-stats-panel.tsx`, `block-list-editor.tsx`, `block-canvas.tsx`, `block-inspector.tsx`, `block-insert-menu.tsx`, `span-text-editor.tsx`, `format-toolbar.tsx`, `media-file-picker.tsx`, `users-panel.tsx`, `location-map-picker.tsx`.
 
 
 ## Open questions

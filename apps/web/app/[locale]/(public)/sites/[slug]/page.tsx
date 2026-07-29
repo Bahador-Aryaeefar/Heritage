@@ -6,6 +6,7 @@ import { BlockRenderer } from '@/components/public/content-blocks/block-renderer
 import { SiteLocation } from '@/components/public/site-location';
 import { SiteQrPanel } from '@/components/public/site-qr-panel';
 import { SiteReviewsPanel } from '@/components/public/site-reviews-panel';
+import { VisitTracker } from '@/components/public/visit-tracker';
 import {
   getLanding,
   getSiteBySlug,
@@ -107,6 +108,7 @@ export default async function SiteDetailPage({ params }: PageProps) {
 
   return (
     <article className="mx-auto w-full max-w-[1400px] px-[5vw] py-12 md:py-16">
+      <VisitTracker slug={slug} locale={locale} />
       <header className="mb-12 border-b border-brown-800/10 pb-10">
         <Badge>{t(site.category)}</Badge>
         <h1 className="mt-4 text-[clamp(26px,2.8vw,38px)] font-black leading-snug text-brown-950">

@@ -4,7 +4,7 @@
 
 **Goal:** Close the four backend security gaps identified in the Shahrnama gap analysis: no rate limiting on auth/review endpoints, no CSRF protection alongside the HTTP-only auth cookies, no scheme sanitization on rich-text span `href`s, and no login lockout after repeated failed attempts.
 
-**Architecture:** Each gap is closed with the smallest addition that fits the existing NestJS module layout (`application/` + `presentation/` split, guards under `src/auth/` or `src/common/`, Zod schemas in `packages/shared-types`). No new infrastructure (Redis, external services) is introduced — rate limiting and CSRF state use the same in-memory/cookie mechanisms already in place, matching the project's "add infra only when a concrete need appears" stance (architecture-decisions.md §1, §11).
+**Architecture:** Each gap is closed with the smallest addition that fits the existing NestJS module layout (`application/` + `presentation/` split, guards under `src/auth/` or `src/common/`, Zod schemas in `packages/shared-types`). No new infrastructure (Redis, external services) is introduced - rate limiting and CSRF state use the same in-memory/cookie mechanisms already in place, matching the project's "add infra only when a concrete need appears" stance (architecture-decisions.md §1, §11).
 
 **Tech Stack:** NestJS 11, `@nestjs/throttler` (new dependency), Prisma 6, Zod 4, Jest + Supertest (existing).
 
@@ -14,7 +14,7 @@
 - Follow the existing module layout: services in `application/`, controllers in `presentation/`, cross-cutting guards under `src/common/` or `src/auth/` depending on whether they are auth-specific.
 - After every task, run `pnpm --filter api exec tsc --noEmit -p tsconfig.build.json` in `apps/api` and keep it green (CLAUDE.md Rule 4).
 - Prisma schema changes go through a real migration generated with `pnpm --filter api prisma:migrate`, never a hand-written `migration.sql`.
-- No new client-side or server-side abstraction beyond what each task needs (YAGNI) — `member-api.ts` and `admin-api.ts` already duplicate the same fetch-wrapper shape; match that existing duplication rather than extracting a shared helper.
+- No new client-side or server-side abstraction beyond what each task needs (YAGNI) - `member-api.ts` and `admin-api.ts` already duplicate the same fetch-wrapper shape; match that existing duplication rather than extracting a shared helper.
 
 ---
 
@@ -83,7 +83,7 @@ describe('Rate limiting (e2e)', () => {
 - [ ] **Step 3: Run the test to verify it fails**
 
 Run: `pnpm --filter api test:e2e -- rate-limit.e2e-spec.ts`
-Expected: FAIL — the 6th request returns 401, not 429, because no throttling exists yet.
+Expected: FAIL - the 6th request returns 401, not 429, because no throttling exists yet.
 
 - [ ] **Step 4: Wire the global throttler**
 
@@ -695,7 +695,7 @@ with:
     });
 ```
 
-(There are two identical occurrences in this file, one inside `memberFetch` and one inside `memberFetchVoid` — apply the same replacement to both.)
+(There are two identical occurrences in this file, one inside `memberFetch` and one inside `memberFetchVoid` - apply the same replacement to both.)
 
 Apply the identical two changes to `apps/web/lib/admin-api.ts` (import `isMutatingMethod, readCsrfToken` from `@/lib/csrf`, same header addition in both `adminFetch` and `adminFetchVoid`).
 
@@ -752,7 +752,7 @@ describe('textSpanSchema href sanitization', () => {
 - [ ] **Step 2: Run the test to verify it fails**
 
 Run: `pnpm --filter api test -- text-span.schema.spec.ts`
-Expected: FAIL — the last two cases do not throw yet.
+Expected: FAIL - the last two cases do not throw yet.
 
 - [ ] **Step 3: Implement the sanitizer**
 
@@ -799,7 +799,7 @@ Expected: PASS (5 tests)
 - [ ] **Step 5: Run the existing schema suite to confirm nothing else broke**
 
 Run: `pnpm --filter api test -- site-full.schema.spec.ts`
-Expected: PASS — the existing `href: 'https://example.com'` fixture in that file still validates.
+Expected: PASS - the existing `href: 'https://example.com'` fixture in that file still validates.
 
 - [ ] **Step 6: Commit**
 
@@ -999,7 +999,7 @@ describe('AuthService login lockout', () => {
 - [ ] **Step 4: Run the test to verify it fails**
 
 Run: `pnpm --filter api test -- auth.service.spec.ts`
-Expected: FAIL — `login()` does not yet check `lockedUntil` or update `failedLoginAttempts`.
+Expected: FAIL - `login()` does not yet check `lockedUntil` or update `failedLoginAttempts`.
 
 - [ ] **Step 5: Add the lockout constants**
 
@@ -1118,7 +1118,7 @@ Expected: all suites pass, including the new `csrf.guard.spec.ts`, `text-span.sc
 - [ ] **Step 3: Run the full e2e suite**
 
 Run: `pnpm --filter api test:e2e`
-Expected: all specs pass, including `rate-limit.e2e-spec.ts` and `csrf.e2e-spec.ts`, and the pre-existing `member-reviews.e2e-spec.ts` and `admin-sites-full.e2e-spec.ts` still pass (they now need a `heritage_csrf` cookie for their mutating calls — if they fail with 403, update them to extract and send the CSRF cookie the same way `csrf.e2e-spec.ts` does).
+Expected: all specs pass, including `rate-limit.e2e-spec.ts` and `csrf.e2e-spec.ts`, and the pre-existing `member-reviews.e2e-spec.ts` and `admin-sites-full.e2e-spec.ts` still pass (they now need a `heritage_csrf` cookie for their mutating calls - if they fail with 403, update them to extract and send the CSRF cookie the same way `csrf.e2e-spec.ts` does).
 
 - [ ] **Step 4: Lint**
 
@@ -1127,5 +1127,5 @@ Expected: no errors.
 
 ## Self-review notes
 
-- Spec coverage: rate limiting (Task 1), CSRF (Task 2), href sanitization (Task 3), login lockout (Task 4) — all four gap-analysis items are covered.
+- Spec coverage: rate limiting (Task 1), CSRF (Task 2), href sanitization (Task 3), login lockout (Task 4) - all four gap-analysis items are covered.
 - Task 5 Step 3 flags a real risk: the pre-existing `member-reviews.e2e-spec.ts` performs a `PUT .../reviews/me` without a CSRF header. After Task 2 lands, that call will 403. Fix it by extracting the `heritage_csrf` cookie from the register response the same way `csrf.e2e-spec.ts` does, and passing `.set('x-csrf-token', csrfToken)` on the `PUT`/`POST`/`DELETE` calls in that file (`upsertMyReview`, `likeReview`, `PATCH /auth/me`). This is called out explicitly rather than silently left broken.

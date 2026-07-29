@@ -2,9 +2,9 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Give staff (`ADMIN`/`SUPER_ADMIN`) a way to browse and remove inappropriate public member reviews. Today `SiteReviewsService` only exposes member-scoped read/write/like methods (`apps/api/src/sites/application/site-reviews.service.ts`) — there is no admin-facing list or delete path for content that any signed-up tourist can publish.
+**Goal:** Give staff (`ADMIN`/`SUPER_ADMIN`) a way to browse and remove inappropriate public member reviews. Today `SiteReviewsService` only exposes member-scoped read/write/like methods (`apps/api/src/sites/application/site-reviews.service.ts`) - there is no admin-facing list or delete path for content that any signed-up tourist can publish.
 
-**Architecture:** Extend the existing `SiteReviewsService` (already provided by `SitesModule`) with two admin-facing methods and a new `AdminReviewsController` reusing the `admin/reviews` prefix, guarded the same way `AdminSitesController` is (`JwtAuthGuard` + `RolesGuard` + `@Roles('ADMIN', 'SUPER_ADMIN')` — moderation is not a SuperAdmin-only privilege, unlike user management). On the frontend, a `ReviewsPanel` admin component follows the exact list/paginate/delete-with-confirm shape already established by `UsersPanel` (`apps/web/components/admin/users-panel.tsx`), and a new sidebar link makes it reachable from `AdminShell`.
+**Architecture:** Extend the existing `SiteReviewsService` (already provided by `SitesModule`) with two admin-facing methods and a new `AdminReviewsController` reusing the `admin/reviews` prefix, guarded the same way `AdminSitesController` is (`JwtAuthGuard` + `RolesGuard` + `@Roles('ADMIN', 'SUPER_ADMIN')` - moderation is not a SuperAdmin-only privilege, unlike user management). On the frontend, a `ReviewsPanel` admin component follows the exact list/paginate/delete-with-confirm shape already established by `UsersPanel` (`apps/web/components/admin/users-panel.tsx`), and a new sidebar link makes it reachable from `AdminShell`.
 
 **Tech Stack:** NestJS 11, Prisma 6, Zod 4 (existing), React Query (existing admin panel pattern).
 
@@ -12,7 +12,7 @@
 
 - No em dashes, curly quotes, or other AI punctuation in code, docs, or commits (CLAUDE.md Rule 0).
 - Reuse `components/ui/*` primitives (`ActionButton`, `TextInput`, `ListPagination`) rather than one-off markup, matching CLAUDE.md Rule 1 and the existing `UsersPanel`.
-- Reviews are hard-deleted (no `isHidden` soft-moderation flag) — this matches the project's existing stance that only `Site` needs a soft `isActive` flag (architecture-decisions.md §11); a review has no downstream analytics relation that a hard delete would orphan, unlike a `Site` row's `VisitEvent`/`QRCode` history.
+- Reviews are hard-deleted (no `isHidden` soft-moderation flag) - this matches the project's existing stance that only `Site` needs a soft `isActive` flag (architecture-decisions.md §11); a review has no downstream analytics relation that a hard delete would orphan, unlike a `Site` row's `VisitEvent`/`QRCode` history.
 - After every task, run `pnpm --filter api exec tsc --noEmit -p tsconfig.build.json` in `apps/api` and keep it green (CLAUDE.md Rule 4).
 
 ---
@@ -146,7 +146,7 @@ describe('SiteReviewsService admin moderation', () => {
 - [ ] **Step 2: Run the test to verify it fails**
 
 Run: `pnpm --filter api test -- site-reviews.service.spec.ts`
-Expected: FAIL — `listForAdmin` and `deleteAsAdmin` do not exist yet.
+Expected: FAIL - `listForAdmin` and `deleteAsAdmin` do not exist yet.
 
 - [ ] **Step 3: Implement the two methods**
 
@@ -934,7 +934,7 @@ In `apps/web/messages/ar.json`, add:
 
 and `"reviews": "التعليقات"` next to `"users"` under `"admin.shell"`.
 
-(Use the exact nesting already present for `"admin.users"` and `"admin.shell.users"` in each file as the insertion point — read the surrounding braces before editing so the JSON stays valid.)
+(Use the exact nesting already present for `"admin.users"` and `"admin.shell.users"` in each file as the insertion point - read the surrounding braces before editing so the JSON stays valid.)
 
 - [ ] **Step 5: Manually verify in the browser**
 
@@ -971,6 +971,6 @@ Expected: no errors.
 
 ## Self-review notes
 
-- Spec coverage: admin listing (Task 2/3), admin delete (Task 2/3), reachable admin UI (Task 4) — the full "no admin endpoint to moderate/delete an inappropriate review" gap is closed.
-- `AdminReviewsController` deliberately allows both `ADMIN` and `SUPER_ADMIN` (unlike `AdminUsersController`, which is `SUPER_ADMIN`-only) because content moderation is an editorial task, not an account-management privilege — this mirrors `AdminSitesController`'s own role list.
+- Spec coverage: admin listing (Task 2/3), admin delete (Task 2/3), reachable admin UI (Task 4) - the full "no admin endpoint to moderate/delete an inappropriate review" gap is closed.
+- `AdminReviewsController` deliberately allows both `ADMIN` and `SUPER_ADMIN` (unlike `AdminUsersController`, which is `SUPER_ADMIN`-only) because content moderation is an editorial task, not an account-management privilege - this mirrors `AdminSitesController`'s own role list.
 - The nav-link edit in Task 4 Step 1 is placed so the "Reviews" link shows for every signed-in staff member, while "Users" stays gated behind `isSuperAdmin`, preserving the existing privilege boundary exactly as-is.

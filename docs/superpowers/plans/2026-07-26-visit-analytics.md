@@ -13,8 +13,8 @@
 - No em dashes, curly quotes, or other AI punctuation in code, docs, or commits (CLAUDE.md Rule 0).
 - Reuse `components/ui/*` primitives; status pills use `Badge` + `tone`, never a hand-rolled pill (CLAUDE.md Rule 1 / design-system.md §4).
 - After every task, run `pnpm --filter api exec tsc --noEmit -p tsconfig.build.json` in `apps/api` and keep it green (CLAUDE.md Rule 4).
-- No new charting/analytics dependency — the admin stats view stays a phase-one summary (counts, a day-by-day bar strip built from `<li>` elements, a per-QR-code list), matching architecture-decisions.md §8's explicit "a full analytics dashboard is phase-two" scope.
-- If `apps/api/src/common/security/csrf.guard.ts` already exists (added by the security-hardening plan), the new `POST /public/sites/:slug/visits` handler must be decorated `@SkipCsrf()` — it is an anonymous, unauthenticated write with no CSRF cookie available. Task 2 Step 6 below covers this explicitly.
+- No new charting/analytics dependency - the admin stats view stays a phase-one summary (counts, a day-by-day bar strip built from `<li>` elements, a per-QR-code list), matching architecture-decisions.md §8's explicit "a full analytics dashboard is phase-two" scope.
+- The global `CsrfGuard` (`apps/api/src/common/security/csrf.guard.ts`, merged with the security-hardening plan) rejects every mutating request lacking a matching `x-csrf-token` header, so the new `POST /public/sites/:slug/visits` handler must be decorated `@SkipCsrf()`. It is an anonymous, unauthenticated write by visitors who have no session and therefore no CSRF cookie. Task 2 Step 11 below covers this.
 
 ---
 
@@ -301,7 +301,7 @@ export class VisitEventsService {
 }
 ```
 
-(`getStats`, used by `SiteVisitStats`, is added in Task 3 — the import is included now so Task 3's diff is additive.)
+(`getStats`, used by `SiteVisitStats`, is added in Task 3 - the import is included now so Task 3's diff is additive.)
 
 - [ ] **Step 8: Run the test to verify it passes**
 
@@ -369,9 +369,11 @@ import { VisitsModule } from './visits/visits.module';
 
 and add `VisitsModule` to the end of the `imports` array (after `SitesModule`).
 
-- [ ] **Step 11: Skip CSRF on this route if the CSRF guard already exists**
+- [ ] **Step 11: Skip CSRF on this route (required)**
 
-Check whether `apps/api/src/common/security/csrf.guard.ts` exists (it is added by the security-hardening plan, Task 2). If it does, add the import to `apps/api/src/visits/presentation/visits.controller.ts`:
+The security-hardening plan has since been merged, so a global `CsrfGuard` (`apps/api/src/common/security/csrf.guard.ts`) now rejects every mutating request without a matching `x-csrf-token` header. This visit beacon is an anonymous `POST` fired by visitors who have no session and therefore no CSRF cookie, so it must be exempted or it will 403 in production and in the Step 12 e2e test.
+
+Add the import to `apps/api/src/visits/presentation/visits.controller.ts`:
 
 ```ts
 import { SkipCsrf } from '../../common/security/skip-csrf.decorator';
@@ -385,7 +387,7 @@ and decorate the handler:
   @HttpCode(204)
 ```
 
-If the file does not exist yet, skip this step — there is nothing to exempt from yet, and the security-hardening plan's own Task 2 does not touch this controller (it only exempts `auth.controller.ts`), so revisit this step whenever that plan runs.
+This is safe: the endpoint writes only an anonymous analytics row, takes no user-controlled identifier, and returns no data an attacker could read cross-origin. There is nothing for a forged request to escalate to beyond inflating a visit count.
 
 - [ ] **Step 12: Write the failing e2e test**
 
@@ -516,7 +518,7 @@ This file needs `PrismaService` and `NotFoundException` imported already (both a
 - [ ] **Step 2: Run the test to verify it fails**
 
 Run: `pnpm --filter api test -- visit-events.service.spec.ts`
-Expected: FAIL — `service.getStats` does not exist yet.
+Expected: FAIL - `service.getStats` does not exist yet.
 
 - [ ] **Step 3: Implement `getStats` and `buildDailyCounts`**
 
@@ -526,7 +528,7 @@ In `apps/api/src/visits/application/visit-events.service.ts`, replace the import
 import type { RecordVisitInput, SiteVisitStats } from '@heritage/shared-types';
 ```
 
-with (unchanged — `SiteVisitStats` is already imported), then append these members to the `VisitEventsService` class (after `recordVisit`, still inside the class body, before the closing brace):
+with (unchanged - `SiteVisitStats` is already imported), then append these members to the `VisitEventsService` class (after `recordVisit`, still inside the class body, before the closing brace):
 
 ```ts
 
@@ -1176,6 +1178,6 @@ Expected: no errors.
 
 ## Self-review notes
 
-- Spec coverage: write path (Task 2), admin stats read path (Task 3), frontend beacon (Task 4), admin UI (Task 5) — the full "VisitEvent is schema-only, zero write path, no admin stats view" gap is closed.
+- Spec coverage: write path (Task 2), admin stats read path (Task 3), frontend beacon (Task 4), admin UI (Task 5) - the full "VisitEvent is schema-only, zero write path, no admin stats view" gap is closed.
 - `AdminVisitsController` reuses the `admin/sites` prefix already owned by `AdminSitesController` in `sites.module.ts`; this is intentional (Nest allows multiple controllers across modules to share a path prefix as long as full routes do not collide) and keeps the URL surface `admin/sites/:id/visit-stats` instead of introducing a separate `admin/visits/:siteId` shape.
-- Cross-plan note (see Global Constraints): Task 2 Step 11 makes the CSRF-exemption conditional on whether the security-hardening plan has already run, so this plan stays correct and independently runnable regardless of execution order.
+- Cross-plan note (updated 2026-07-27): the security-hardening plan is now merged, so Task 2 Step 11's CSRF exemption is unconditional and required rather than conditional. The Global Constraints entry above is updated to match.

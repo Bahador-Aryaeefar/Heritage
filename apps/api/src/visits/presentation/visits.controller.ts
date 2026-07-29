@@ -1,5 +1,6 @@
 import { Body, Controller, Get, Headers, HttpCode, Param, Post, UseGuards } from '@nestjs/common';
 import { ApiCookieAuth, ApiTags } from '@nestjs/swagger';
+import { Throttle } from '@nestjs/throttler';
 import { recordVisitSchema } from '@heritage/shared-types';
 import { JwtAuthGuard } from '../../auth/jwt-auth.guard';
 import { Roles } from '../../auth/roles.decorator';
@@ -22,6 +23,11 @@ export class PublicVisitsController {
 
   @Post(':slug/visits')
   @SkipCsrf()
+  // A legitimate client fires at most one beacon per page mount, so a tight cap
+  // costs nothing. This is an unauthenticated insert and the row deliberately
+  // stores no IP (§8), so polluted rows cannot be identified or pruned after
+  // the fact. Every other public write carries an explicit limit too.
+  @Throttle({ default: { limit: 20, ttl: 60_000 } })
   @HttpCode(204)
   @ApiValidationError()
   @ApiResourceNotFound('Site')

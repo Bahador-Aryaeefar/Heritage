@@ -58,3 +58,40 @@ describe('VisitEventsService.recordVisit', () => {
     });
   });
 });
+
+describe('VisitEventsService.getStats', () => {
+  const prisma = {
+    site: { findFirst: jest.fn(), findUnique: jest.fn() },
+    qRCode: { findFirst: jest.fn(), findMany: jest.fn() },
+    visitEvent: { create: jest.fn(), count: jest.fn(), findMany: jest.fn() },
+  };
+
+  let service: VisitEventsService;
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+    service = new VisitEventsService(prisma as unknown as PrismaService);
+  });
+
+  it('throws 404 for a missing site', async () => {
+    prisma.site.findUnique.mockResolvedValue(null);
+    await expect(service.getStats('nope')).rejects.toBeInstanceOf(NotFoundException);
+  });
+
+  it('aggregates totals, source split, and per-QR-code scan counts', async () => {
+    prisma.site.findUnique.mockResolvedValue({ id: 'site1' });
+    prisma.visitEvent.count.mockResolvedValueOnce(12).mockResolvedValueOnce(8).mockResolvedValueOnce(4);
+    prisma.visitEvent.findMany.mockResolvedValue([]);
+    prisma.qRCode.findMany.mockResolvedValue([
+      { code: 'taq-e-bostan-ab12', isActive: true, _count: { visitEvents: 8 } },
+    ]);
+
+    const stats = await service.getStats('site1');
+
+    expect(stats.totalVisits).toBe(12);
+    expect(stats.qrVisits).toBe(8);
+    expect(stats.webVisits).toBe(4);
+    expect(stats.qrCodes).toEqual([{ code: 'taq-e-bostan-ab12', isActive: true, scanCount: 8 }]);
+    expect(stats.last30Days).toHaveLength(31);
+  });
+});

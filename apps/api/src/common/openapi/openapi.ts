@@ -487,6 +487,47 @@ export const ERROR_SCHEMA: SchemaObject = {
   },
 };
 
+export const SITE_VISIT_STATS_EXAMPLE = {
+  totalVisits: 42,
+  qrVisits: 30,
+  webVisits: 12,
+  last30Days: [{ date: '2026-07-25', count: 3 }],
+  qrCodes: [{ code: 'taq-e-bostan-ab12', isActive: true, scanCount: 30 }],
+};
+
+export const SITE_VISIT_STATS_SCHEMA: SchemaObject = {
+  type: 'object',
+  required: ['totalVisits', 'qrVisits', 'webVisits', 'last30Days', 'qrCodes'],
+  properties: {
+    totalVisits: { type: 'integer', minimum: 0, example: 42 },
+    qrVisits: { type: 'integer', minimum: 0, example: 30 },
+    webVisits: { type: 'integer', minimum: 0, example: 12 },
+    last30Days: {
+      type: 'array',
+      items: {
+        type: 'object',
+        required: ['date', 'count'],
+        properties: {
+          date: { type: 'string', example: '2026-07-25' },
+          count: { type: 'integer', minimum: 0, example: 3 },
+        },
+      },
+    },
+    qrCodes: {
+      type: 'array',
+      items: {
+        type: 'object',
+        required: ['code', 'isActive', 'scanCount'],
+        properties: {
+          code: { type: 'string', example: 'taq-e-bostan-ab12' },
+          isActive: { type: 'boolean', example: true },
+          scanCount: { type: 'integer', minimum: 0, example: 30 },
+        },
+      },
+    },
+  },
+};
+
 export function ApiPaginatedResponse(
   summary: string,
   itemSchema: SchemaObject,

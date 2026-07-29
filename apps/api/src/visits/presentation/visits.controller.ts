@@ -1,8 +1,18 @@
-import { Body, Controller, Headers, HttpCode, Param, Post } from '@nestjs/common';
-import { ApiTags } from '@nestjs/swagger';
+import { Body, Controller, Get, Headers, HttpCode, Param, Post, UseGuards } from '@nestjs/common';
+import { ApiCookieAuth, ApiTags } from '@nestjs/swagger';
 import { recordVisitSchema } from '@heritage/shared-types';
+import { JwtAuthGuard } from '../../auth/jwt-auth.guard';
+import { Roles } from '../../auth/roles.decorator';
+import { RolesGuard } from '../../auth/roles.guard';
 import { VisitEventsService } from '../application/visit-events.service';
-import { ApiResourceNotFound, ApiValidationError } from '../../common/openapi/openapi';
+import {
+  ApiJsonOk,
+  ApiProtectedErrors,
+  ApiResourceNotFound,
+  ApiValidationError,
+  SITE_VISIT_STATS_EXAMPLE,
+  SITE_VISIT_STATS_SCHEMA,
+} from '../../common/openapi/openapi';
 import { SkipCsrf } from '../../common/security/skip-csrf.decorator';
 
 @ApiTags('public')
@@ -22,5 +32,22 @@ export class PublicVisitsController {
   ): Promise<void> {
     const input = recordVisitSchema.parse(body);
     await this.visitEventsService.recordVisit(slug, input, userAgent);
+  }
+}
+
+@ApiTags('admin-sites')
+@ApiCookieAuth('heritage_access')
+@Controller('admin/sites')
+@UseGuards(JwtAuthGuard, RolesGuard)
+@Roles('ADMIN', 'SUPER_ADMIN')
+export class AdminVisitsController {
+  constructor(private readonly visitEventsService: VisitEventsService) {}
+
+  @Get(':id/visit-stats')
+  @ApiJsonOk('Get scan and visit statistics for a site', SITE_VISIT_STATS_SCHEMA, SITE_VISIT_STATS_EXAMPLE)
+  @ApiResourceNotFound('Site')
+  @ApiProtectedErrors()
+  getStats(@Param('id') id: string) {
+    return this.visitEventsService.getStats(id);
   }
 }

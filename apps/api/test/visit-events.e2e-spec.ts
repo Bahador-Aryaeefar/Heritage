@@ -44,4 +44,26 @@ describe('Visit tracking (e2e)', () => {
       .send({ source: 'CARRIER_PIGEON', locale: 'fa' })
       .expect(400);
   });
+
+  it('returns visit stats for the seeded Taq-e Bostan site to a logged-in SuperAdmin', async () => {
+    const agent = request.agent(app.getHttpServer());
+    await agent
+      .post('/api/v1/auth/login')
+      .send({ identifier: '09120086846', password: '78801215Dragons*' })
+      .expect(201);
+
+    const listRes = await agent
+      .get('/api/v1/admin/sites?search=taq-e-bostan&limit=1')
+      .expect(200);
+    const siteId = (listRes.body.items as { id: string }[])[0]?.id;
+    expect(siteId).toBeDefined();
+
+    const statsRes = await agent.get(`/api/v1/admin/sites/${siteId}/visit-stats`).expect(200);
+    expect(statsRes.body.totalVisits).toBeGreaterThanOrEqual(1);
+    expect(statsRes.body.last30Days).toHaveLength(31);
+  });
+
+  it('rejects an unauthenticated request to the admin stats endpoint', async () => {
+    await request(app.getHttpServer()).get('/api/v1/admin/sites/some-id/visit-stats').expect(401);
+  });
 });

@@ -84,7 +84,16 @@ export function buildDailyCounts(
   }
   for (const event of events) {
     const key = event.createdAt.toISOString().slice(0, 10);
-    counts.set(key, (counts.get(key) ?? 0) + 1);
+    const existing = counts.get(key);
+    if (existing === undefined) {
+      // Event falls outside the seeded window (e.g. DB clock is ahead of the
+      // app clock and the event landed just past the last seeded day). It is
+      // outside the reported window by definition, so it is dropped rather
+      // than creating an unseeded 32nd bucket. This keeps the series a fixed
+      // length regardless of DB/app clock skew.
+      continue;
+    }
+    counts.set(key, existing + 1);
   }
   return Array.from(counts.entries()).map(([date, count]) => ({ date, count }));
 }

@@ -66,4 +66,35 @@ describe('Visit tracking (e2e)', () => {
   it('rejects an unauthenticated request to the admin stats endpoint', async () => {
     await request(app.getHttpServer()).get('/api/v1/admin/sites/some-id/visit-stats').expect(401);
   });
+
+  it('rejects a logged-in MEMBER (wrong role) from the admin stats endpoint', async () => {
+    const superAdminAgent = request.agent(app.getHttpServer());
+    await superAdminAgent
+      .post('/api/v1/auth/login')
+      .send({ identifier: '09120086846', password: '78801215Dragons*' })
+      .expect(201);
+
+    const listRes = await superAdminAgent
+      .get('/api/v1/admin/sites?search=taq-e-bostan&limit=1')
+      .expect(200);
+    const siteId = (listRes.body.items as { id: string }[])[0]?.id;
+    expect(siteId).toBeDefined();
+
+    const memberAgent = request.agent(app.getHttpServer());
+    const suffix = Date.now();
+    await memberAgent
+      .post('/api/v1/auth/register')
+      .send({
+        displayName: 'Wrong Role Member',
+        email: `visit-stats-member-${suffix}@example.com`,
+        password: 'StrongPassword123!',
+      })
+      .expect(201);
+
+    // GET is a safe method, so CsrfGuard does not apply here: a 403 below
+    // can only come from the Roles guard rejecting the MEMBER role, not
+    // from a missing/mismatched CSRF token. This proves the role check,
+    // not a CSRF false positive.
+    await memberAgent.get(`/api/v1/admin/sites/${siteId}/visit-stats`).expect(403);
+  });
 });

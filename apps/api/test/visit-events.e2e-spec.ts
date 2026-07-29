@@ -4,8 +4,6 @@ import cookieParser from 'cookie-parser';
 import request from 'supertest';
 import { App } from 'supertest/types';
 import { AppModule } from './../src/app.module';
-import { GlobalExceptionFilter } from './../src/common/filters/global-exception.filter';
-import { PrismaExceptionFilter } from './../src/common/filters/prisma-exception.filter';
 
 describe('Visit tracking (e2e)', () => {
   let app: INestApplication<App>;
@@ -19,7 +17,6 @@ describe('Visit tracking (e2e)', () => {
     app.setGlobalPrefix('api');
     app.enableVersioning({ type: VersioningType.URI, defaultVersion: '1' });
     app.use(cookieParser());
-    app.useGlobalFilters(new GlobalExceptionFilter(), new PrismaExceptionFilter());
     await app.init();
   });
 

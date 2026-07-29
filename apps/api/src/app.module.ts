@@ -1,7 +1,7 @@
 import type { ExecutionContext } from '@nestjs/common';
 import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
-import { APP_GUARD } from '@nestjs/core';
+import { APP_FILTER, APP_GUARD } from '@nestjs/core';
 import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 import { ServeStaticModule } from '@nestjs/serve-static';
 import { existsSync } from 'node:fs';
@@ -17,6 +17,8 @@ import { PrismaModule } from './prisma/prisma.module';
 import { SitesModule } from './sites/sites.module';
 import { StorageModule } from './storage/storage.module';
 import { CsrfGuard } from './common/security/csrf.guard';
+import { GlobalExceptionFilter } from './common/filters/global-exception.filter';
+import { PrismaExceptionFilter } from './common/filters/prisma-exception.filter';
 import { VisitsModule } from './visits/visits.module';
 
 @Module({
@@ -83,6 +85,16 @@ import { VisitsModule } from './visits/visits.module';
   providers: [
     { provide: APP_GUARD, useClass: ThrottlerGuard },
     { provide: APP_GUARD, useClass: CsrfGuard },
+    // Registration order matters: Nest looks up global exception filters in
+    // reverse of this order (see RouterExceptionFilters.create, which
+    // reverses the resolved list) and picks the first structural match.
+    // Listing the catch-all before the Prisma-specific filter here means the
+    // effective lookup order is [PrismaExceptionFilter, GlobalExceptionFilter],
+    // so Prisma errors still hit their specific handler before falling
+    // through to the catch-all. This mirrors the argument order previously
+    // passed to app.useGlobalFilters(...) in main.ts.
+    { provide: APP_FILTER, useClass: GlobalExceptionFilter },
+    { provide: APP_FILTER, useClass: PrismaExceptionFilter },
   ],
 })
 export class AppModule {}

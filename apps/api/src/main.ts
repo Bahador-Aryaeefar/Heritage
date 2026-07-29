@@ -7,8 +7,6 @@ import { apiReference } from '@scalar/nestjs-api-reference';
 import cookieParser from 'cookie-parser';
 import type { Request, Response } from 'express';
 import { AppModule } from './app.module';
-import { GlobalExceptionFilter } from './common/filters/global-exception.filter';
-import { PrismaExceptionFilter } from './common/filters/prisma-exception.filter';
 import type { Env } from './config/env';
 
 async function bootstrap(): Promise<void> {
@@ -20,7 +18,9 @@ async function bootstrap(): Promise<void> {
   app.useGlobalPipes(
     new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true, transform: true }),
   );
-  app.useGlobalFilters(new GlobalExceptionFilter(), new PrismaExceptionFilter());
+  // GlobalExceptionFilter and PrismaExceptionFilter are registered as
+  // APP_FILTER providers in AppModule so production and e2e tests (which
+  // build the app from AppModule directly) share one configuration.
 
   const config = app.get(ConfigService<Env, true>);
 

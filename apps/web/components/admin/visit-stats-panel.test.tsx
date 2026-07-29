@@ -89,4 +89,38 @@ describe('VisitStatsPanel', () => {
       expect.anything(),
     );
   });
+
+  it('gives each day of the last-30-days strip an accessible name with date and count', async () => {
+    adminFetchMock.mockResolvedValue({
+      totalVisits: 5,
+      qrVisits: 3,
+      webVisits: 2,
+      last30Days: [
+        { date: '2026-07-01', count: 0 },
+        { date: '2026-07-02', count: 5 },
+      ],
+      qrCodes: [],
+    });
+
+    renderWithClient(<VisitStatsPanel siteId="site-1" labels={labels} />);
+
+    expect(await screen.findByLabelText('2026-07-01: 0')).toBeInTheDocument();
+    expect(screen.getByLabelText('2026-07-02: 5')).toBeInTheDocument();
+    expect(screen.getByRole('list', { name: 'Last 30 days' })).toBeInTheDocument();
+  });
+
+  it('hides the QR codes subsection when there are no QR codes', async () => {
+    adminFetchMock.mockResolvedValue({
+      totalVisits: 0,
+      qrVisits: 0,
+      webVisits: 0,
+      last30Days: [],
+      qrCodes: [],
+    });
+
+    renderWithClient(<VisitStatsPanel siteId="site-1" labels={labels} />);
+
+    await waitFor(() => expect(screen.getAllByText('0').length).toBeGreaterThan(0));
+    expect(screen.queryByText('QR codes')).not.toBeInTheDocument();
+  });
 });

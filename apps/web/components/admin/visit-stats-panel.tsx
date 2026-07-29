@@ -63,44 +63,52 @@ export function VisitStatsPanel({ siteId, labels }: VisitStatsPanelProps) {
           </div>
 
           <div>
-            <h3 className="text-xs font-bold uppercase tracking-wide text-brown-600">
+            <h3 id="admin-visit-stats-last30-heading" className="text-xs font-bold uppercase tracking-wide text-brown-600">
               {labels.last30Days}
             </h3>
-            <ul className="mt-2 flex flex-wrap gap-1">
-              {data.last30Days.map((day) => (
-                <li
-                  key={day.date}
-                  title={`${day.date}: ${day.count}`}
-                  className="h-6 w-2 rounded-sm bg-teal-700"
-                  style={{ opacity: day.count === 0 ? 0.12 : Math.min(1, 0.25 + day.count / 10) }}
-                />
-              ))}
-            </ul>
+            <div className="mt-2 overflow-x-auto">
+              <ul
+                aria-labelledby="admin-visit-stats-last30-heading"
+                className="flex flex-nowrap gap-1"
+              >
+                {data.last30Days.map((day) => (
+                  <li
+                    key={day.date}
+                    title={`${day.date}: ${day.count}`}
+                    aria-label={`${day.date}: ${day.count}`}
+                    className="h-6 w-2 shrink-0 rounded-sm bg-teal-700"
+                    style={{ opacity: day.count === 0 ? 0.12 : Math.min(1, 0.25 + day.count / 10) }}
+                  />
+                ))}
+              </ul>
+            </div>
           </div>
 
-          <div>
-            <h3 className="text-xs font-bold uppercase tracking-wide text-brown-600">
-              {labels.qrCodes}
-            </h3>
-            <ul className="mt-2 space-y-1.5">
-              {data.qrCodes.map((qr) => (
-                <li
-                  key={qr.code}
-                  className="flex items-center justify-between rounded-button border border-brown-800/10 bg-sand-50 px-3 py-2 text-[15px]"
-                >
-                  <span dir="ltr" className="truncate text-brown-800">
-                    {qr.code}
-                  </span>
-                  <span className="flex items-center gap-2 text-brown-600">
-                    {qr.scanCount}
-                    <Badge tone={qr.isActive ? 'default' : 'muted'}>
-                      {qr.isActive ? labels.active : labels.inactive}
-                    </Badge>
-                  </span>
-                </li>
-              ))}
-            </ul>
-          </div>
+          {data.qrCodes.length > 0 ? (
+            <div>
+              <h3 className="text-xs font-bold uppercase tracking-wide text-brown-600">
+                {labels.qrCodes}
+              </h3>
+              <ul className="mt-2 space-y-1.5">
+                {data.qrCodes.map((qr) => (
+                  <li
+                    key={qr.code}
+                    className="flex items-center justify-between rounded-button border border-brown-800/10 bg-sand-50 px-3 py-2 text-[15px]"
+                  >
+                    <span dir="ltr" className="truncate text-brown-800">
+                      {qr.code}
+                    </span>
+                    <span className="flex items-center gap-2 text-brown-600">
+                      {qr.scanCount}
+                      <Badge tone={qr.isActive ? 'default' : 'muted'}>
+                        {qr.isActive ? labels.active : labels.inactive}
+                      </Badge>
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ) : null}
         </div>
       ) : null}
     </section>

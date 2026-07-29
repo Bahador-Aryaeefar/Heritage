@@ -34,8 +34,8 @@ export function VisitTracker({ slug, locale }: VisitTrackerProps) {
     const url = `/api/v1/public/sites/${encodeURIComponent(slug)}/visits`;
 
     if (typeof navigator.sendBeacon === 'function') {
-      navigator.sendBeacon(url, new Blob([body], { type: 'application/json' }));
-      return;
+      const queued = navigator.sendBeacon(url, new Blob([body], { type: 'application/json' }));
+      if (queued) return;
     }
 
     void fetch(url, {

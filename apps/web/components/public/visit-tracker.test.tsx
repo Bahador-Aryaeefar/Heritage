@@ -56,6 +56,24 @@ describe('VisitTracker', () => {
     expect(JSON.parse(init.body as string)).toEqual({ source: 'WEB', locale: 'fa' });
   });
 
+  it('falls back to keepalive fetch when sendBeacon returns false (queue full)', () => {
+    const sendBeacon = vi.fn().mockReturnValue(false);
+    vi.stubGlobal('navigator', { ...navigator, sendBeacon });
+    const fetchMock = vi.fn().mockResolvedValue(new Response(null, { status: 204 }));
+    vi.stubGlobal('fetch', fetchMock);
+    window.history.pushState({}, '', '/sites/taq-e-bostan');
+
+    render(<VisitTracker slug="taq-e-bostan" locale="fa" />);
+
+    expect(sendBeacon).toHaveBeenCalledTimes(1);
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    const [url, init] = fetchMock.mock.calls[0] as [string, RequestInit];
+    expect(url).toBe('/api/v1/public/sites/taq-e-bostan/visits');
+    expect(init.method).toBe('POST');
+    expect(init.keepalive).toBe(true);
+    expect(JSON.parse(init.body as string)).toEqual({ source: 'WEB', locale: 'fa' });
+  });
+
   it('fires exactly one beacon under React StrictMode double-effect mounting', () => {
     const sendBeacon = vi.fn().mockReturnValue(true);
     vi.stubGlobal('navigator', { ...navigator, sendBeacon });

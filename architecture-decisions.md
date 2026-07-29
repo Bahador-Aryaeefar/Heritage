@@ -267,7 +267,7 @@ Phase 2 backend: full domain schema, flexible site pages, public read APIs, loca
 | Public API | `GET /api/v1/public/landing`, `GET /api/v1/public/sites/:slug` | Read-only; inactive sites → 404 |
 | Shared contracts | Zod schemas in `@heritage/shared-types` (`siteCardSchema`, `siteDetailSchema`, `contentBlockSchema`) | Web can wire pages later without redesign |
 | Seed | Idempotent Prisma seed: Kermanshah geography + Taq-e Bostan with demo blocks + cover + QR; cover/detail photos fetched from Wikimedia Commons at seed time (placeholder fallback) | Real imagery in API uploads without committing binaries to git |
-| Deferred | VisitEvent writes, content-block admin editor | Explicit scope cut for later phases |
+| Deferred | VisitEvent writes, content-block admin editor | Explicit scope cut for later phases; **VisitEvent writes shipped 2026-07-29, see section 26** |
 
 Field-level reference: [`heritage-schema-map.md`](./heritage-schema-map.md).
 
@@ -454,6 +454,19 @@ These were raised by review, understood, and accepted for this threat model (sin
 | Bypassing throttling from inside the docker network | A request that reaches the API without `X-Forwarded-For` (e.g. a process with shell access on the VPS host, or inside the `heritage` docker network) skips the `default` throttler entirely, including its per-route `@Throttle` override on auth/write routes, since `skipIf` is evaluated per named throttler regardless of route decoration | Requires already having host or container-network access, a bigger compromise than rate limiting defends against. The API port is bound to `127.0.0.1` only (`docker-compose.prod.yml`); the only externally reachable path is through Caddy, which always sets `X-Forwarded-For` |
 
 Fixed 2026-07-29 (whole-branch review): `trust proxy` is now configured (see §25 above); test coverage added for an admin-route CSRF rejection in `apps/api/test/csrf.e2e-spec.ts`.
+
+## 26. VisitEvent write path: POST /public/sites/:slug/visits (2026-07-29)
+
+First write path for `VisitEvent` (the model existed since phase 2, §14, but nothing ever created a row). Part of the visit-analytics plan's Task 2.
+
+| Decision | Detail | Reason |
+|---|---|---|
+| Module layout | New `visits` feature module: `apps/api/src/visits/application/{device-type.ts, visit-events.service.ts}` + `presentation/visits.controller.ts` + `visits.module.ts`, registered in `AppModule` after `SitesModule` | Matches §11's `application/` + `presentation/` split per feature module |
+| Endpoint | `POST /public/sites/:slug/visits`, body `{ source: 'QR' \| 'WEB', locale }` validated by `recordVisitSchema` (`@heritage/shared-types`, Task 1), `204` on success, `404` for a missing or inactive site | Anonymous analytics beacon; no response body needed |
+| QR code attribution | When `source === 'QR'`, looks up the site's active `QRCode` and attaches its id; `WEB`-sourced visits leave `qrCodeId` undefined without querying `QRCode` at all | One QR code (installed plaque) per site in this phase; avoids an unnecessary query on organic web traffic |
+| Device type | `parseDeviceType(userAgent)` does a coarse regex classification (`tablet` \| `mobile` \| `desktop` \| `undefined` when no user agent header is present) | "Optionally coarse device type" per §7; no full UA-parsing dependency needed for three buckets |
+| CSRF exemption | Route is `@SkipCsrf()` | The visitor firing this beacon has no session and therefore no `heritage_csrf` cookie (§25); the endpoint only writes an anonymous analytics row and returns no data, so there is nothing for a forged cross-origin request to escalate to beyond inflating a visit count |
+| e2e test filter wiring | `apps/api/test/visit-events.e2e-spec.ts` explicitly calls `app.useGlobalFilters(new GlobalExceptionFilter(), new PrismaExceptionFilter())` in its `beforeAll`, mirroring `main.ts`'s bootstrap | `Test.createTestingModule(...).createNestApplication()` does not pick up `main.ts`'s manual `useGlobalFilters` call, so a thrown `ZodError` from `recordVisitSchema.parse()` in the controller surfaced as an uncaught 500 instead of the intended 400 until the filters were wired into the test itself |
 
 ## Open questions
 

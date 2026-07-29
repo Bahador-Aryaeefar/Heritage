@@ -17,6 +17,7 @@ import { PrismaModule } from './prisma/prisma.module';
 import { SitesModule } from './sites/sites.module';
 import { StorageModule } from './storage/storage.module';
 import { CsrfGuard } from './common/security/csrf.guard';
+import { VisitsModule } from './visits/visits.module';
 
 @Module({
   imports: [
@@ -77,6 +78,7 @@ import { CsrfGuard } from './common/security/csrf.guard';
     HealthModule,
     AuthModule,
     SitesModule,
+    VisitsModule,
   ],
   providers: [
     { provide: APP_GUARD, useClass: ThrottlerGuard },
